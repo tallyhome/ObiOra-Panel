@@ -4,9 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
-## v1.8.3 - 2026-07-06
+## [1.8.4] - 2026-07-07
 
-Corrige git clone Permission denied lors de la reinstallation. Le clone se fait en root puis chown obiora.
+### Corrigé
+
+- **composer: command not found** : `setup_laravel` préserve désormais le `PATH` (incluant `/usr/local/bin`) lors des commandes exécutées via `sudo -u obiora` — corrige l'échec sur AlmaLinux/RHEL (secure_path)
+- **Installation sur `main`** : `OBIORA_TAG` vide par défaut — évite le warning `is not a commit` et l'état `detached HEAD` liés aux tags annotés
 
 ## [1.8.3] - 2026-07-07
 

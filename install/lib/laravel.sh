@@ -66,22 +66,26 @@ setup_laravel() {
     chown -R "${OBIORA_USER}:${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}"
 
     # Composer & NPM
-    sudo -u "${OBIORA_USER}" composer install --no-dev --optimize-autoloader --no-interaction
-    sudo -u "${OBIORA_USER}" php artisan key:generate --force
-    sudo -u "${OBIORA_USER}" npm ci --ignore-scripts 2>/dev/null || sudo -u "${OBIORA_USER}" npm install
-    sudo -u "${OBIORA_USER}" npm run build
+    # sudo réinitialise le PATH via secure_path (souvent sans /usr/local/bin sur
+    # RHEL/AlmaLinux), d'où "composer: command not found". On préserve le PATH.
+    local run_as="sudo -u ${OBIORA_USER} env PATH=/usr/local/bin:/usr/bin:/bin:${PATH}"
+
+    ${run_as} composer install --no-dev --optimize-autoloader --no-interaction
+    ${run_as} php artisan key:generate --force
+    ${run_as} npm ci --ignore-scripts 2>/dev/null || ${run_as} npm install
+    ${run_as} npm run build
 
     # Migrations
-    sudo -u "${OBIORA_USER}" php artisan migrate --force
-    sudo -u "${OBIORA_USER}" php artisan db:seed --force
+    ${run_as} php artisan migrate --force
+    ${run_as} php artisan db:seed --force
 
     # Permissions storage
     chmod -R 775 storage bootstrap/cache
     chown -R "${OBIORA_USER}:www-data" storage bootstrap/cache 2>/dev/null || \
     chown -R "${OBIORA_USER}:nginx" storage bootstrap/cache
 
-    sudo -u "${OBIORA_USER}" php artisan storage:link 2>/dev/null || true
-    sudo -u "${OBIORA_USER}" php artisan optimize
+    ${run_as} php artisan storage:link 2>/dev/null || true
+    ${run_as} php artisan optimize
 
     setup_agent_config
 
