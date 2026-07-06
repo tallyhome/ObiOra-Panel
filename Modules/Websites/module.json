@@ -11,6 +11,6 @@
   "routes": true,
   "slug": "websites",
   "name": "Websites",
-  "default_enabled": false,
+  "default_enabled": true,
   "version": "1.0.0"
 }

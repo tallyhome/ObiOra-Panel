@@ -49,4 +49,9 @@ class Server extends Model
     {
         return $this->hasOne(ServerNode::class)->where('is_primary', true);
     }
+
+    public function websites(): HasMany
+    {
+        return $this->hasMany(Website::class);
+    }
 }

@@ -35,4 +35,10 @@ Route::middleware(['setup', 'auth', 'server'])->group(function () {
     });
 
     Route::get('/services', \Modules\Services\Livewire\ServiceList::class)->name('services.index');
+
+    Route::prefix('websites')->name('websites.')->group(function () {
+        Route::get('/', \Modules\Websites\Livewire\WebsiteList::class)->name('index');
+        Route::get('/create', \Modules\Websites\Livewire\WebsiteCreate::class)->name('create');
+        Route::get('/{website}', \Modules\Websites\Livewire\WebsiteShow::class)->name('show');
+    });
 });

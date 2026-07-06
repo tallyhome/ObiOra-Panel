@@ -11,6 +11,8 @@ $config = file_exists($configPath)
     ? json_decode((string) file_get_contents($configPath), true, 512, JSON_THROW_ON_ERROR)
     : [];
 
+require_once dirname(__DIR__).'/lib/websites.php';
+
 $token = $config['token'] ?? getenv('OBIORA_AGENT_TOKEN') ?: '';
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
@@ -45,6 +47,10 @@ match (true) {
         (string) ($body['action'] ?? '')
     )),
     $method === 'POST' && $uri === '/api/v1/execute' => respond(executeCommand((string) ($body['command'] ?? ''))),
+    $method === 'GET' && $uri === '/api/v1/websites' => respond(['data' => agentListWebsites((string) ($_GET['web_root'] ?? '/var/www'))]),
+    $method === 'POST' && $uri === '/api/v1/websites' => respond(agentCreateWebsite($body)),
+    $method === 'DELETE' && $uri === '/api/v1/websites' => respond(agentDeleteWebsite($body)),
+    $method === 'POST' && $uri === '/api/v1/websites/ssl' => respond(agentIssueSsl($body)),
     default => abort404(),
 };
 
@@ -69,7 +75,7 @@ function pingInfo(): array
     return [
         'status' => 'ok',
         'agent' => 'obiOra',
-        'version' => '1.3.0',
+        'version' => '1.4.0',
         'role' => 'slave',
         'hostname' => gethostname() ?: 'unknown',
         'ip' => getServerIp(),

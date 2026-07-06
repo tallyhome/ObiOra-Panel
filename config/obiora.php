@@ -6,7 +6,7 @@ return [
 
     'name' => env('OBIORA_NAME', 'ObiOra Panel'),
 
-    'version' => '1.3.0',
+    'version' => '1.4.0',
 
     'installation_uuid' => env('OBIORA_INSTALLATION_UUID'),
 
@@ -35,6 +35,12 @@ return [
         'name' => 'Local Server',
         'type' => 'local',
         'is_master' => true,
+    ],
+
+    'websites' => [
+        'web_root' => env('OBIORA_WEB_ROOT', '/var/www'),
+        'php_versions' => ['8.1', '8.2', '8.3', '8.4'],
+        'default_php' => '8.3',
     ],
 
 ];

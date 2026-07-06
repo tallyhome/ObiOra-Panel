@@ -14,6 +14,9 @@
         <a href="{{ route('services.index') }}" class="nav-link text-white {{ request()->routeIs('services.*') ? 'active bg-primary rounded' : '' }}">
             Services
         </a>
+        <a href="{{ route('websites.index') }}" class="nav-link text-white {{ request()->routeIs('websites.*') ? 'active bg-primary rounded' : '' }}">
+            Sites web
+        </a>
     </nav>
 
     <div class="mt-auto pt-4 small text-secondary">
