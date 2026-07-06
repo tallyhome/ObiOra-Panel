@@ -1,0 +1,12 @@
+{
+    "slug": "librespeed",
+    "name": "LibreSpeed",
+    "description": "Test de débit réseau self-hosted.",
+    "version": "1.0.0",
+    "category": "monitoring",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

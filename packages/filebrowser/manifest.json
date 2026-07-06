@@ -1,0 +1,12 @@
+{
+    "slug": "filebrowser",
+    "name": "File Browser",
+    "description": "Gestionnaire de fichiers web.",
+    "version": "1.0.0",
+    "category": "cloud",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

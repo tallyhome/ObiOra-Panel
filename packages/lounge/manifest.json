@@ -1,0 +1,12 @@
+{
+    "slug": "lounge",
+    "name": "Subsonic Lounge",
+    "description": "Interface web pour Subsonic\/Airsonic.",
+    "version": "1.0.0",
+    "category": "media",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

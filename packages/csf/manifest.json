@@ -1,0 +1,12 @@
+{
+    "slug": "csf",
+    "name": "CSF Firewall",
+    "description": "ConfigServer Security & Firewall.",
+    "version": "1.0.0",
+    "category": "system",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

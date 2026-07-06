@@ -1,0 +1,12 @@
+{
+    "slug": "xmrig",
+    "name": "XMRig",
+    "description": "Mineur Monero (CPU\/GPU) — usage à vos risques.",
+    "version": "1.0.0",
+    "category": "tools",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

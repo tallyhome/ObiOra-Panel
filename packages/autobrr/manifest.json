@@ -1,0 +1,12 @@
+{
+    "slug": "autobrr",
+    "name": "Autobrr",
+    "description": "Automatisation IRC\/RSS pour torrents.",
+    "version": "1.0.0",
+    "category": "download",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

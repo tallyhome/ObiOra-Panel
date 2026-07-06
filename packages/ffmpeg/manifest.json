@@ -1,0 +1,12 @@
+{
+    "slug": "ffmpeg",
+    "name": "FFmpeg",
+    "description": "Encodage et transcodage vidéo\/audio.",
+    "version": "1.0.0",
+    "category": "system",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

@@ -1,0 +1,12 @@
+{
+    "slug": "plexpy",
+    "name": "Tautulli (PlexPy)",
+    "description": "Statistiques et monitoring Plex (ancien PlexPy).",
+    "version": "1.0.0",
+    "category": "media",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

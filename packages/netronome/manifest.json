@@ -1,0 +1,12 @@
+{
+    "slug": "netronome",
+    "name": "Netronome",
+    "description": "Monitoring réseau (Swizzin legacy).",
+    "version": "1.0.0",
+    "category": "monitoring",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

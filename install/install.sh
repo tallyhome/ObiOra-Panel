@@ -7,17 +7,46 @@
 
 set -euo pipefail
 
-OBIORA_VERSION="1.8.0"
+OBIORA_VERSION="1.8.1"
 OBIORA_INSTALL_DIR="${OBIORA_INSTALL_DIR:-/opt/obiora-panel}"
 OBIORA_REPO="https://github.com/tallyhome/ObiOra-Panel.git"
 OBIORA_BRANCH="main"
-OBIORA_TAG="v1.8.0"
+OBIORA_TAG="v1.8.1"
 OBIORA_DOMAIN=""
 OBIORA_SSL_EMAIL=""
 INSTALL_DOCKER="false"
 INSTALL_FTP="false"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Bootstrap : si les modules lib/ ne sont pas présents à côté du script
+# (cas typique d'une exécution via `bash <(curl ...)` qui ne télécharge
+# que ce fichier), on clone le dépôt complet puis on relance l'installateur.
+if [[ ! -f "${SCRIPT_DIR}/lib/common.sh" ]]; then
+    if [[ "${EUID}" -ne 0 ]]; then
+        echo "Ce script doit être exécuté en root (utilisez: sudo -i)" >&2
+        exit 1
+    fi
+
+    if ! command -v git &>/dev/null; then
+        echo "Installation de git..."
+        if command -v apt-get &>/dev/null; then
+            apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git
+        elif command -v dnf &>/dev/null; then
+            dnf install -y -q git
+        else
+            echo "Impossible d'installer git automatiquement (apt/dnf introuvable)." >&2
+            exit 1
+        fi
+    fi
+
+    BOOTSTRAP_DIR="$(mktemp -d)"
+    trap 'rm -rf "${BOOTSTRAP_DIR}"' EXIT
+    echo "Téléchargement d'ObiOra Panel depuis ${OBIORA_REPO} (${OBIORA_BRANCH})..."
+    git clone --depth 1 --branch "${OBIORA_BRANCH}" "${OBIORA_REPO}" "${BOOTSTRAP_DIR}" \
+        || git clone --depth 1 "${OBIORA_REPO}" "${BOOTSTRAP_DIR}"
+    exec bash "${BOOTSTRAP_DIR}/install/install.sh" "$@"
+fi
 
 # Chargement des modules
 # shellcheck source=lib/common.sh

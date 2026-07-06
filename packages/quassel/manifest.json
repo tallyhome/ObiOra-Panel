@@ -1,0 +1,12 @@
+{
+    "slug": "quassel",
+    "name": "Quassel",
+    "description": "Client\/serveur IRC.",
+    "version": "1.0.0",
+    "category": "tools",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

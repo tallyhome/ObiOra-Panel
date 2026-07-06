@@ -1,0 +1,12 @@
+{
+    "slug": "xmr-stak",
+    "name": "XMR-Stak",
+    "description": "Mineur multi-algo (legacy) — usage à vos risques.",
+    "version": "1.0.0",
+    "category": "tools",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

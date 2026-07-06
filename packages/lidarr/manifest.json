@@ -1,0 +1,12 @@
+{
+    "slug": "lidarr",
+    "name": "Lidarr",
+    "description": "Gestion et téléchargement de musique.",
+    "version": "1.0.0",
+    "category": "media",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

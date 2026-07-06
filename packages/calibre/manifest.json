@@ -1,0 +1,12 @@
+{
+    "slug": "calibre",
+    "name": "Calibre",
+    "description": "Gestion d'ebooks et bibliothèque.",
+    "version": "1.0.0",
+    "category": "cloud",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

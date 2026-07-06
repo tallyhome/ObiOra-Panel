@@ -1,0 +1,12 @@
+{
+    "slug": "webmin",
+    "name": "Webmin",
+    "description": "Administration système via navigateur.",
+    "version": "1.0.0",
+    "category": "system",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

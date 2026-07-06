@@ -1,0 +1,12 @@
+{
+    "slug": "shellinabox",
+    "name": "Shell In A Box",
+    "description": "Terminal web via HTTPS.",
+    "version": "1.0.0",
+    "category": "system",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

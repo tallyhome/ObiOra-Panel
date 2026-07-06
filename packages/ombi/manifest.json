@@ -1,0 +1,12 @@
+{
+    "slug": "ombi",
+    "name": "Ombi",
+    "description": "Demandes de médias pour Plex\/Emby\/Jellyfin.",
+    "version": "1.0.0",
+    "category": "media",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

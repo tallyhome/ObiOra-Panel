@@ -1,0 +1,12 @@
+{
+    "slug": "bazarr",
+    "name": "Bazarr",
+    "description": "Gestion des sous-titres pour Sonarr\/Radarr.",
+    "version": "1.0.0",
+    "category": "media",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

@@ -1,0 +1,12 @@
+{
+    "slug": "rapidleech",
+    "name": "RapidLeech",
+    "description": "Gestionnaire de liens premium (legacy).",
+    "version": "1.0.0",
+    "category": "download",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

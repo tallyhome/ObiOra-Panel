@@ -1,0 +1,12 @@
+{
+    "slug": "radarr",
+    "name": "Radarr",
+    "description": "Gestion et téléchargement de films.",
+    "version": "1.0.0",
+    "category": "media",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

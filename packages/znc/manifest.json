@@ -1,0 +1,12 @@
+{
+    "slug": "znc",
+    "name": "ZNC",
+    "description": "Bouncer IRC persistant.",
+    "version": "1.0.0",
+    "category": "tools",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

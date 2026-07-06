@@ -1,0 +1,12 @@
+{
+    "slug": "x2go",
+    "name": "X2Go",
+    "description": "Bureau à distance Linux.",
+    "version": "1.0.0",
+    "category": "system",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

@@ -1,0 +1,12 @@
+{
+    "slug": "wireguard",
+    "name": "WireGuard",
+    "description": "VPN moderne et performant.",
+    "version": "1.0.0",
+    "category": "network",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

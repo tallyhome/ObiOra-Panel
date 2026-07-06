@@ -4,16 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
-## v1.8.0 - 2026-07-06
+## [1.8.1] - 2026-07-06
 
-### Phase 9 — Marketplace / Plugins
+### Catalogue Swizzin + correctif installateur
 
 #### Ajouté
 
-- Marketplace `/plugins` — installation apps en un clic depuis le dashboard
-- Catalogue extensible `packages/` (style Swizzin, réécriture propriétaire)
-- Apps initiales : Netdata, Jellyfin, Plex, Sonarr, qBittorrent
-- `ApplicationCatalog`, `ApplicationManager`, API agent
+- **68 applications** marketplace (catalogue complet Swizzin, scripts ObiOra réécrits)
+- Générateur `tools/generate-packages.php` + `tools/swizzin-apps.php`
+- Helper Docker partagé `packages/_lib/docker.sh`
+- Catégories : cloud, system, network, tools
+
+#### Corrigé
+
+- **Bootstrap install.sh** : le one-liner `bash <(curl ...)` clone désormais le dépôt complet avant d'installer (corrige l'erreur `/dev/fd/lib/common.sh`)
 
 ## [1.8.0] - 2026-07-06
 
@@ -21,8 +25,8 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
 #### Ajouté
 
-- Marketplace `/plugins` — installation apps en un clic
-- Catalogue `packages/` extensible (manifest.json + scripts shell)
+- Marketplace `/plugins` — installation apps en un clic depuis le dashboard
+- Catalogue extensible `packages/` (style Swizzin, réécriture propriétaire)
 - Apps initiales : Netdata, Jellyfin, Plex, Sonarr, qBittorrent
 - `ApplicationCatalog`, `ApplicationManager`, table `installed_applications`
 - API agent : `/api/v1/applications/install` et `uninstall`

@@ -1,0 +1,12 @@
+{
+    "slug": "mango",
+    "name": "Mango",
+    "description": "Lecteur de mangas self-hosted.",
+    "version": "1.0.0",
+    "category": "cloud",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

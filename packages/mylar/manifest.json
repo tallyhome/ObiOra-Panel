@@ -1,0 +1,12 @@
+{
+    "slug": "mylar",
+    "name": "Mylar3",
+    "description": "Gestionnaire de bandes dessinées.",
+    "version": "1.0.0",
+    "category": "media",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

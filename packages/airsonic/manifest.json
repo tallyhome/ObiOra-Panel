@@ -1,0 +1,12 @@
+{
+    "slug": "airsonic",
+    "name": "Airsonic",
+    "description": "Serveur de streaming musical (fork Subsonic).",
+    "version": "1.0.0",
+    "category": "media",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

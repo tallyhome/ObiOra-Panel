@@ -1,0 +1,12 @@
+{
+    "slug": "rtorrent",
+    "name": "rTorrent",
+    "description": "Client BitTorrent en ligne de commande.",
+    "version": "1.0.0",
+    "category": "download",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

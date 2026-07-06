@@ -27,6 +27,7 @@ final class ApplicationCatalog
         }
 
         return collect(File::directories($path))
+            ->filter(fn (string $dir) => ! str_starts_with(basename($dir), '_'))
             ->filter(fn (string $dir) => File::exists($dir.DIRECTORY_SEPARATOR.'manifest.json'))
             ->map(function (string $dir) {
                 $manifest = $this->manifestParser->parseApplication($dir);

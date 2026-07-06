@@ -1,0 +1,12 @@
+{
+    "slug": "flood",
+    "name": "Flood",
+    "description": "Interface web pour rTorrent.",
+    "version": "1.0.0",
+    "category": "download",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

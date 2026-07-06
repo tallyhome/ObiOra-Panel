@@ -1,0 +1,12 @@
+{
+    "slug": "sabnzbd",
+    "name": "SABnzbd",
+    "description": "Client Usenet avec interface web.",
+    "version": "1.0.0",
+    "category": "download",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

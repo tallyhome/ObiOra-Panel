@@ -1,0 +1,12 @@
+{
+    "slug": "autodl",
+    "name": "AutoDL-iRC",
+    "description": "Plugin auto-download IRC pour rTorrent.",
+    "version": "1.0.0",
+    "category": "download",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

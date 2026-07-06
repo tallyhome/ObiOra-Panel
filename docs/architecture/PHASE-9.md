@@ -1,31 +1,46 @@
-# ObiOra Panel — Phase 9 : Marketplace / Plugins (v1.8.0)
+# ObiOra Panel — Phase 9 : Marketplace / Plugins (v1.8.0+)
 
 ## Concept (inspiré Swizzin)
 
 Chaque application = dossier `packages/{slug}/` :
 
 ```
-packages/netdata/
+packages/radarr/
 ├── manifest.json
 ├── install.sh
 └── uninstall.sh
 ```
 
-Installation en un clic depuis le dashboard — **sans** recopier les 100 scripts Swizzin (licence GPL).
+Installation en un clic depuis le dashboard (`/plugins`).
 
-## Route
+## Catalogue Swizzin (v1.8.1)
 
-`/plugins` — Marketplace
+**68 applications** couvrant le catalogue [swizzin/swizzin](https://github.com/swizzin/swizzin) :
 
-## Catalogue initial (v1.8.0)
+- Scripts **réécrits** pour ObiOra (Docker LinuxServer, APT, curl officiel)
+- **Sans copie** du code GPL Swizzin — métadonnées et slugs alignés sur leur dépôt
+- 5 apps natives conservées : Netdata, Jellyfin, Plex, Sonarr, qBittorrent
 
-| App | Catégorie | Méthode |
-|---|---|---|
-| Netdata | monitoring | script officiel |
-| Jellyfin | media | dépôt APT |
-| Plex | media | Docker |
-| Sonarr | media | Docker |
-| qBittorrent | download | Docker |
+### Génération
+
+```bash
+php tools/generate-packages.php
+```
+
+Définitions : `tools/swizzin-apps.php`  
+Helper partagé : `packages/_lib/docker.sh`
+
+### Catégories
+
+| Catégorie | Exemples |
+|---|---|
+| media | Radarr, Lidarr, Bazarr, Emby, Tautulli |
+| download | Deluge, Transmission, Jackett, Prowlarr |
+| cloud | Nextcloud, Calibre-Web, File Browser |
+| monitoring | Netdata, LibreSpeed |
+| system | Nginx, FFmpeg, Webmin, WireGuard |
+| network | WireGuard |
+| tools | ZNC, Quassel |
 
 ## Architecture
 
@@ -36,6 +51,6 @@ Installation en un clic depuis le dashboard — **sans** recopier les 100 script
 
 ## Ajouter une app
 
-1. Créer `packages/mon-app/manifest.json`
-2. Ajouter `install.sh` et `uninstall.sh`
+1. Ajouter une entrée dans `tools/swizzin-apps.php` (ou créer manuellement)
+2. Lancer `php tools/generate-packages.php` ou créer `packages/mon-app/` à la main
 3. L'app apparaît automatiquement dans le marketplace

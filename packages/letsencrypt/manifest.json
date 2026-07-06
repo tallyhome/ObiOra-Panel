@@ -1,0 +1,12 @@
+{
+    "slug": "letsencrypt",
+    "name": "Let's Encrypt",
+    "description": "Certificats SSL — utilisez le module Sites ObiOra.",
+    "version": "1.0.0",
+    "category": "system",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

@@ -1,0 +1,12 @@
+{
+    "slug": "vsftpd",
+    "name": "vsftpd",
+    "description": "Serveur FTP sécurisé.",
+    "version": "1.0.0",
+    "category": "system",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

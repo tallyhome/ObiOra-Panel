@@ -1,0 +1,12 @@
+{
+    "slug": "nextcloud",
+    "name": "Nextcloud",
+    "description": "Suite bureautique et cloud privé.",
+    "version": "1.0.0",
+    "category": "cloud",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

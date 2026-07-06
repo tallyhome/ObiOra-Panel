@@ -1,0 +1,12 @@
+{
+    "slug": "quota",
+    "name": "Quotas disque",
+    "description": "Quotas utilisateurs sur le système de fichiers.",
+    "version": "1.0.0",
+    "category": "system",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

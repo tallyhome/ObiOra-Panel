@@ -1,0 +1,12 @@
+{
+    "slug": "calibreweb",
+    "name": "Calibre-Web",
+    "description": "Interface web pour bibliothèques Calibre.",
+    "version": "1.0.0",
+    "category": "cloud",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

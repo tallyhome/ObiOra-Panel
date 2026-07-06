@@ -30,6 +30,8 @@ final class PluginTest extends TestCase
 
         $this->assertContains('netdata', $slugs);
         $this->assertContains('jellyfin', $slugs);
-        $this->assertGreaterThanOrEqual(5, count($slugs));
+        $this->assertContains('radarr', $slugs);
+        $this->assertContains('prowlarr', $slugs);
+        $this->assertGreaterThanOrEqual(68, count($slugs));
     }
 }

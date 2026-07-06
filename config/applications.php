@@ -10,6 +10,10 @@ return [
         'monitoring' => 'Monitoring',
         'media' => 'Média',
         'download' => 'Téléchargement',
+        'cloud' => 'Cloud & fichiers',
+        'system' => 'Système',
+        'network' => 'Réseau',
+        'tools' => 'Outils',
         'dev' => 'Développement',
     ],
 

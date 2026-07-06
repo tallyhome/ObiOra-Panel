@@ -1,0 +1,12 @@
+{
+    "slug": "readarr",
+    "name": "Readarr",
+    "description": "Gestion et téléchargement de livres\/ebooks.",
+    "version": "1.0.0",
+    "category": "media",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

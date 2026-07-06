@@ -1,0 +1,12 @@
+{
+    "slug": "nzbhydra",
+    "name": "NZBHydra2",
+    "description": "Méta-moteur de recherche Usenet.",
+    "version": "1.0.0",
+    "category": "download",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

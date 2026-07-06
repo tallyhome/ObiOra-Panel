@@ -1,0 +1,12 @@
+{
+    "slug": "qui",
+    "name": "qui",
+    "description": "Interface web pour qBittorrent.",
+    "version": "1.0.0",
+    "category": "download",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}

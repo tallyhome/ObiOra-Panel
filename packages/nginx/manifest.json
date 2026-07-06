@@ -1,0 +1,12 @@
+{
+    "slug": "nginx",
+    "name": "Nginx",
+    "description": "Serveur web — géré par ObiOra (module Sites).",
+    "version": "1.0.0",
+    "category": "system",
+    "source": "swizzin-catalog",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    }
+}
