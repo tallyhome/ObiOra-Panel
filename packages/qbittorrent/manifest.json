@@ -1,0 +1,11 @@
+{
+  "slug": "qbittorrent",
+  "name": "qBittorrent",
+  "description": "Client BitTorrent avec interface web (Docker).",
+  "version": "1.0.0",
+  "category": "download",
+  "scripts": {
+    "install": "install.sh",
+    "uninstall": "uninstall.sh"
+  }
+}

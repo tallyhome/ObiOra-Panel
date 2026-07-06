@@ -4,18 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
-## v1.7.0 - 2026-07-06
+## [1.8.0] - 2026-07-06
 
-### Phase 8 — Sauvegardes
+### Phase 9 — Marketplace / Plugins
 
 #### Ajouté
 
-- Module Backup : création, liste, détail, suppression
-- Types : base de données, fichiers, complète
-- Restauration SQL pour dumps `.sql.gz`
-- `BackupManager` et `BackupProvisioner` (local + agent distant)
-- Scripts `agent/scripts/backup-*.sh`
-- API agent : `/api/v1/backups` et `/api/v1/backups/restore`
+- Marketplace `/plugins` — installation apps en un clic
+- Catalogue `packages/` extensible (manifest.json + scripts shell)
+- Apps initiales : Netdata, Jellyfin, Plex, Sonarr, qBittorrent
+- `ApplicationCatalog`, `ApplicationManager`, table `installed_applications`
+- API agent : `/api/v1/applications/install` et `uninstall`
+- Sudoers étendu pour scripts `packages/*/install.sh`
+- Menu « Marketplace » dans la sidebar
 
 ## [1.7.0] - 2026-07-06
 
@@ -79,14 +80,14 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
-
 ```
+
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
-
 ```
+
 ## [1.3.0] - 2026-07-06
 
 ### Phase 4 — Slave installer & Services systemd
@@ -107,14 +108,14 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
-
 ```
+
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
-
 ```
+
 ## [1.2.0] - 2026-07-06
 
 ### Phase 3 — Dashboard, Auth & Multi-serveurs

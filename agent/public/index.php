@@ -15,6 +15,7 @@ require_once dirname(__DIR__).'/lib/websites.php';
 require_once dirname(__DIR__).'/lib/mysql.php';
 require_once dirname(__DIR__).'/lib/docker.php';
 require_once dirname(__DIR__).'/lib/backups.php';
+require_once dirname(__DIR__).'/lib/applications.php';
 
 $token = $config['token'] ?? getenv('OBIORA_AGENT_TOKEN') ?: '';
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -70,6 +71,9 @@ match (true) {
     $method === 'POST' && $uri === '/api/v1/backups' => respond(agentCreateBackup($body)),
     $method === 'DELETE' && $uri === '/api/v1/backups' => respond(agentDeleteBackup($body)),
     $method === 'POST' && $uri === '/api/v1/backups/restore' => respond(agentRestoreBackup($body)),
+    $method === 'GET' && $uri === '/api/v1/applications' => respond(['data' => agentListPackages()]),
+    $method === 'POST' && $uri === '/api/v1/applications/install' => respond(agentApplicationAction($body, 'install')),
+    $method === 'POST' && $uri === '/api/v1/applications/uninstall' => respond(agentApplicationAction($body, 'uninstall')),
     default => abort404(),
 };
 
@@ -94,7 +98,7 @@ function pingInfo(): array
     return [
         'status' => 'ok',
         'agent' => 'obiOra',
-        'version' => '1.7.0',
+        'version' => '1.8.0',
         'role' => 'slave',
         'hostname' => gethostname() ?: 'unknown',
         'ip' => getServerIp(),

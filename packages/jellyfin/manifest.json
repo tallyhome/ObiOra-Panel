@@ -1,0 +1,11 @@
+{
+  "slug": "jellyfin",
+  "name": "Jellyfin",
+  "description": "Serveur média open source (films, séries, musique).",
+  "version": "1.0.0",
+  "category": "media",
+  "scripts": {
+    "install": "install.sh",
+    "uninstall": "uninstall.sh"
+  }
+}

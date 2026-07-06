@@ -64,4 +64,9 @@ class Server extends Model
     {
         return $this->hasMany(Backup::class);
     }
+
+    public function installedApplications(): HasMany
+    {
+        return $this->hasMany(InstalledApplication::class);
+    }
 }

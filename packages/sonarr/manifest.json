@@ -1,0 +1,11 @@
+{
+  "slug": "sonarr",
+  "name": "Sonarr",
+  "description": "Gestionnaire de séries TV (Docker).",
+  "version": "1.0.0",
+  "category": "media",
+  "scripts": {
+    "install": "install.sh",
+    "uninstall": "uninstall.sh"
+  }
+}

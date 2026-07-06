@@ -1,0 +1,11 @@
+{
+  "slug": "plex",
+  "name": "Plex",
+  "description": "Serveur média Plex (Docker).",
+  "version": "1.0.0",
+  "category": "media",
+  "scripts": {
+    "install": "install.sh",
+    "uninstall": "uninstall.sh"
+  }
+}

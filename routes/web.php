@@ -55,4 +55,6 @@ Route::middleware(['setup', 'auth', 'server'])->group(function () {
         Route::get('/create', \Modules\Backup\Livewire\BackupCreate::class)->name('create');
         Route::get('/{backup}', \Modules\Backup\Livewire\BackupShow::class)->name('show');
     });
+
+    Route::get('/plugins', \Modules\Plugins\Livewire\PluginMarketplace::class)->name('plugins.index');
 });

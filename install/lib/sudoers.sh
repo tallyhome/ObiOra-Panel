@@ -11,8 +11,10 @@ setup_sudoers() {
     local scripts_glob="${OBIORA_INSTALL_DIR}/agent/scripts/*.sh"
 
     cat > "${sudoers_file}" <<SUDOERS
-# ObiOra Panel — exécution scripts agent
+# ObiOra Panel — exécution scripts agent et marketplace
 ${OBIORA_USER} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/agent/scripts/*.sh
+${OBIORA_USER} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/packages/*/install.sh
+${OBIORA_USER} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/packages/*/uninstall.sh
 SUDOERS
 
     chmod 440 "${sudoers_file}"

@@ -1,0 +1,11 @@
+{
+  "slug": "netdata",
+  "name": "Netdata",
+  "description": "Monitoring système en temps réel (CPU, RAM, disque, réseau).",
+  "version": "1.0.0",
+  "category": "monitoring",
+  "scripts": {
+    "install": "install.sh",
+    "uninstall": "uninstall.sh"
+  }
+}

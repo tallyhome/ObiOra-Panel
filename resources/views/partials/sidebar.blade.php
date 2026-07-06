@@ -26,6 +26,9 @@
         <a href="{{ route('backups.index') }}" class="nav-link text-white {{ request()->routeIs('backups.*') ? 'active bg-primary rounded' : '' }}">
             Sauvegardes
         </a>
+        <a href="{{ route('plugins.index') }}" class="nav-link text-white {{ request()->routeIs('plugins.*') ? 'active bg-primary rounded' : '' }}">
+            Marketplace
+        </a>
     </nav>
 
     <div class="mt-auto pt-4 small text-secondary">
