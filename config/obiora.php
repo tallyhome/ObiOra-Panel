@@ -6,7 +6,7 @@ return [
 
     'name' => env('OBIORA_NAME', 'ObiOra Panel'),
 
-    'version' => '1.1.0',
+    'version' => '1.2.0',
 
     'installation_uuid' => env('OBIORA_INSTALLATION_UUID'),
 

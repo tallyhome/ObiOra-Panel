@@ -21,7 +21,18 @@ body {
     box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.06);
 }
 
-.obiora-badge-version {
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
+.obiora-sidebar .nav-link {
+    color: var(--obiora-sidebar-text) !important;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.obiora-sidebar .nav-link:hover,
+.obiora-sidebar .nav-link.active {
+    color: #fff !important;
+    background: rgba(79, 70, 229, 0.35);
+}
+
+.obiora-app {
+    background-color: #f5f6fa;
 }

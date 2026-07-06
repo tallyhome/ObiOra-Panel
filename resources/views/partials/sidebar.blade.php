@@ -1,0 +1,19 @@
+<aside class="obiora-sidebar text-white p-3" style="width: 260px; min-height: 100vh; background: var(--obiora-sidebar-bg);">
+    <div class="mb-4">
+        <span class="fw-bold fs-5">ObiOra</span>
+        <span class="badge bg-primary ms-1">Panel</span>
+    </div>
+
+    <nav class="nav flex-column gap-1">
+        <a href="{{ route('dashboard') }}" class="nav-link text-white {{ request()->routeIs('dashboard') ? 'active bg-primary rounded' : '' }}">
+            Dashboard
+        </a>
+        <a href="{{ route('servers.index') }}" class="nav-link text-white {{ request()->routeIs('servers.*') ? 'active bg-primary rounded' : '' }}">
+            Serveurs
+        </a>
+    </nav>
+
+    <div class="mt-auto pt-4 small text-secondary">
+        v{{ config('obiora.version') }}
+    </div>
+</aside>

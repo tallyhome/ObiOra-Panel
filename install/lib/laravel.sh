@@ -79,5 +79,34 @@ setup_laravel() {
     sudo -u "${OBIORA_USER}" php artisan storage:link 2>/dev/null || true
     sudo -u "${OBIORA_USER}" php artisan optimize
 
+    setup_agent_config
+
     success "Laravel configuré"
+}
+
+setup_agent_config() {
+    info "Configuration de l'agent ObiOra..."
+
+    local token
+    token=$(mysql -N -u "${DB_USERNAME}" -p"${DB_PASSWORD}" "${DB_DATABASE}" \
+        -e "SELECT agent_token FROM servers WHERE is_master = 1 LIMIT 1;" 2>/dev/null || true)
+
+    if [[ -z "${token}" ]]; then
+        warn "Token agent non trouvé, configuration manuelle requise."
+        return
+    fi
+
+    mkdir -p "${OBIORA_INSTALL_DIR}/agent/config"
+    cat > "${OBIORA_INSTALL_DIR}/agent/config/agent.json" <<JSON
+{
+    "host": "127.0.0.1",
+    "port": 9100,
+    "token": "${token}"
+}
+JSON
+    chmod 600 "${OBIORA_INSTALL_DIR}/agent/config/agent.json"
+    chown "${OBIORA_USER}:${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}/agent/config/agent.json"
+    chmod +x "${OBIORA_INSTALL_DIR}/agent/bin/obiOra-agent"
+
+    success "Agent configuré (port 9100)"
 }

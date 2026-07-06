@@ -1,3 +1,30 @@
 #!/usr/bin/env bash
-# ObiOra Agent — Phase 2+
-echo "ObiOra Agent stub — en attente d'implémentation Phase 2"
+# ObiOra Agent — démarrage du serveur HTTP
+set -euo pipefail
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CONFIG="${DIR}/config/agent.json"
+PUBLIC="${DIR}/public/index.php"
+
+if [[ ! -f "${CONFIG}" ]]; then
+    echo "Config manquante: ${CONFIG}"
+    echo "Copiez agent.example.json et définissez le token."
+    exit 1
+fi
+
+HOST=$(php -r "echo json_decode(file_get_contents('${CONFIG}'))->host ?? '0.0.0.0';")
+PORT=$(php -r "echo json_decode(file_get_contents('${CONFIG}'))->port ?? 9100;")
+TOKEN=$(php -r "echo json_decode(file_get_contents('${CONFIG}'))->token ?? '';")
+
+export OBIORA_AGENT_TOKEN="${TOKEN}"
+
+case "${1:-start}" in
+    start)
+        echo "ObiOra Agent sur ${HOST}:${PORT}"
+        exec php -S "${HOST}:${PORT}" -t "${DIR}/public" "${PUBLIC}"
+        ;;
+    *)
+        echo "Usage: obiOra-agent start"
+        exit 1
+        ;;
+esac

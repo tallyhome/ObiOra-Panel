@@ -4,13 +4,21 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
-## v1.2.0 - 2026-07-06
+## [1.2.0] - 2026-07-06
 
-Setup wizard, authentification Livewire, dashboard metriques, gestion multi-serveurs avec agent HTTP.
+### Phase 3 — Dashboard, Auth & Multi-serveurs
 
-## v1.1.0 - 2026-07-06
+#### Ajouté
 
-Installateur automatique one-liner, support Debian/Ubuntu/AlmaLinux/Rocky, services systemd, SSL optionnel.
+- Authentification Livewire (login, logout, rate limiting)
+- Wizard setup premier admin (`/setup`)
+- Dashboard Livewire avec métriques système et ApexCharts
+- Module multi-serveurs : liste, ajout, ping, sélecteur de serveur actif
+- `ServerManager`, `MetricsCollector`, `AgentExecutor`
+- Agent HTTP (`agent/public/index.php`) — ping + métriques
+- Layout Bootstrap 5.3 avec sidebar
+- Tests Feature setup/auth
+- Sync token agent à l'installation
 
 ## [1.1.0] - 2026-07-06
 
