@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.2.0 - 2026-07-06
+
+Setup wizard, authentification Livewire, dashboard metriques, gestion multi-serveurs avec agent HTTP.
+
 ## v1.1.0 - 2026-07-06
 
 Installateur automatique one-liner, support Debian/Ubuntu/AlmaLinux/Rocky, services systemd, SSL optionnel.
