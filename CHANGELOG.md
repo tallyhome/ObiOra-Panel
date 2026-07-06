@@ -4,15 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
-## v1.8.2 - 2026-07-06
+## [1.8.3] - 2026-07-07
 
-Corrige l erreur /dev/fd/lib/common.sh avec detection explicite /dev/fd pour bash curl one-liner. Slave corrige aussi.
+### Corrigé
+
+- **clone_panel** : `git clone` en root vers `/opt/obiora-panel` (l'utilisateur `obiora` ne peut pas créer de dossier dans `/opt`) — corrige `Permission denied` en cas de réinstallation
 
 ## [1.8.2] - 2026-07-06
 
 ### Corrigé
 
-- **Installateur one-liner** : détection explicite `/dev/fd/*` avant tout `source lib/` — corrige définitivement l'erreur `/dev/fd/lib/common.sh` sur VPS RHEL/AlmaLinux
+- **Installateur one-liner** : détection explicite `/dev/fd/*` — corrige l'erreur `/dev/fd/lib/common.sh`
 - Même correctif appliqué à `Slave/install.sh`
 
 ## [1.8.1] - 2026-07-06

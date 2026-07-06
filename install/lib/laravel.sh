@@ -13,16 +13,20 @@ clone_panel() {
         cd "${OBIORA_INSTALL_DIR}"
         sudo -u "${OBIORA_USER}" git fetch origin
         if [[ -n "${OBIORA_TAG}" ]]; then
-            sudo -u "${OBIORA_USER}" git checkout "tags/${OBIORA_TAG}"
+            sudo -u "${OBIORA_USER}" git checkout "tags/${OBIORA_TAG}" 2>/dev/null \
+                || sudo -u "${OBIORA_USER}" git checkout "${OBIORA_TAG}"
         else
             sudo -u "${OBIORA_USER}" git checkout "${OBIORA_BRANCH}"
             sudo -u "${OBIORA_USER}" git pull origin "${OBIORA_BRANCH}"
         fi
     else
+        # Clone en root : obiora ne peut pas créer de répertoire dans /opt
         rm -rf "${OBIORA_INSTALL_DIR}"
-        sudo -u "${OBIORA_USER}" git clone --depth 1 \
+        git clone --depth 1 \
             ${OBIORA_TAG:+--branch "${OBIORA_TAG}"} \
             "${OBIORA_REPO}" "${OBIORA_INSTALL_DIR}"
+        chown -R "${OBIORA_USER}:${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}"
+        chmod 750 "${OBIORA_INSTALL_DIR}"
     fi
 
     success "Code source installé dans ${OBIORA_INSTALL_DIR}"
