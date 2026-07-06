@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.5.0 - 2026-07-06
+
+### Phase 6 — Bases de données MySQL/MariaDB
+
+#### Ajouté
+
+- Module MySQL : création, liste, détail, suppression de bases
+- Scripts `agent/scripts/mysql-*.sh` (create, delete, list)
+- Table `managed_databases` avec mots de passe chiffrés
+- `DatabaseManager` et `DatabaseProvisioner` (local + agent distant)
+- API agent : endpoints `/api/v1/databases`
+- Menu « Bases de données » dans la sidebar
+- Sudoers agent pour exécution scripts sans mot de passe
+
 ## [1.5.0] - 2026-07-06
 
 ### Phase 6 — Bases de données MySQL/MariaDB
@@ -38,14 +52,14 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
-```
 
+```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
-```
 
+```
 ## [1.3.0] - 2026-07-06
 
 ### Phase 4 — Slave installer & Services systemd
@@ -66,14 +80,14 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
-```
 
+```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
-```
 
+```
 ## [1.2.0] - 2026-07-06
 
 ### Phase 3 — Dashboard, Auth & Multi-serveurs
