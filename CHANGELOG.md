@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.8.2 - 2026-07-06
+
+Corrige l erreur /dev/fd/lib/common.sh avec detection explicite /dev/fd pour bash curl one-liner. Slave corrige aussi.
+
 ## [1.8.2] - 2026-07-06
 
 ### Corrigé
@@ -103,11 +107,13 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
 
 
+
 ```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
+
 
 
 ```
@@ -133,11 +139,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
 
 
+
 ```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
+
 
 
 ```
