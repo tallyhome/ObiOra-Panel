@@ -1,0 +1,15 @@
+{
+  "migrations": true,
+  "description": "Monitoring et alertes",
+  "permissions": [
+    "dashboard.view"
+  ],
+  "dependencies": [
+    "dashboard"
+  ],
+  "routes": true,
+  "slug": "monitoring",
+  "name": "Monitoring",
+  "default_enabled": false,
+  "version": "1.0.0"
+}

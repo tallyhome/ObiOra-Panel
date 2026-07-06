@@ -1,0 +1,15 @@
+{
+  "migrations": true,
+  "description": "Intégration Virtualizor",
+  "permissions": [
+    "servers.manage"
+  ],
+  "dependencies": [
+    "servers"
+  ],
+  "routes": true,
+  "slug": "virtualizor",
+  "name": "Virtualizor",
+  "default_enabled": false,
+  "version": "1.0.0"
+}

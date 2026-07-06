@@ -1,0 +1,15 @@
+{
+  "migrations": true,
+  "description": "Installation d'applications en un clic",
+  "permissions": [
+    "modules.manage"
+  ],
+  "dependencies": [
+    "servers"
+  ],
+  "routes": true,
+  "slug": "applications",
+  "name": "Applications",
+  "default_enabled": false,
+  "version": "1.0.0"
+}

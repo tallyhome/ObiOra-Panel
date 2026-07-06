@@ -1,0 +1,15 @@
+{
+  "migrations": true,
+  "description": "Gestion FTP/SFTP",
+  "permissions": [
+    "services.manage"
+  ],
+  "dependencies": [
+    "servers"
+  ],
+  "routes": true,
+  "slug": "ftp",
+  "name": "FTP",
+  "default_enabled": false,
+  "version": "1.0.0"
+}

@@ -1,0 +1,16 @@
+{
+  "migrations": true,
+  "description": "Mises à jour du panel",
+  "permissions": [
+    "updates.view",
+    "updates.manage"
+  ],
+  "dependencies": [
+    "dashboard"
+  ],
+  "routes": true,
+  "slug": "updates",
+  "name": "Updates",
+  "default_enabled": true,
+  "version": "1.0.0"
+}

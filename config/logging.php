@@ -58,6 +58,14 @@ return [
             'ignore_exceptions' => false,
         ],
 
+        'provisioning' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/provisioning.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 30,
+            'replace_placeholders' => true,
+        ],
+
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),

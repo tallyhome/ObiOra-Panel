@@ -1,0 +1,16 @@
+{
+  "migrations": true,
+  "description": "Gestion des utilisateurs et rôles",
+  "permissions": [
+    "users.view",
+    "users.manage"
+  ],
+  "dependencies": [
+    "dashboard"
+  ],
+  "routes": true,
+  "slug": "users",
+  "name": "Users",
+  "default_enabled": false,
+  "version": "1.0.0"
+}

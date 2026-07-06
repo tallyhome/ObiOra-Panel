@@ -1,0 +1,27 @@
+@import "bootstrap/scss/bootstrap";
+
+:root {
+    --obiora-primary: #4f46e5;
+    --obiora-sidebar-bg: #1e1e2d;
+    --obiora-sidebar-text: #a2a3b7;
+}
+
+body {
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    background-color: #f5f6fa;
+}
+
+.obiora-navbar {
+    background: linear-gradient(135deg, var(--obiora-primary), #7c3aed);
+}
+
+.obiora-card {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.06);
+}
+
+.obiora-badge-version {
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+}

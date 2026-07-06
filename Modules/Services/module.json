@@ -1,0 +1,16 @@
+{
+  "migrations": true,
+  "description": "Gestion des services systemd",
+  "permissions": [
+    "services.view",
+    "services.manage"
+  ],
+  "dependencies": [
+    "servers"
+  ],
+  "routes": true,
+  "slug": "services",
+  "name": "Services",
+  "default_enabled": false,
+  "version": "1.0.0"
+}

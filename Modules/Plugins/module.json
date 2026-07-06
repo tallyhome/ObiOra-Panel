@@ -1,0 +1,16 @@
+{
+  "migrations": true,
+  "description": "Marketplace de plugins",
+  "permissions": [
+    "plugins.view",
+    "plugins.manage"
+  ],
+  "dependencies": [
+    "dashboard"
+  ],
+  "routes": true,
+  "slug": "plugins",
+  "name": "Plugins",
+  "default_enabled": false,
+  "version": "1.0.0"
+}

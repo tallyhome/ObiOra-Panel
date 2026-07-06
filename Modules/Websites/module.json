@@ -1,0 +1,16 @@
+{
+  "migrations": true,
+  "description": "Gestionnaire de sites web",
+  "permissions": [
+    "websites.view",
+    "websites.manage"
+  ],
+  "dependencies": [
+    "servers"
+  ],
+  "routes": true,
+  "slug": "websites",
+  "name": "Websites",
+  "default_enabled": false,
+  "version": "1.0.0"
+}

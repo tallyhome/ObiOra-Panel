@@ -1,0 +1,16 @@
+{
+  "migrations": true,
+  "description": "Sauvegardes et restauration",
+  "permissions": [
+    "backups.view",
+    "backups.manage"
+  ],
+  "dependencies": [
+    "servers"
+  ],
+  "routes": true,
+  "slug": "backup",
+  "name": "Backup",
+  "default_enabled": false,
+  "version": "1.0.0"
+}
