@@ -4,19 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
-## v1.8.1 - 2026-07-06
+## [1.8.2] - 2026-07-06
 
-### Summary
+### Corrigé
 
-- 68 applications marketplace (catalogue Swizzin complet)
-- Correctif one-liner install: bootstrap auto-clone du depot
-- Generateur tools/generate-packages.php
-
-### Test plan
-
-- [ ] sudo -i puis bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
-- [ ] Verifier /plugins affiche 68 apps
-- [ ] Installer Radarr ou Prowlarr sur un serveur avec Docker
+- **Installateur one-liner** : détection explicite `/dev/fd/*` avant tout `source lib/` — corrige définitivement l'erreur `/dev/fd/lib/common.sh` sur VPS RHEL/AlmaLinux
+- Même correctif appliqué à `Slave/install.sh`
 
 ## [1.8.1] - 2026-07-06
 
@@ -24,14 +17,13 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
 #### Ajouté
 
-- **68 applications** marketplace (catalogue complet Swizzin, scripts ObiOra réécrits)
-- Générateur `tools/generate-packages.php` + `tools/swizzin-apps.php`
+- **68 applications** marketplace (catalogue Swizzin complet)
+- Générateur `tools/generate-packages.php`
 - Helper Docker partagé `packages/_lib/docker.sh`
-- Catégories : cloud, system, network, tools
 
 #### Corrigé
 
-- **Bootstrap install.sh** : le one-liner `bash <(curl ...)` clone désormais le dépôt complet avant d'installer (corrige l'erreur `/dev/fd/lib/common.sh`)
+- Bootstrap install.sh (première version auto-clone)
 
 ## [1.8.0] - 2026-07-06
 
