@@ -4,6 +4,36 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.3.0 - 2026-07-06
+
+### Phase 4 — Slave installer & Services systemd
+
+#### Ajouté
+
+- Répertoire `Slave/` avec installateur one-liner pour serveurs distants
+- Génération automatique de clé API sur le slave
+- Liaison maître par clé API (plus de token généré côté maître)
+- Module Services : liste, start/stop/restart, logs journalctl
+- `ServiceManager` local + distant via agent
+- API agent étendue : services, logs, ping enrichi (hostname, IP, OS)
+- Menu Services dans la sidebar
+
+#### Installation
+
+**Master :**
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
+
+
+```
+**Slave :**
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
+
+
+```
 ## [1.3.0] - 2026-07-06
 
 ### Phase 4 — Slave installer & Services systemd
