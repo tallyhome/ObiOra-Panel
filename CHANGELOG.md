@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.6.0 - 2026-07-06
+
+### Phase 7 — Docker
+
+#### Ajouté
+
+- Module Docker : conteneurs, images, logs, run
+- `DockerManager` local + distant via agent
+- Scripts `agent/scripts/docker-*.sh`
+- API agent : endpoints `/api/v1/docker/*`
+- Menu « Docker » dans la sidebar
+- Formulaire rapide `docker run` (image, nom, ports)
+
 ## [1.6.0] - 2026-07-06
 
 ### Phase 7 — Docker
@@ -51,14 +64,14 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
-```
 
+```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
-```
 
+```
 ## [1.3.0] - 2026-07-06
 
 ### Phase 4 — Slave installer & Services systemd
@@ -79,14 +92,14 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
-```
 
+```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
-```
 
+```
 ## [1.2.0] - 2026-07-06
 
 ### Phase 3 — Dashboard, Auth & Multi-serveurs
