@@ -6,7 +6,7 @@ return [
 
     'name' => env('OBIORA_NAME', 'ObiOra Panel'),
 
-    'version' => '1.5.0',
+    'version' => '1.6.0',
 
     'installation_uuid' => env('OBIORA_INSTALLATION_UUID'),
 
@@ -48,6 +48,11 @@ return [
         'default_collation' => 'utf8mb4_unicode_ci',
         'default_host' => 'localhost',
         'reserved_names' => ['mysql', 'information_schema', 'performance_schema', 'sys', 'obiora_panel'],
+    ],
+
+    'docker' => [
+        'allowed_actions' => ['start', 'stop', 'restart', 'remove'],
+        'max_log_lines' => 500,
     ],
 
 ];

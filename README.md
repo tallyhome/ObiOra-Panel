@@ -2,7 +2,7 @@
 
 Plateforme moderne de gestion de serveurs Linux — Laravel 12, Livewire 3, Bootstrap 5.3.
 
-**Version actuelle : v1.5.0** (Phase 6 — Bases de données MySQL/MariaDB)
+**Version actuelle : v1.6.0** (Phase 7 — Docker)
 
 ## Stack
 
@@ -52,8 +52,8 @@ php artisan serve
 | 3 | v1.2.0 | Dashboard Livewire + Auth + Multi-serveurs |
 | 4 | v1.3.0 | Slave installer + Services systemd |
 | 5 | v1.4.0 | Sites web (Nginx, PHP, SSL) |
-| 6 | **v1.5.0** | **Bases de données MySQL/MariaDB** |
-| 7 | v1.6.0 | Docker |
+| 6 | v1.5.0 | Bases de données MySQL/MariaDB |
+| 7 | **v1.6.0** | **Docker** |
 | 8 | v1.7.0 | Sauvegardes |
 | 9 | v1.8.0 | Plugins / Marketplace |
 | 10 | v1.9.0 | AdminLicence |
@@ -67,6 +67,7 @@ php artisan serve
 - [Services & Slave Phase 4](docs/architecture/PHASE-4.md)
 - [Sites web Phase 5](docs/architecture/PHASE-5.md)
 - [Bases de données Phase 6](docs/architecture/PHASE-6.md)
+- [Docker Phase 7](docs/architecture/PHASE-7.md)
 
 ## Licence
 

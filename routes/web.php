@@ -47,4 +47,6 @@ Route::middleware(['setup', 'auth', 'server'])->group(function () {
         Route::get('/create', \Modules\MySQL\Livewire\DatabaseCreate::class)->name('create');
         Route::get('/{database}', \Modules\MySQL\Livewire\DatabaseShow::class)->name('show');
     });
+
+    Route::get('/docker', \Modules\Docker\Livewire\DockerIndex::class)->name('docker.index');
 });

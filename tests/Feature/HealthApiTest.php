@@ -17,7 +17,7 @@ class HealthApiTest extends TestCase
             ->assertJson([
                 'status' => 'ok',
                 'app' => 'ObiOra Panel',
-                'version' => '1.5.0',
+                'version' => '1.6.0',
             ]);
     }
 }

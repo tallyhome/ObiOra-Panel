@@ -20,6 +20,9 @@
         <a href="{{ route('databases.index') }}" class="nav-link text-white {{ request()->routeIs('databases.*') ? 'active bg-primary rounded' : '' }}">
             Bases de données
         </a>
+        <a href="{{ route('docker.index') }}" class="nav-link text-white {{ request()->routeIs('docker.*') ? 'active bg-primary rounded' : '' }}">
+            Docker
+        </a>
     </nav>
 
     <div class="mt-auto pt-4 small text-secondary">

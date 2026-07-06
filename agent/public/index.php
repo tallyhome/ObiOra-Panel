@@ -13,6 +13,7 @@ $config = file_exists($configPath)
 
 require_once dirname(__DIR__).'/lib/websites.php';
 require_once dirname(__DIR__).'/lib/mysql.php';
+require_once dirname(__DIR__).'/lib/docker.php';
 
 $token = $config['token'] ?? getenv('OBIORA_AGENT_TOKEN') ?: '';
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -55,6 +56,16 @@ match (true) {
     $method === 'GET' && $uri === '/api/v1/databases' => respond(['data' => agentListDatabases()]),
     $method === 'POST' && $uri === '/api/v1/databases' => respond(agentCreateDatabase($body)),
     $method === 'DELETE' && $uri === '/api/v1/databases' => respond(agentDeleteDatabase($body)),
+    $method === 'GET' && $uri === '/api/v1/docker/info' => respond(['data' => agentDockerInfo()]),
+    $method === 'GET' && $uri === '/api/v1/docker/containers' => respond(['data' => agentListContainers()]),
+    $method === 'GET' && $uri === '/api/v1/docker/images' => respond(['data' => agentListImages()]),
+    $method === 'GET' && $uri === '/api/v1/docker/containers/logs' => respond(agentContainerLogs(
+        (string) ($_GET['container'] ?? ''),
+        (int) ($_GET['lines'] ?? 100)
+    )),
+    $method === 'POST' && $uri === '/api/v1/docker/containers/action' => respond(agentContainerAction($body)),
+    $method === 'POST' && $uri === '/api/v1/docker/containers/run' => respond(agentRunContainer($body)),
+    $method === 'DELETE' && $uri === '/api/v1/docker/images' => respond(agentRemoveImage($body)),
     default => abort404(),
 };
 
@@ -79,7 +90,7 @@ function pingInfo(): array
     return [
         'status' => 'ok',
         'agent' => 'obiOra',
-        'version' => '1.5.0',
+        'version' => '1.6.0',
         'role' => 'slave',
         'hostname' => gethostname() ?: 'unknown',
         'ip' => getServerIp(),
