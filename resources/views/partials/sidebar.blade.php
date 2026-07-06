@@ -23,6 +23,9 @@
         <a href="{{ route('docker.index') }}" class="nav-link text-white {{ request()->routeIs('docker.*') ? 'active bg-primary rounded' : '' }}">
             Docker
         </a>
+        <a href="{{ route('backups.index') }}" class="nav-link text-white {{ request()->routeIs('backups.*') ? 'active bg-primary rounded' : '' }}">
+            Sauvegardes
+        </a>
     </nav>
 
     <div class="mt-auto pt-4 small text-secondary">

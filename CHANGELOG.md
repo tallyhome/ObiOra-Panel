@@ -4,18 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
-## v1.6.0 - 2026-07-06
+## [1.7.0] - 2026-07-06
 
-### Phase 7 — Docker
+### Phase 8 — Sauvegardes
 
 #### Ajouté
 
-- Module Docker : conteneurs, images, logs, run
-- `DockerManager` local + distant via agent
-- Scripts `agent/scripts/docker-*.sh`
-- API agent : endpoints `/api/v1/docker/*`
-- Menu « Docker » dans la sidebar
-- Formulaire rapide `docker run` (image, nom, ports)
+- Module Backup : création, liste, détail, suppression
+- Types : base de données, fichiers, complète
+- Restauration SQL pour dumps `.sql.gz`
+- Table `backups` liée aux serveurs
+- `BackupManager` et `BackupProvisioner` (local + agent distant)
+- Scripts `agent/scripts/backup-*.sh`
+- API agent : `/api/v1/backups` et `/api/v1/backups/restore`
+- Menu « Sauvegardes » dans la sidebar
 
 ## [1.6.0] - 2026-07-06
 
@@ -64,14 +66,14 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
-
 ```
+
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
-
 ```
+
 ## [1.3.0] - 2026-07-06
 
 ### Phase 4 — Slave installer & Services systemd
@@ -92,14 +94,14 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
-
 ```
+
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
-
 ```
+
 ## [1.2.0] - 2026-07-06
 
 ### Phase 3 — Dashboard, Auth & Multi-serveurs

@@ -6,7 +6,7 @@ return [
 
     'name' => env('OBIORA_NAME', 'ObiOra Panel'),
 
-    'version' => '1.6.0',
+    'version' => '1.7.0',
 
     'installation_uuid' => env('OBIORA_INSTALLATION_UUID'),
 
@@ -53,6 +53,11 @@ return [
     'docker' => [
         'allowed_actions' => ['start', 'stop', 'restart', 'remove'],
         'max_log_lines' => 500,
+    ],
+
+    'backups' => [
+        'storage_root' => env('OBIORA_BACKUP_ROOT', '/var/backups/obiora'),
+        'types' => ['database', 'files', 'full'],
     ],
 
 ];

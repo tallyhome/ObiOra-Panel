@@ -49,4 +49,10 @@ Route::middleware(['setup', 'auth', 'server'])->group(function () {
     });
 
     Route::get('/docker', \Modules\Docker\Livewire\DockerIndex::class)->name('docker.index');
+
+    Route::prefix('backups')->name('backups.')->group(function () {
+        Route::get('/', \Modules\Backup\Livewire\BackupList::class)->name('index');
+        Route::get('/create', \Modules\Backup\Livewire\BackupCreate::class)->name('create');
+        Route::get('/{backup}', \Modules\Backup\Livewire\BackupShow::class)->name('show');
+    });
 });

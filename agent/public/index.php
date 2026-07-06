@@ -14,6 +14,7 @@ $config = file_exists($configPath)
 require_once dirname(__DIR__).'/lib/websites.php';
 require_once dirname(__DIR__).'/lib/mysql.php';
 require_once dirname(__DIR__).'/lib/docker.php';
+require_once dirname(__DIR__).'/lib/backups.php';
 
 $token = $config['token'] ?? getenv('OBIORA_AGENT_TOKEN') ?: '';
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -66,6 +67,9 @@ match (true) {
     $method === 'POST' && $uri === '/api/v1/docker/containers/action' => respond(agentContainerAction($body)),
     $method === 'POST' && $uri === '/api/v1/docker/containers/run' => respond(agentRunContainer($body)),
     $method === 'DELETE' && $uri === '/api/v1/docker/images' => respond(agentRemoveImage($body)),
+    $method === 'POST' && $uri === '/api/v1/backups' => respond(agentCreateBackup($body)),
+    $method === 'DELETE' && $uri === '/api/v1/backups' => respond(agentDeleteBackup($body)),
+    $method === 'POST' && $uri === '/api/v1/backups/restore' => respond(agentRestoreBackup($body)),
     default => abort404(),
 };
 
@@ -90,7 +94,7 @@ function pingInfo(): array
     return [
         'status' => 'ok',
         'agent' => 'obiOra',
-        'version' => '1.6.0',
+        'version' => '1.7.0',
         'role' => 'slave',
         'hostname' => gethostname() ?: 'unknown',
         'ip' => getServerIp(),
