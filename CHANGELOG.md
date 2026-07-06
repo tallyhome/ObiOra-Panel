@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.8.1 - 2026-07-06
+
+### Summary
+
+- 68 applications marketplace (catalogue Swizzin complet)
+- Correctif one-liner install: bootstrap auto-clone du depot
+- Generateur tools/generate-packages.php
+
+### Test plan
+
+- [ ] sudo -i puis bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
+- [ ] Verifier /plugins affiche 68 apps
+- [ ] Installer Radarr ou Prowlarr sur un serveur avec Docker
+
 ## [1.8.1] - 2026-07-06
 
 ### Catalogue Swizzin + correctif installateur
@@ -96,11 +110,13 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
 
+
 ```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
+
 
 ```
 ## [1.3.0] - 2026-07-06
@@ -124,11 +140,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
 
+
 ```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
+
 
 ```
 ## [1.2.0] - 2026-07-06
