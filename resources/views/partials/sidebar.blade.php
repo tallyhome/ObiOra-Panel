@@ -17,6 +17,9 @@
         <a href="{{ route('websites.index') }}" class="nav-link text-white {{ request()->routeIs('websites.*') ? 'active bg-primary rounded' : '' }}">
             Sites web
         </a>
+        <a href="{{ route('databases.index') }}" class="nav-link text-white {{ request()->routeIs('databases.*') ? 'active bg-primary rounded' : '' }}">
+            Bases de données
+        </a>
     </nav>
 
     <div class="mt-auto pt-4 small text-secondary">

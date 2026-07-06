@@ -12,6 +12,7 @@ $config = file_exists($configPath)
     : [];
 
 require_once dirname(__DIR__).'/lib/websites.php';
+require_once dirname(__DIR__).'/lib/mysql.php';
 
 $token = $config['token'] ?? getenv('OBIORA_AGENT_TOKEN') ?: '';
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -51,6 +52,9 @@ match (true) {
     $method === 'POST' && $uri === '/api/v1/websites' => respond(agentCreateWebsite($body)),
     $method === 'DELETE' && $uri === '/api/v1/websites' => respond(agentDeleteWebsite($body)),
     $method === 'POST' && $uri === '/api/v1/websites/ssl' => respond(agentIssueSsl($body)),
+    $method === 'GET' && $uri === '/api/v1/databases' => respond(['data' => agentListDatabases()]),
+    $method === 'POST' && $uri === '/api/v1/databases' => respond(agentCreateDatabase($body)),
+    $method === 'DELETE' && $uri === '/api/v1/databases' => respond(agentDeleteDatabase($body)),
     default => abort404(),
 };
 
@@ -75,7 +79,7 @@ function pingInfo(): array
     return [
         'status' => 'ok',
         'agent' => 'obiOra',
-        'version' => '1.4.0',
+        'version' => '1.5.0',
         'role' => 'slave',
         'hostname' => gethostname() ?: 'unknown',
         'ip' => getServerIp(),

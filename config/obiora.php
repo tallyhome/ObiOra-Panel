@@ -6,7 +6,7 @@ return [
 
     'name' => env('OBIORA_NAME', 'ObiOra Panel'),
 
-    'version' => '1.4.0',
+    'version' => '1.5.0',
 
     'installation_uuid' => env('OBIORA_INSTALLATION_UUID'),
 
@@ -41,6 +41,13 @@ return [
         'web_root' => env('OBIORA_WEB_ROOT', '/var/www'),
         'php_versions' => ['8.1', '8.2', '8.3', '8.4'],
         'default_php' => '8.3',
+    ],
+
+    'databases' => [
+        'default_charset' => 'utf8mb4',
+        'default_collation' => 'utf8mb4_unicode_ci',
+        'default_host' => 'localhost',
+        'reserved_names' => ['mysql', 'information_schema', 'performance_schema', 'sys', 'obiora_panel'],
     ],
 
 ];

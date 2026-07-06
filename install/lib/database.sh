@@ -38,5 +38,8 @@ DB_PASSWORD=${OBIORA_DB_PASS}
 CREDS
     chmod 600 /root/.obiora_db_credentials
 
+    mkdir -p /etc/obiora
+    chmod 755 /etc/obiora
+
     success "Base de données ${OBIORA_DB_NAME} configurée"
 }

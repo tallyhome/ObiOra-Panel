@@ -4,7 +4,21 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
-## v1.4.0 - 2026-07-06
+## [1.5.0] - 2026-07-06
+
+### Phase 6 — Bases de données MySQL/MariaDB
+
+#### Ajouté
+
+- Module MySQL : création, liste, détail, suppression de bases
+- Scripts `agent/scripts/mysql-*.sh` (create, delete, list)
+- Table `managed_databases` avec mots de passe chiffrés
+- `DatabaseManager` et `DatabaseProvisioner` (local + agent distant)
+- API agent : endpoints `/api/v1/databases`
+- Menu « Bases de données » dans la sidebar
+- Sudoers agent (`install/lib/sudoers.sh`) pour scripts sans mot de passe
+
+## [1.4.0] - 2026-07-06
 
 ### Phase 5 — Sites web (Nginx, PHP, SSL)
 
@@ -24,29 +38,13 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
-
-
 ```
+
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
-
-
 ```
-## [1.4.0] - 2026-07-06
-
-### Phase 5 — Sites web (Nginx, PHP, SSL)
-
-#### Ajouté
-
-- Module Websites : création, liste, détail, suppression
-- Provisionnement Nginx + PHP-FPM via scripts `agent/scripts/`
-- SSL Let's Encrypt (certbot) à la création ou après coup
-- Table `websites` liée aux serveurs
-- `WebsiteManager` et `WebsiteProvisioner` (local + agent distant)
-- API agent : endpoints `/api/v1/websites` et `/api/v1/websites/ssl`
-- Menu « Sites web » dans la sidebar
 
 ## [1.3.0] - 2026-07-06
 
@@ -68,14 +66,14 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
-
 ```
+
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
-
 ```
+
 ## [1.2.0] - 2026-07-06
 
 ### Phase 3 — Dashboard, Auth & Multi-serveurs

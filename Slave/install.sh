@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-OBIORA_SLAVE_VERSION="1.4.0"
+OBIORA_SLAVE_VERSION="1.5.0"
 OBIORA_REPO="${OBIORA_REPO:-https://github.com/tallyhome/ObiOra-Panel.git}"
 OBIORA_BRANCH="${OBIORA_BRANCH:-main}"
 OBIORA_INSTALL_DIR="${OBIORA_INSTALL_DIR:-/opt/obiora-slave}"

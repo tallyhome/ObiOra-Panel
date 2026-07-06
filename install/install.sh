@@ -7,11 +7,11 @@
 
 set -euo pipefail
 
-OBIORA_VERSION="1.4.0"
+OBIORA_VERSION="1.5.0"
 OBIORA_INSTALL_DIR="${OBIORA_INSTALL_DIR:-/opt/obiora-panel}"
 OBIORA_REPO="https://github.com/tallyhome/ObiOra-Panel.git"
 OBIORA_BRANCH="main"
-OBIORA_TAG="v1.4.0"
+OBIORA_TAG="v1.5.0"
 OBIORA_DOMAIN=""
 OBIORA_SSL_EMAIL=""
 INSTALL_DOCKER="false"
@@ -40,6 +40,8 @@ source "${SCRIPT_DIR}/lib/nginx.sh"
 source "${SCRIPT_DIR}/lib/ssl.sh"
 # shellcheck source=lib/systemd.sh
 source "${SCRIPT_DIR}/lib/systemd.sh"
+# shellcheck source=lib/sudoers.sh
+source "${SCRIPT_DIR}/lib/sudoers.sh"
 # shellcheck source=lib/firewall.sh
 source "${SCRIPT_DIR}/lib/firewall.sh"
 # shellcheck source=lib/rollback.sh
@@ -131,6 +133,7 @@ main() {
     setup_nginx
     setup_ssl
     setup_systemd
+    setup_sudoers
     setup_firewall
 
     # Désactiver le trap rollback après succès
