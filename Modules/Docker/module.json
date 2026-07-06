@@ -1,0 +1,16 @@
+{
+  "migrations": true,
+  "description": "Gestion Docker",
+  "permissions": [
+    "docker.view",
+    "docker.manage"
+  ],
+  "dependencies": [
+    "servers"
+  ],
+  "routes": true,
+  "slug": "docker",
+  "name": "Docker",
+  "default_enabled": false,
+  "version": "1.0.0"
+}

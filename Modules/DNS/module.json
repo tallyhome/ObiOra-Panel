@@ -1,0 +1,15 @@
+{
+  "migrations": true,
+  "description": "Gestion DNS",
+  "permissions": [
+    "services.manage"
+  ],
+  "dependencies": [
+    "servers"
+  ],
+  "routes": true,
+  "slug": "dns",
+  "name": "DNS",
+  "default_enabled": false,
+  "version": "1.0.0"
+}

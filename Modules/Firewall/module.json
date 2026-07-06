@@ -1,0 +1,15 @@
+{
+  "migrations": true,
+  "description": "UFW et Fail2Ban",
+  "permissions": [
+    "services.manage"
+  ],
+  "dependencies": [
+    "servers"
+  ],
+  "routes": true,
+  "slug": "firewall",
+  "name": "Firewall",
+  "default_enabled": false,
+  "version": "1.0.0"
+}

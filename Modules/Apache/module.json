@@ -1,0 +1,15 @@
+{
+  "migrations": true,
+  "description": "Configuration Apache",
+  "permissions": [
+    "websites.manage"
+  ],
+  "dependencies": [
+    "websites"
+  ],
+  "routes": true,
+  "slug": "apache",
+  "name": "Apache",
+  "default_enabled": false,
+  "version": "1.0.0"
+}

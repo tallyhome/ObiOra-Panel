@@ -1,0 +1,15 @@
+{
+  "migrations": true,
+  "description": "Gestion Redis",
+  "permissions": [
+    "services.manage"
+  ],
+  "dependencies": [
+    "servers"
+  ],
+  "routes": true,
+  "slug": "redis",
+  "name": "Redis",
+  "default_enabled": false,
+  "version": "1.0.0"
+}

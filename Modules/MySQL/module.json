@@ -1,0 +1,16 @@
+{
+  "migrations": true,
+  "description": "Gestion MySQL/MariaDB",
+  "permissions": [
+    "databases.view",
+    "databases.manage"
+  ],
+  "dependencies": [
+    "servers"
+  ],
+  "routes": true,
+  "slug": "mysql",
+  "name": "MySQL",
+  "default_enabled": false,
+  "version": "1.0.0"
+}

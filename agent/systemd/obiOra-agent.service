@@ -1,0 +1,14 @@
+[Unit]
+Description=ObiOra Panel Agent
+After=network.target
+
+[Service]
+Type=simple
+User=obiora
+Group=obiora
+ExecStart=/opt/obiora-panel/agent/bin/obiOra-agent
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

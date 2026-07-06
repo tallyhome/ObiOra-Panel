@@ -1,0 +1,15 @@
+{
+  "migrations": true,
+  "description": "Gestion de cluster",
+  "permissions": [
+    "servers.manage"
+  ],
+  "dependencies": [
+    "servers"
+  ],
+  "routes": true,
+  "slug": "cluster",
+  "name": "Cluster",
+  "default_enabled": false,
+  "version": "1.0.0"
+}

@@ -1,0 +1,15 @@
+{
+  "migrations": true,
+  "description": "Configuration Nginx",
+  "permissions": [
+    "websites.manage"
+  ],
+  "dependencies": [
+    "websites"
+  ],
+  "routes": true,
+  "slug": "nginx",
+  "name": "Nginx",
+  "default_enabled": false,
+  "version": "1.0.0"
+}

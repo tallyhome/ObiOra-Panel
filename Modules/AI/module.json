@@ -1,0 +1,16 @@
+{
+  "migrations": true,
+  "description": "Assistant IA de diagnostic",
+  "permissions": [
+    "ai.view",
+    "ai.manage"
+  ],
+  "dependencies": [
+    "monitoring"
+  ],
+  "routes": true,
+  "slug": "ai",
+  "name": "AI",
+  "default_enabled": false,
+  "version": "1.0.0"
+}

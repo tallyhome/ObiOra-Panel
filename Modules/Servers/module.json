@@ -1,0 +1,16 @@
+{
+  "migrations": true,
+  "description": "Gestion des serveurs et nœuds",
+  "permissions": [
+    "servers.view",
+    "servers.manage"
+  ],
+  "dependencies": [
+    "dashboard"
+  ],
+  "routes": true,
+  "slug": "servers",
+  "name": "Servers",
+  "default_enabled": true,
+  "version": "1.0.0"
+}

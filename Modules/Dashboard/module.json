@@ -1,0 +1,13 @@
+{
+  "migrations": true,
+  "description": "Tableau de bord et métriques système",
+  "permissions": [
+    "dashboard.view"
+  ],
+  "dependencies": [],
+  "routes": true,
+  "slug": "dashboard",
+  "name": "Dashboard",
+  "default_enabled": true,
+  "version": "1.0.0"
+}
