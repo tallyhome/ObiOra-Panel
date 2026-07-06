@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.8.0 - 2026-07-06
+
+### Phase 9 — Marketplace / Plugins
+
+#### Ajouté
+
+- Marketplace `/plugins` — installation apps en un clic depuis le dashboard
+- Catalogue extensible `packages/` (style Swizzin, réécriture propriétaire)
+- Apps initiales : Netdata, Jellyfin, Plex, Sonarr, qBittorrent
+- `ApplicationCatalog`, `ApplicationManager`, API agent
+
 ## [1.8.0] - 2026-07-06
 
 ### Phase 9 — Marketplace / Plugins
@@ -80,14 +91,14 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
-```
 
+```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
-```
 
+```
 ## [1.3.0] - 2026-07-06
 
 ### Phase 4 — Slave installer & Services systemd
@@ -108,14 +119,14 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
-```
 
+```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
-```
 
+```
 ## [1.2.0] - 2026-07-06
 
 ### Phase 3 — Dashboard, Auth & Multi-serveurs
