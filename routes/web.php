@@ -33,4 +33,6 @@ Route::middleware(['setup', 'auth', 'server'])->group(function () {
         Route::get('/create', ServerCreate::class)->name('create');
         Route::get('/{server}', ServerShow::class)->name('show');
     });
+
+    Route::get('/services', \Modules\Services\Livewire\ServiceList::class)->name('services.index');
 });

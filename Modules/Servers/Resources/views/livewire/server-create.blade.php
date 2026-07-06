@@ -2,7 +2,13 @@
     <div class="mb-4">
         <a href="{{ route('servers.index') }}" class="text-decoration-none small">&larr; Retour aux serveurs</a>
         <h1 class="h3 mt-2">Ajouter un serveur distant</h1>
-        <p class="text-muted">Le serveur distant doit avoir l'agent ObiOra installé et accessible.</p>
+    </div>
+
+    <div class="alert alert-info small">
+        <strong>1.</strong> Sur le serveur slave, exécutez :<br>
+        <code class="user-select-all">bash &lt;(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)</code><br>
+        <strong>2.</strong> Copiez la <strong>clé API</strong> affichée à la fin de l'installation.<br>
+        <strong>3.</strong> Collez-la ci-dessous avec l'adresse IP du slave.
     </div>
 
     <div class="card obiora-card">
@@ -35,10 +41,18 @@
                         <label class="form-label">Port agent</label>
                         <input wire:model="agent_port" type="number" class="form-control">
                     </div>
+                    <div class="col-12">
+                        <label class="form-label">Clé API (générée sur le slave)</label>
+                        <input wire:model="agent_token" type="text" class="form-control font-monospace @error('agent_token') is-invalid @enderror" placeholder="Collez la clé affichée après Slave/install.sh">
+                        @error('agent_token') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
                 </div>
 
                 <div class="mt-4">
-                    <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">Ajouter le serveur</button>
+                    <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">
+                        <span wire:loading.remove>Lier le serveur</span>
+                        <span wire:loading>Vérification...</span>
+                    </button>
                 </div>
             </form>
         </div>

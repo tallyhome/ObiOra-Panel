@@ -22,6 +22,8 @@ final class ServerCreate extends Component
 
     public string $type = 'vps';
 
+    public string $agent_token = '';
+
     public int $agent_port = 9100;
 
     public function save(ServerManager $serverManager): void
@@ -31,18 +33,28 @@ final class ServerCreate extends Component
             'ip_address' => ['required', 'ip'],
             'hostname' => ['nullable', 'string', 'max:255'],
             'type' => ['required', 'in:vps,dedicated,cluster'],
+            'agent_token' => ['required', 'string', 'min:32', 'max:128'],
             'agent_port' => ['required', 'integer', 'min:1', 'max:65535'],
         ]);
 
-        $server = $serverManager->createRemote([
-            'name' => $this->name,
-            'ip_address' => $this->ip_address,
-            'hostname' => $this->hostname ?: $this->ip_address,
-            'type' => ServerType::from($this->type),
-            'agent_port' => $this->agent_port,
-        ]);
+        try {
+            $server = $serverManager->createRemote([
+                'name' => $this->name,
+                'ip_address' => $this->ip_address,
+                'hostname' => $this->hostname ?: $this->ip_address,
+                'type' => ServerType::from($this->type),
+                'agent_token' => trim($this->agent_token),
+                'agent_port' => $this->agent_port,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            $this->addError('agent_token', $e->getMessage());
 
-        session()->flash('success', "Serveur « {$server->name} » ajouté. Installez l'agent avec le token affiché.");
+            return;
+        }
+
+        $status = $server->status->value === 'online' ? 'connecté' : 'en attente (vérifiez le ping)';
+
+        session()->flash('success', "Serveur « {$server->name} » ajouté — {$status}.");
 
         $this->redirect(route('servers.show', $server), navigate: true);
     }

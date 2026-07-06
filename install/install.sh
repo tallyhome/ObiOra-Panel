@@ -7,11 +7,11 @@
 
 set -euo pipefail
 
-OBIORA_VERSION="1.2.0"
+OBIORA_VERSION="1.3.0"
 OBIORA_INSTALL_DIR="${OBIORA_INSTALL_DIR:-/opt/obiora-panel}"
 OBIORA_REPO="https://github.com/tallyhome/ObiOra-Panel.git"
 OBIORA_BRANCH="main"
-OBIORA_TAG="v1.2.0"
+OBIORA_TAG="v1.3.0"
 OBIORA_DOMAIN=""
 OBIORA_SSL_EMAIL=""
 INSTALL_DOCKER="false"

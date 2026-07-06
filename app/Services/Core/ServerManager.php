@@ -13,7 +13,7 @@ use App\Services\System\AgentExecutor;
 use App\Services\System\LocalExecutor;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 final class ServerManager
 {
@@ -59,7 +59,11 @@ final class ServerManager
      */
     public function createRemote(array $data): Server
     {
-        $token = Str::random(64);
+        $token = (string) ($data['agent_token'] ?? '');
+
+        if (strlen($token) < 32) {
+            throw new InvalidArgumentException('La clé API slave est invalide (min. 32 caractères).');
+        }
 
         $server = Server::query()->create([
             'name' => $data['name'],
@@ -93,6 +97,8 @@ final class ServerManager
             $server->update([
                 'status' => ServerStatus::Online,
                 'last_seen_at' => now(),
+                'hostname' => gethostname() ?: $server->hostname,
+                'os_name' => PHP_OS_FAMILY,
             ]);
             $server->primaryNode?->update(['last_ping_at' => now()]);
 
@@ -119,6 +125,9 @@ final class ServerManager
                 $server->update([
                     'status' => ServerStatus::Online,
                     'last_seen_at' => now(),
+                    'hostname' => $response->json('hostname', $server->hostname),
+                    'ip_address' => $response->json('ip', $server->ip_address),
+                    'os_name' => $response->json('os', $server->os_name),
                 ]);
                 $node->update(['last_ping_at' => now()]);
 
