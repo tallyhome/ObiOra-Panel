@@ -2,7 +2,7 @@
 
 Plateforme moderne de gestion de serveurs Linux — Laravel 12, Livewire 3, Bootstrap 5.3.
 
-**Version actuelle : v1.0.1** (Phase 1 — Architecture)
+**Version actuelle : v1.1.0** (Phase 2 — Installation automatique)
 
 ## Stack
 
@@ -28,6 +28,10 @@ Plateforme moderne de gestion de serveurs Linux — Laravel 12, Livewire 3, Boot
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
 ```
 
+Options : `--domain`, `--email`, `--docker`, `--ftp`, `--tag`, `--dir`
+
+Voir [docs/architecture/PHASE-2.md](docs/architecture/PHASE-2.md)
+
 ## Développement local
 
 ```bash
@@ -44,7 +48,7 @@ php artisan serve
 | Phase | Version | Contenu |
 |---|---|---|
 | 1 | v1.0.1 | Architecture, modules, migrations core |
-| 2 | v1.1.0 | Script d'installation automatique |
+| 2 | **v1.1.0** | **Script d'installation automatique** |
 | 3 | v1.2.0 | Dashboard + authentification |
 | 4 | v1.3.0 | Gestion services Linux |
 | 5 | v1.4.0 | Sites web (Nginx, PHP, SSL) |
@@ -58,6 +62,7 @@ php artisan serve
 ## Documentation
 
 - [Architecture Phase 1](docs/architecture/PHASE-1.md)
+- [Installation Phase 2](docs/architecture/PHASE-2.md)
 
 ## Licence
 

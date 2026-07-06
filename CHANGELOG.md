@@ -4,6 +4,21 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.1.0] - 2026-07-06
+
+### Phase 2 — Installation automatique
+
+#### Ajouté
+
+- Script `install/install.sh` complet (one-liner curl)
+- Modules bash : detect-os, prerequisites, packages, database, laravel, nginx, ssl, systemd, firewall, rollback
+- Support Debian, Ubuntu, AlmaLinux, Rocky Linux
+- Installation : Nginx, PHP 8.3, MariaDB, Redis, Composer, Node 20, Supervisor, Certbot, Fail2Ban, UFW/firewalld
+- Options `--docker`, `--ftp`, `--domain`, `--email`, `--tag`
+- Services systemd : queue worker, scheduler, agent
+- Script `install/uninstall.sh`
+- `composer.lock` et `package-lock.json` générés
+
 ## [1.0.1] - 2026-07-06
 
 ### Phase 1 — Architecture
