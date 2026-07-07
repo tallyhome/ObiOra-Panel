@@ -4,9 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
-## v1.8.5 - 2026-07-07
+## [1.8.6] - 2026-07-07
 
-Corrige l echec composer install (Symfony 8 exigeait PHP 8.4). Plateforme figee a PHP 8.3, lock regenere vers Symfony 7.x. Maj depot robuste pour reinstallation.
+### Corrigé
+
+- **DB Access denied** : `ALTER USER` force la synchro du mot de passe (au lieu de `CREATE USER IF NOT EXISTS` qui l'ignore si l'utilisateur existe), et réutilisation du mot de passe existant sur réinstallation
+- **Host DB** : création de l'utilisateur pour `localhost` **et** `127.0.0.1` (connexion TCP Laravel)
 
 ## [1.8.5] - 2026-07-07
 
