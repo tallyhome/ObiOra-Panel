@@ -34,6 +34,12 @@ Corrige la detection des mises a jour (VERSION, git, GitHub API) et affiche un b
 
 Phase 10: page Licence et MAJ, integration AdminLicence, correctifs installateur (404, permissions, SELinux).
 
+## [1.9.6] - 2026-07-07
+
+### Corrigé
+
+- **Mise à jour panel (500)** : `PanelUpdater` utilisait `output()` / `successful()` comme méthodes au lieu des propriétés de `ProcessResult`
+
 ## [1.9.5] - 2026-07-07
 
 ### Corrigé
