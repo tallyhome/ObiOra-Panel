@@ -1,4 +1,4 @@
-<div>
+<div @if($updateRunning) wire:poll.3s="pollUpdateStatus" @endif>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-1">Licence & Mises à jour</h1>
@@ -10,7 +10,16 @@
         <div class="alert alert-{{ $licenseSuccess ? 'success' : 'danger' }}">{{ $licenseMessage }}</div>
     @endif
 
-    @if($updateMessage)
+    @if($updateRunning)
+        <div class="alert alert-info d-flex align-items-center gap-2 mb-1">
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span>{{ $updateMessage ?? 'Mise à jour en cours…' }}</span>
+        </div>
+        <p class="text-muted small mb-4">
+            Cela peut prendre plusieurs minutes (composer, build, migrations). Si le statut reste bloqué sur
+            « en file d'attente » plus d'une minute, vérifiez sur le serveur : <code>systemctl status obiora-queue</code>.
+        </p>
+    @elseif($updateMessage)
         <div class="alert alert-{{ $updateSuccess ? 'success' : 'warning' }}">{{ $updateMessage }}</div>
     @endif
 
@@ -93,14 +102,18 @@
                     @endif
 
                     <div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
-                        <button wire:click="checkUpdates" class="btn btn-outline-primary btn-sm" wire:loading.attr="disabled">
+                        <button wire:click="checkUpdates" class="btn btn-outline-primary btn-sm" wire:loading.attr="disabled" @if($updateRunning) disabled @endif>
                             <span wire:loading.remove wire:target="checkUpdates">Vérifier</span>
                             <span wire:loading wire:target="checkUpdates">↻ Vérification…</span>
                         </button>
                         @can('updates.manage')
-                            @if($updateInfo['available'] ?? false)
+                            @if($updateRunning)
+                                <button type="button" class="btn btn-primary btn-sm" disabled>
+                                    <span class="spinner-border spinner-border-sm me-1"></span> Mise à jour en cours…
+                                </button>
+                            @elseif($updateInfo['available'] ?? false)
                                 <button type="button" wire:loading.attr="disabled"
-                                    onclick="obioraConfirm(() => $wire.applyUpdate(), 'Mettre à jour', 'Appliquer la mise à jour maintenant ?')"
+                                    onclick="obioraConfirm(() => $wire.applyUpdate(), 'Mettre à jour', 'Appliquer la mise à jour maintenant ? Le panel sera indisponible quelques instants.')"
                                     class="btn btn-primary btn-sm">
                                     Mettre à jour
                                 </button>
@@ -150,7 +163,16 @@
                                     <td>v{{ $entry->from_version }}</td>
                                     <td>v{{ $entry->to_version }}</td>
                                     <td>
-                                        <span class="badge bg-{{ $entry->status === 'completed' ? 'success' : ($entry->status === 'failed' ? 'danger' : 'secondary') }}">
+                                        @php
+                                            $badgeColor = match($entry->status) {
+                                                'completed' => 'success',
+                                                'failed' => 'danger',
+                                                'running' => 'info',
+                                                'queued' => 'warning',
+                                                default => 'secondary',
+                                            };
+                                        @endphp
+                                        <span class="badge bg-{{ $badgeColor }}{{ $badgeColor === 'warning' ? ' text-dark' : '' }}">
                                             {{ $entry->status }}
                                         </span>
                                     </td>

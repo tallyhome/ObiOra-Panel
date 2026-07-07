@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.9.11 - 2026-07-07
+
+Corrige le bouton « Mettre à jour » qui ne faisait rien : la MAJ tournait de façon synchrone dans la requête HTTP et dépassait les timeouts PHP-FPM/Nginx (composer+npm+migrate peuvent prendre plusieurs minutes). Bascule sur une file d'attente (`obiora-queue`) : le clic lance immédiatement le job en arrière-plan, avec suivi en direct (statut, spinner, historique) via un polling toutes les 3 secondes.
+
 ## v1.9.10 - 2026-07-07
 
 Logo SVG ObiOra Panel + SeedBox (sidebar, page login). Note explicative sur l'historique MAJ failed.

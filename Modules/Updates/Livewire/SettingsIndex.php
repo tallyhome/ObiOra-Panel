@@ -37,12 +37,17 @@ final class SettingsIndex extends Component
 
     public string $licenseStatus = 'inactive';
 
+    public ?int $pendingHistoryId = null;
+
+    public bool $updateRunning = false;
+
     public function mount(LicenseService $licenseService, UpdateManager $updateManager): void
     {
         $this->loadLicense($licenseService);
         $this->updateInfo = $updateManager->checkForUpdates();
         $this->lastCheckedAt = now()->format('d/m/Y H:i:s');
         $this->setUpdateFeedback();
+        $this->resumePendingUpdate();
     }
 
     public function activateLicense(LicenseService $licenseService): void
@@ -78,24 +83,88 @@ final class SettingsIndex extends Component
         $this->dispatch('notify', type: $type, message: $this->updateMessage ?? 'Vérification terminée.');
     }
 
-    public function applyUpdate(PanelUpdater $panelUpdater, UpdateManager $updateManager): void
+    public function applyUpdate(PanelUpdater $panelUpdater): void
     {
         abort_unless(auth()->user()?->can('updates.manage'), 403);
 
-        try {
-            $result = $panelUpdater->apply();
-            $this->updateSuccess = $result['success'];
-            $this->updateMessage = $result['message'];
-
-            if (! $result['success'] && $result['output'] !== '') {
-                $this->updateMessage .= ' — '.mb_substr($result['output'], 0, 200);
-            }
-        } catch (\Throwable $e) {
-            $this->updateSuccess = false;
-            $this->updateMessage = 'Erreur : '.$e->getMessage();
+        if ($this->updateRunning) {
+            return;
         }
 
-        $this->updateInfo = $updateManager->checkForUpdates(fresh: true);
+        $result = $panelUpdater->queueUpdate();
+
+        $this->updateSuccess = $result['success'];
+        $this->updateMessage = $result['message'];
+        $this->pendingHistoryId = $result['history_id'];
+        $this->updateRunning = $result['success'] && $result['history_id'] !== null;
+
+        $this->dispatch('notify', type: $result['success'] ? 'info' : 'danger', message: $result['message']);
+    }
+
+    public function pollUpdateStatus(UpdateManager $updateManager): void
+    {
+        if ($this->pendingHistoryId === null) {
+            $this->updateRunning = false;
+
+            return;
+        }
+
+        $history = UpdateHistory::query()->find($this->pendingHistoryId);
+
+        if ($history === null || in_array($history->status, ['completed', 'failed'], true)) {
+            $this->updateRunning = false;
+            $this->pendingHistoryId = null;
+            $this->updateInfo = $updateManager->checkForUpdates(fresh: true);
+            $this->lastCheckedAt = now()->format('d/m/Y H:i:s');
+
+            if ($history === null) {
+                $this->setUpdateFeedback();
+
+                return;
+            }
+
+            if ($history->status === 'completed') {
+                $this->updateSuccess = true;
+                $this->updateMessage = "Mise à jour vers v{$history->to_version} terminée. Rechargez la page (Ctrl+F5).";
+                $this->dispatch('notify', type: 'success', message: $this->updateMessage);
+
+                return;
+            }
+
+            $this->updateSuccess = false;
+            $this->updateMessage = 'Échec de la mise à jour.';
+            if (! empty($history->output)) {
+                $this->updateMessage .= ' — '.mb_substr((string) $history->output, 0, 200);
+            }
+            $this->dispatch('notify', type: 'danger', message: $this->updateMessage);
+
+            return;
+        }
+
+        // Toujours 'queued' ou 'running' : on continue de sonder.
+        $this->updateMessage = $history->status === 'running'
+            ? 'Mise à jour en cours d\'exécution (composer, migrations, build)…'
+            : 'Mise à jour en file d\'attente, démarrage imminent…';
+        $this->updateSuccess = true;
+    }
+
+    private function resumePendingUpdate(): void
+    {
+        $pending = UpdateHistory::query()
+            ->whereIn('status', ['queued', 'running'])
+            ->latest()
+            ->first();
+
+        if ($pending === null) {
+            return;
+        }
+
+        $this->pendingHistoryId = $pending->id;
+        $this->updateRunning = true;
+        $this->updateSuccess = true;
+        $this->updateMessage = $pending->status === 'running'
+            ? 'Mise à jour en cours d\'exécution (composer, migrations, build)…'
+            : 'Mise à jour en file d\'attente, démarrage imminent…';
     }
 
     private function setUpdateFeedback(): void

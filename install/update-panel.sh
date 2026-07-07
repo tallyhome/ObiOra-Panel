@@ -47,7 +47,7 @@ sudo -u "${OBIORA_USER}" php artisan config:clear
 echo "[6/7] artisan optimize..."
 sudo -u "${OBIORA_USER}" php artisan optimize
 
-echo "[7/7] sudoers agent + répertoire web..."
+echo "[7/8] sudoers agent + répertoire web..."
 if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/common.sh" ]] && [[ -f "${OBIORA_INSTALL_DIR}/install/lib/sudoers.sh" ]]; then
     # shellcheck source=/dev/null
     source "${OBIORA_INSTALL_DIR}/install/lib/common.sh"
@@ -67,6 +67,18 @@ chmod -R 775 "${OBIORA_INSTALL_DIR}/storage" "${OBIORA_INSTALL_DIR}/bootstrap/ca
 
 if id apache &>/dev/null; then
     chown -R "${OBIORA_USER}:apache" "${OBIORA_INSTALL_DIR}/storage" "${OBIORA_INSTALL_DIR}/bootstrap/cache" 2>/dev/null || true
+fi
+
+echo "[8/8] rechargement des services..."
+systemctl reload-or-restart php8.3-fpm 2>/dev/null || systemctl reload-or-restart php-fpm 2>/dev/null || true
+systemctl reload nginx 2>/dev/null || true
+
+# Redémarrage différé du worker de file d'attente (ce script tourne DANS ce
+# worker lorsque la MAJ est lancée depuis le panel : un restart immédiat et
+# bloquant se tuerait lui-même). On le programme après la fin du script.
+if systemctl list-unit-files 2>/dev/null | grep -q '^obiora-queue\.service'; then
+    setsid bash -c 'sleep 5; systemctl --no-block restart obiora-queue' >/dev/null 2>&1 </dev/null &
+    disown 2>/dev/null || true
 fi
 
 echo "OK: panel mis à jour."

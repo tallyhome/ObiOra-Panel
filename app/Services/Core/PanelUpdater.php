@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Core;
 
 use App\Contracts\SystemExecutorInterface;
+use App\Jobs\ApplyPanelUpdateJob;
 use App\Models\UpdateHistory;
 use App\Support\InstalledVersion;
 use Illuminate\Support\Facades\File;
@@ -20,15 +21,18 @@ final class PanelUpdater
     ) {}
 
     /**
-     * @return array{success: bool, message: string, output: string}
+     * Crée l'entrée d'historique et met la mise à jour en file d'attente
+     * (exécutée par le worker `obiora-queue`, hors du cycle de requête HTTP).
+     *
+     * @return array{success: bool, message: string, history_id: ?int}
      */
-    public function apply(): array
+    public function queueUpdate(): array
     {
         if (! $this->canUpdate()) {
             return [
                 'success' => false,
                 'message' => 'Mise à jour indisponible : dépôt git introuvable ou script update-panel.sh absent.',
-                'output' => '',
+                'history_id' => null,
             ];
         }
 
@@ -38,26 +42,68 @@ final class PanelUpdater
             return [
                 'success' => false,
                 'message' => $check['error'] ?? 'Aucune mise à jour disponible.',
-                'output' => '',
+                'history_id' => null,
             ];
         }
 
         $fromVersion = $this->installedVersion->current();
         $toVersion = (string) ($check['latest'] ?? $fromVersion);
-        $panelRoot = base_path();
-        $updateScript = $panelRoot.'/install/update-panel.sh';
 
         $history = UpdateHistory::query()->create([
             'from_version' => $fromVersion,
             'to_version' => $toVersion,
-            'status' => 'running',
+            'status' => 'queued',
             'changelog_url' => $check['changelog_url'] ?? null,
         ]);
 
         try {
+            ApplyPanelUpdateJob::dispatch($history->id);
+        } catch (Throwable $exception) {
+            Log::error('Impossible de mettre la MAJ en file d\'attente', ['message' => $exception->getMessage()]);
+
+            $history->update([
+                'status' => 'failed',
+                'output' => 'Échec de mise en file d\'attente : '.$exception->getMessage(),
+                'completed_at' => now(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Impossible de lancer la mise à jour (file d\'attente indisponible). Vérifiez que le service obiora-queue est actif.',
+                'history_id' => $history->id,
+            ];
+        }
+
+        return [
+            'success' => true,
+            'message' => "Mise à jour vers v{$toVersion} lancée en arrière-plan. Cela peut prendre plusieurs minutes.",
+            'history_id' => $history->id,
+        ];
+    }
+
+    /**
+     * Exécute réellement le script de mise à jour. Appelé par le job en file d'attente,
+     * donc sans limite de temps liée à une requête HTTP.
+     */
+    public function runQueuedUpdate(int $historyId): void
+    {
+        $history = UpdateHistory::query()->find($historyId);
+
+        if ($history === null) {
+            Log::error('UpdateHistory introuvable pour la MAJ en file d\'attente', ['id' => $historyId]);
+
+            return;
+        }
+
+        $history->update(['status' => 'running']);
+
+        $panelRoot = base_path();
+        $updateScript = $panelRoot.'/install/update-panel.sh';
+
+        try {
             $result = $this->executor->run(
                 'sudo -n '.escapeshellarg($updateScript),
-                ['timeout' => 900],
+                ['timeout' => 1500],
             );
 
             $output = trim($result->output."\n".$result->errorOutput);
@@ -71,11 +117,7 @@ final class PanelUpdater
 
                 Log::warning('Panel update failed', ['output' => $output]);
 
-                return [
-                    'success' => false,
-                    'message' => 'Échec de la mise à jour. Vérifiez les droits sudo (réinstallez ou exécutez update-panel.sh en SSH).',
-                    'output' => $output,
-                ];
+                return;
             }
 
             $history->update([
@@ -83,12 +125,6 @@ final class PanelUpdater
                 'output' => $output,
                 'completed_at' => now(),
             ]);
-
-            return [
-                'success' => true,
-                'message' => "Mise à jour vers v{$toVersion} terminée. Rechargez la page (Ctrl+F5).",
-                'output' => $output,
-            ];
         } catch (Throwable $exception) {
             Log::error('Panel update exception', ['message' => $exception->getMessage()]);
 
@@ -97,12 +133,6 @@ final class PanelUpdater
                 'output' => $exception->getMessage(),
                 'completed_at' => now(),
             ]);
-
-            return [
-                'success' => false,
-                'message' => 'Erreur interne : '.$exception->getMessage(),
-                'output' => '',
-            ];
         }
     }
 
