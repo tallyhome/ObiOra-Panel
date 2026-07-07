@@ -19,7 +19,9 @@
                             <code class="user-select-all">{{ $database->metadata['docker_host'] ?? '172.17.0.1' }}</code>
                             <span class="text-muted small ms-1">ou <code>host.docker.internal</code></span>
                             <div class="form-text text-warning mt-1">
-                                N'utilisez pas <code>localhost</code> depuis un conteneur Docker — cela provoque l'erreur SQLSTATE[2002].
+                                N'utilisez pas <code>localhost</code> depuis un conteneur Docker.
+                                Les droits MySQL pour Docker sont appliqués ; si la connexion échoue encore,
+                                contactez l'administrateur (écoute MariaDB sur le réseau Docker).
                             </div>
                             @if (empty($database->metadata['docker_granted_at']))
                                 <button type="button" wire:click="grantDockerAccess" class="btn btn-outline-warning btn-sm mt-2" wire:loading.attr="disabled">

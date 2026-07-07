@@ -31,6 +31,12 @@ fi
 
 cd "${OBIORA_INSTALL_DIR}"
 
+# Récupération d'urgence : un drop-in bind-address ObiOra peut avoir empêché
+# MariaDB de redémarrer (panel en 500 / Connection refused sur 127.0.0.1:3306).
+if [[ -f "${OBIORA_INSTALL_DIR}/agent/scripts/mysql-docker-recover.sh" ]]; then
+    bash "${OBIORA_INSTALL_DIR}/agent/scripts/mysql-docker-recover.sh" || true
+fi
+
 git config --global --add safe.directory "${OBIORA_INSTALL_DIR}" 2>/dev/null || true
 
 progress 8 "Préparation de la mise à jour…"
