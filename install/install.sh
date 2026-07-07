@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-OBIORA_VERSION="1.8.9"
+OBIORA_VERSION="1.9.0"
 OBIORA_INSTALL_DIR="${OBIORA_INSTALL_DIR:-/opt/obiora-panel}"
 OBIORA_REPO="https://github.com/tallyhome/ObiOra-Panel.git"
 OBIORA_BRANCH="main"
@@ -138,19 +138,19 @@ print_summary() {
         url="http://${ip}"
     fi
 
+    printf '\n\033[0;32m╔══════════════════════════════════════════════════╗\n║       ObiOra Panel installé avec succès !        ║\n╚══════════════════════════════════════════════════╝\033[0m\n\n'
     cat <<EOF
-
-${GREEN}╔══════════════════════════════════════════════════╗
-║       ObiOra Panel installé avec succès !        ║
-╚══════════════════════════════════════════════════╝${NC}
-
   Version  : v${OBIORA_VERSION}
   URL      : ${url}
+  Setup    : ${url}/setup
   Dossier  : ${OBIORA_INSTALL_DIR}
   Logs     : ${OBIORA_LOG_FILE}
   DB creds : /root/.obiora_db_credentials
 
-  Prochaine étape (Phase 3) : création du compte admin via le panel.
+  Prochaines étapes :
+    1. Ouvrez ${url}/setup et créez le compte administrateur
+    2. Consultez le dashboard et ajoutez des serveurs distants (Phase 4)
+    3. Licence & mises à jour : menu « Licence & MAJ » dans le panel
 
 EOF
 }

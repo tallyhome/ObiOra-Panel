@@ -94,3 +94,67 @@ get_server_ip() {
 generate_password() {
     openssl rand -base64 24 | tr -dc 'A-Za-z0-9@#%_' | head -c 24
 }
+
+# Détecte le socket PHP-FPM (chemins Debian, RHEL, Remi)
+detect_php_fpm_socket() {
+    local sock pool_conf listen_val
+
+    for sock in \
+        /run/php/php8.3-fpm.sock \
+        /run/php-fpm/www.sock \
+        /var/run/php-fpm/www.sock \
+        /var/opt/remi/php83/run/php-fpm/www.sock \
+        /var/opt/remi/php82/run/php-fpm/www.sock; do
+        if [[ -S "${sock}" ]]; then
+            echo "${sock}"
+            return 0
+        fi
+    done
+
+    for pool_conf in /etc/php-fpm.d/www.conf /etc/opt/remi/php*/php-fpm.d/www.conf; do
+        [[ -f "${pool_conf}" ]] || continue
+        listen_val="$(grep -E '^listen\s*=' "${pool_conf}" | head -1 | sed -E 's/^listen\s*=\s*//;s/\s*;.*//;s/^[[:space:]]+//;s/[[:space:]]+$//')"
+        [[ -z "${listen_val}" ]] && continue
+        if [[ "${listen_val}" == /* ]] && [[ -S "${listen_val}" ]]; then
+            echo "${listen_val}"
+            return 0
+        fi
+    done
+
+    die "Socket PHP-FPM introuvable (vérifiez: systemctl status php-fpm)"
+}
+
+# Permissions lecture web : nginx + php-fpm (apache sur RHEL)
+setup_web_permissions() {
+    local web_user
+
+    for web_user in nginx apache www-data; do
+        if id "${web_user}" &>/dev/null; then
+            usermod -aG "${OBIORA_GROUP:-obiora}" "${web_user}" 2>/dev/null || true
+        fi
+    done
+
+    chmod 750 "${OBIORA_INSTALL_DIR}"
+    chmod -R g+rX "${OBIORA_INSTALL_DIR}"
+    chmod 755 "${OBIORA_INSTALL_DIR}/public"
+}
+
+setup_selinux_panel() {
+    if command -v getenforce &>/dev/null && [[ "$(getenforce)" != "Disabled" ]]; then
+        info "Configuration SELinux pour le panel..."
+        if ! command -v semanage &>/dev/null; then
+            pkg_install policycoreutils-python-utils 2>/dev/null || true
+        fi
+        if command -v semanage &>/dev/null; then
+            semanage fcontext -a -t httpd_sys_content_t "${OBIORA_INSTALL_DIR}(/.*)?" 2>/dev/null \
+                || semanage fcontext -m -t httpd_sys_content_t "${OBIORA_INSTALL_DIR}(/.*)?" 2>/dev/null || true
+            semanage fcontext -a -t httpd_sys_rw_content_t "${OBIORA_INSTALL_DIR}/storage(/.*)?" 2>/dev/null \
+                || semanage fcontext -m -t httpd_sys_rw_content_t "${OBIORA_INSTALL_DIR}/storage(/.*)?" 2>/dev/null || true
+            semanage fcontext -a -t httpd_sys_rw_content_t "${OBIORA_INSTALL_DIR}/bootstrap/cache(/.*)?" 2>/dev/null \
+                || semanage fcontext -m -t httpd_sys_rw_content_t "${OBIORA_INSTALL_DIR}/bootstrap/cache(/.*)?" 2>/dev/null || true
+            restorecon -Rv "${OBIORA_INSTALL_DIR}" 2>/dev/null || true
+        fi
+        setsebool -P httpd_can_network_connect 1 2>/dev/null || true
+        success "SELinux configuré"
+    fi
+}

@@ -57,4 +57,6 @@ Route::middleware(['setup', 'auth', 'server'])->group(function () {
     });
 
     Route::get('/plugins', \Modules\Plugins\Livewire\PluginMarketplace::class)->name('plugins.index');
+
+    Route::get('/settings', \Modules\Updates\Livewire\SettingsIndex::class)->name('settings.index');
 });

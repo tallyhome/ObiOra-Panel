@@ -93,14 +93,20 @@ setup_laravel() {
     ${run_as} php artisan migrate --force
     ${run_as} php artisan db:seed --force
 
-    # Permissions storage
+    # Permissions storage (apache sur RHEL, www-data sur Debian)
     chmod -R 775 storage bootstrap/cache
-    chown -R "${OBIORA_USER}:www-data" storage bootstrap/cache 2>/dev/null || \
-    chown -R "${OBIORA_USER}:nginx" storage bootstrap/cache
+    if getent group www-data &>/dev/null; then
+        chown -R "${OBIORA_USER}:www-data" storage bootstrap/cache
+    elif getent group apache &>/dev/null; then
+        chown -R "${OBIORA_USER}:apache" storage bootstrap/cache
+    else
+        chown -R "${OBIORA_USER}:nginx" storage bootstrap/cache
+    fi
 
     ${run_as} php artisan storage:link 2>/dev/null || true
     ${run_as} php artisan optimize
 
+    sync_master_server
     setup_agent_config
 
     success "Laravel configuré"
@@ -131,4 +137,26 @@ JSON
     chmod +x "${OBIORA_INSTALL_DIR}/agent/bin/obiOra-agent"
 
     success "Agent configuré (port 9100)"
+}
+
+sync_master_server() {
+    local ip hostname db_user db_pass db_name
+
+    ip="$(get_server_ip)"
+    hostname="$(hostname -f 2>/dev/null || hostname)"
+
+    db_user="$(grep '^DB_USERNAME=' "${OBIORA_INSTALL_DIR}/.env" | cut -d= -f2-)"
+    db_pass="$(grep '^DB_PASSWORD=' "${OBIORA_INSTALL_DIR}/.env" | cut -d= -f2-)"
+    db_name="$(grep '^DB_DATABASE=' "${OBIORA_INSTALL_DIR}/.env" | cut -d= -f2-)"
+
+    if [[ -z "${db_user}" || -z "${db_name}" ]]; then
+        warn "Sync serveur maître ignoré (.env incomplet)"
+        return
+    fi
+
+    mysql -N -u "${db_user}" -p"${db_pass}" "${db_name}" 2>/dev/null <<SQL || true
+UPDATE servers SET ip_address='${ip}', hostname='${hostname}' WHERE is_master = 1;
+SQL
+
+    info "Serveur maître : ${ip} (${hostname})"
 }

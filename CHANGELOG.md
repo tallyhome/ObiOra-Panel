@@ -4,9 +4,24 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
-## v1.8.9 - 2026-07-07
 
-Corrige le timer systemd, le conflit Nginx default, et rend la reinstallation idempotente. L install doit aller jusqu au message de succes.
+## [1.9.0] - 2026-07-07
+
+### Phase 10 — AdminLicence & Mises à jour
+
+#### Ajouté
+
+- Page **Licence & MAJ** (`/settings`) : activation licence, sync AdminLicence, vérification GitHub Releases
+- `AdminLicenceClient`, `LicenseService`, `PanelUpdater`
+- Historique des mises à jour (`update_history`)
+- Menu sidebar « Licence & MAJ »
+- Documentation [PHASE-10.md](docs/architecture/PHASE-10.md)
+
+#### Corrigé (installateur v1.8.10 → inclus en 1.9.0)
+
+- **404 « File not found »** : permissions web (`nginx`/`apache` dans groupe `obiora`), détection socket PHP-FPM Remi/RHEL, SELinux
+- Sync IP/hostname du serveur maître après installation
+- Message post-install enrichi (URL `/setup`, étapes suivantes)
 
 ## [1.8.9] - 2026-07-07
 

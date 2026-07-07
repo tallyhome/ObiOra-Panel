@@ -27,12 +27,11 @@ setup_nginx() {
         nginx_conf="/etc/nginx/conf.d/obiora-panel.conf"
     fi
 
-    local php_sock="/run/php/php8.3-fpm.sock"
+    systemctl_enable_start php8.3-fpm 2>/dev/null || systemctl_enable_start php-fpm
 
-    # AlmaLinux/Rocky peuvent utiliser un chemin différent
-    if [[ ! -S "${php_sock}" ]]; then
-        php_sock="/var/run/php-fpm/www.sock"
-    fi
+    local php_sock
+    php_sock="$(detect_php_fpm_socket)"
+    info "Socket PHP-FPM : ${php_sock}"
 
     cat > "${nginx_conf}" <<NGINX
 server {
@@ -76,9 +75,11 @@ NGINX
         rm -f /etc/nginx/sites-enabled/default
     fi
 
+    setup_web_permissions
+    setup_selinux_panel
+
     nginx -t
     systemctl_enable_start nginx
-    systemctl_enable_start php8.3-fpm 2>/dev/null || systemctl_enable_start php-fpm
 
     success "Nginx configuré pour ${server_name}"
 }

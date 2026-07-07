@@ -8,13 +8,31 @@ use App\Contracts\LicenseValidatorInterface;
 
 final class LicenseManager implements LicenseValidatorInterface
 {
+    public function __construct(
+        private readonly AdminLicenceClient $adminLicenceClient,
+    ) {}
+
     public function validate(string $licenseKey, string $installationUuid): bool
     {
         if (! config('license.enabled', false)) {
             return true;
         }
 
-        // Phase 10 : intégration AdminLicence
+        if ($licenseKey === '' || $installationUuid === '') {
+            return false;
+        }
+
+        $remote = $this->adminLicenceClient->validate(
+            $licenseKey,
+            $installationUuid,
+            gethostname() ?: 'localhost',
+            (string) config('obiora.version'),
+        );
+
+        if ($remote !== null) {
+            return $remote['valid'];
+        }
+
         return ! empty($licenseKey) && ! empty($installationUuid);
     }
 

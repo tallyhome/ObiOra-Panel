@@ -29,6 +29,9 @@
         <a href="{{ route('plugins.index') }}" class="nav-link text-white {{ request()->routeIs('plugins.*') ? 'active bg-primary rounded' : '' }}">
             Marketplace
         </a>
+        <a href="{{ route('settings.index') }}" class="nav-link text-white {{ request()->routeIs('settings.*') ? 'active bg-primary rounded' : '' }}">
+            Licence & MAJ
+        </a>
     </nav>
 
     <div class="mt-auto pt-4 small text-secondary">
