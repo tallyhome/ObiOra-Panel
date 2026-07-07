@@ -7,5 +7,12 @@
   "scripts": {
     "install": "install.sh",
     "uninstall": "uninstall.sh"
+  },
+  "runtime": {
+    "type": "docker",
+    "container": "obiora-qbittorrent",
+    "port": 8080,
+    "url": "http://{host}:8080",
+    "usage": "Interface web sur le port 8080. Identifiants par défaut : admin / adminadmin. Port P2P : 6881."
   }
 }

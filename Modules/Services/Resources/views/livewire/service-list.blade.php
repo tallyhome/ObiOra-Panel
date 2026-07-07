@@ -9,14 +9,14 @@
 
     <div class="card obiora-card mb-3">
         <div class="card-body py-2">
-            <input wire:model.live.debounce.300ms="search" type="search" class="form-control form-control-sm" placeholder="Rechercher un service...">
+            <input wire:model.live.debounce.300ms="search" type="search" class="form-control form-control-sm obiora-input" placeholder="Rechercher un service...">
         </div>
     </div>
 
     <div class="card obiora-card">
         <div class="table-responsive" style="max-height: 480px;">
-            <table class="table table-sm table-hover mb-0">
-                <thead class="sticky-top bg-white">
+            <table class="table table-sm table-hover obiora-table mb-0">
+                <thead class="sticky-top obiora-table-head">
                     <tr>
                         <th>Service</th>
                         <th>État</th>

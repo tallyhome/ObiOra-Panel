@@ -17,17 +17,17 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">Nom</label>
-                        <input wire:model="name" type="text" class="form-control obiora-input @error('name') is-invalid @enderror" placeholder="VPS Production" style="color:#e8e8f0;background-color:#1a1a26;">
+                        <input wire:model="name" type="text" class="form-control obiora-input @error('name') is-invalid @enderror" placeholder="VPS Production">
                         @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Adresse IP</label>
-                        <input wire:model="ip_address" type="text" class="form-control obiora-input @error('ip_address') is-invalid @enderror" placeholder="203.0.113.10" style="color:#e8e8f0;background-color:#1a1a26;">
+                        <input wire:model="ip_address" type="text" class="form-control obiora-input @error('ip_address') is-invalid @enderror" placeholder="203.0.113.10">
                         @error('ip_address') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Hostname (optionnel)</label>
-                        <input wire:model="hostname" type="text" class="form-control obiora-input" placeholder="vps1.example.com" style="color:#e8e8f0;background-color:#1a1a26;">
+                        <input wire:model="hostname" type="text" class="form-control obiora-input" placeholder="vps1.example.com">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Type</label>
@@ -39,11 +39,11 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Port agent</label>
-                        <input wire:model="agent_port" type="number" class="form-control">
+                        <input wire:model="agent_port" type="number" class="form-control obiora-input">
                     </div>
                     <div class="col-12">
                         <label class="form-label">Clé API (générée sur le slave)</label>
-                        <input wire:model="agent_token" type="text" class="form-control obiora-input font-monospace @error('agent_token') is-invalid @enderror" placeholder="Collez la clé affichée après Slave/install.sh" style="color:#e8e8f0;background-color:#1a1a26;">
+                        <input wire:model="agent_token" type="text" class="form-control obiora-input font-monospace @error('agent_token') is-invalid @enderror" placeholder="Collez la clé affichée après Slave/install.sh">
                         @error('agent_token') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
                 </div>

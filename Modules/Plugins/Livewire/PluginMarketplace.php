@@ -8,6 +8,7 @@ use App\Models\InstalledApplication;
 use App\Services\Applications\ApplicationCatalog;
 use App\Services\Applications\ApplicationManager;
 use App\Services\Core\ServerManager;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
@@ -21,17 +22,53 @@ final class PluginMarketplace extends Component
 
     public string $search = '';
 
-    #[On('server-changed')]
-    public function onServerChanged(): void
+    public ?string $installingSlug = null;
+
+    public int $installProgress = 0;
+
+    public string $installProgressMessage = '';
+
+    public bool $installRunning = false;
+
+    public ?int $infoAppId = null;
+
+    public string $appLogOutput = '';
+
+    /** @var array<string, mixed> */
+    public array $appInfo = [];
+
+    public function mount(ApplicationManager $manager, ServerManager $serverManager): void
     {
-        //
+        $this->resumeInstall($manager, $serverManager);
+    }
+
+    #[On('server-changed')]
+    public function onServerChanged(ApplicationManager $manager, ServerManager $serverManager): void
+    {
+        $this->infoAppId = null;
+        $this->appLogOutput = '';
+        $this->appInfo = [];
+        $this->resumeInstall($manager, $serverManager);
     }
 
     public function install(string $slug, ApplicationManager $manager, ServerManager $serverManager): void
     {
+        if ($this->installRunning) {
+            return;
+        }
+
         try {
-            $app = $manager->install($slug, $serverManager->getCurrentServer());
-            session()->flash('success', "« {$app->name} » installé avec succès.");
+            $server = $serverManager->getCurrentServer();
+
+            if ($server === null) {
+                throw new \InvalidArgumentException('Aucun serveur sélectionné.');
+            }
+
+            $manager->queueInstall($slug, $server);
+            $this->installingSlug = $slug;
+            $this->installRunning = true;
+            $this->installProgress = 3;
+            $this->installProgressMessage = 'Installation démarrée…';
         } catch (\InvalidArgumentException $e) {
             $this->dispatch('notify', type: 'danger', message: $e->getMessage());
         }
@@ -39,23 +76,117 @@ final class PluginMarketplace extends Component
 
     public function uninstall(int $id, ApplicationManager $manager): void
     {
+        if ($this->installRunning) {
+            $this->dispatch('notify', type: 'warning', message: 'Une opération est déjà en cours.');
+
+            return;
+        }
+
         $app = InstalledApplication::query()->findOrFail($id);
 
         try {
-            $name = $app->name;
-            $manager->uninstall($app);
-            session()->flash('success', "« {$name} » désinstallé.");
+            $this->installingSlug = $app->slug;
+            $this->installRunning = true;
+            $this->installProgress = 3;
+            $this->installProgressMessage = 'Désinstallation démarrée…';
+            $manager->queueUninstall($app);
+            $this->infoAppId = null;
+        } catch (\InvalidArgumentException $e) {
+            $this->installRunning = false;
+            $this->installingSlug = null;
+            $this->dispatch('notify', type: 'danger', message: $e->getMessage());
+        }
+    }
+
+    public function pollInstall(ApplicationManager $manager, ServerManager $serverManager): void
+    {
+        $server = $serverManager->getCurrentServer();
+
+        if ($server === null || $this->installingSlug === null) {
+            $this->installRunning = false;
+
+            return;
+        }
+
+        $status = Cache::get($manager->progressCacheKey($server->id, $this->installingSlug));
+
+        if (! is_array($status)) {
+            $this->installRunning = false;
+            $this->installingSlug = null;
+
+            return;
+        }
+
+        $this->installProgress = (int) ($status['progress'] ?? 0);
+        $this->installProgressMessage = (string) ($status['message'] ?? '');
+        $this->installRunning = (bool) ($status['running'] ?? false);
+
+        if (! $this->installRunning && ($status['success'] ?? null) !== null) {
+            $type = ($status['success'] ?? false) ? 'success' : 'danger';
+            $this->dispatch('notify', type: $type, message: $this->installProgressMessage);
+            $this->installingSlug = null;
+        }
+    }
+
+    public function appAction(int $id, string $action, ApplicationManager $manager): void
+    {
+        $app = InstalledApplication::query()->findOrFail($id);
+
+        try {
+            $result = $manager->appControl($app, $action);
+            $this->dispatch('notify', type: $result['success'] ? 'success' : 'danger', message: $result['success']
+                ? ucfirst($action).' effectué.'
+                : $result['output']);
+
+            if ($this->infoAppId === $id) {
+                $this->appInfo = $manager->appInfo($app);
+            }
         } catch (\InvalidArgumentException $e) {
             $this->dispatch('notify', type: 'danger', message: $e->getMessage());
         }
+    }
+
+    public function showAppInfo(int $id, ApplicationManager $manager): void
+    {
+        $app = InstalledApplication::query()->findOrFail($id);
+        $this->infoAppId = $id;
+        $this->appInfo = $manager->appInfo($app);
+        $this->appLogOutput = '';
+    }
+
+    public function showAppLogs(int $id, ApplicationManager $manager): void
+    {
+        $app = InstalledApplication::query()->findOrFail($id);
+        $this->infoAppId = $id;
+        $this->appInfo = $manager->appInfo($app);
+        $this->appLogOutput = $manager->appLogs($app);
+    }
+
+    public function closeAppInfo(): void
+    {
+        $this->infoAppId = null;
+        $this->appInfo = [];
+        $this->appLogOutput = '';
     }
 
     public function render(ApplicationCatalog $catalog, ApplicationManager $manager, ServerManager $serverManager)
     {
         $server = $serverManager->getCurrentServer();
         $installed = $manager->installed($server);
-        $installedSlugs = $installed->pluck('slug')->all();
+        $installedSlugs = $installed
+            ->where('status', \App\Enums\ApplicationStatus::Installed)
+            ->pluck('slug')
+            ->all();
         $categories = $catalog->categories();
+
+        $installedApps = $installed
+            ->where('status', \App\Enums\ApplicationStatus::Installed)
+            ->map(function (InstalledApplication $app) use ($manager) {
+                return array_merge(
+                    ['app' => $app],
+                    $manager->appInfo($app),
+                );
+            });
 
         $filtered = $catalog->all()
             ->when($this->category, fn ($c) => $c->filter(fn ($p) => $p->category() === $this->category))
@@ -67,9 +198,32 @@ final class PluginMarketplace extends Component
         return view('plugins::livewire.plugin-marketplace', [
             'serverName' => $server?->name ?? 'Aucun',
             'installed' => $installed,
+            'installedApps' => $installedApps,
             'filtered' => $filtered,
             'installedSlugs' => $installedSlugs,
             'categories' => $categories,
         ]);
+    }
+
+    private function resumeInstall(ApplicationManager $manager, ServerManager $serverManager): void
+    {
+        $server = $serverManager->getCurrentServer();
+
+        if ($server === null) {
+            return;
+        }
+
+        foreach ($manager->installed($server) as $app) {
+            $status = Cache::get($manager->progressCacheKey($server->id, $app->slug));
+
+            if (is_array($status) && ($status['running'] ?? false)) {
+                $this->installingSlug = $app->slug;
+                $this->installRunning = true;
+                $this->installProgress = (int) ($status['progress'] ?? 0);
+                $this->installProgressMessage = (string) ($status['message'] ?? '');
+
+                return;
+            }
+        }
     }
 }

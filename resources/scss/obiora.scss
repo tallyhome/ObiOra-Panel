@@ -14,6 +14,10 @@ $form-select-border-color: #2d2d42;
 
 @import "bootstrap/scss/bootstrap";
 
+html {
+    color-scheme: dark;
+}
+
 :root {
     --obiora-primary: #3dd68c;
     --obiora-primary-dim: #2ab872;
@@ -321,6 +325,8 @@ body {
 
 // Tables on dark
 .obiora-table {
+    --bs-table-hover-bg: var(--obiora-bg-card-hover);
+    --bs-table-hover-color: var(--obiora-text);
     color: var(--obiora-text);
     font-size: 0.875rem;
 
@@ -331,16 +337,37 @@ body {
         text-transform: uppercase;
         letter-spacing: 0.04em;
         border-color: var(--obiora-border) !important;
+        background: var(--obiora-bg-card);
     }
 
     td {
         border-color: var(--obiora-border) !important;
         vertical-align: middle;
+        color: var(--obiora-text);
     }
 
-    tbody tr:hover {
-        background: var(--obiora-bg-card-hover);
+    tbody tr:hover > * {
+        color: var(--obiora-text) !important;
+        --bs-table-color-state: var(--obiora-text);
+        background-color: var(--obiora-bg-card-hover) !important;
     }
+}
+
+.obiora-table-head {
+    background: var(--obiora-bg-card) !important;
+
+    th {
+        background: var(--obiora-bg-card) !important;
+        color: var(--obiora-text-muted) !important;
+    }
+}
+
+.obiora-log-pre {
+    background: #0d0d14;
+    color: #e8e8f0;
+    border: 1px solid var(--obiora-border);
+    max-height: 320px;
+    overflow: auto;
 }
 
 // Service badge
@@ -421,10 +448,17 @@ input.form-control[type="password"],
 input.form-control[type="email"],
 input.form-control[type="search"],
 input.form-control[type="url"],
+input.form-control[type="number"],
+input.form-control[type="tel"],
 textarea.form-control {
     color: #e8e8f0 !important;
     -webkit-text-fill-color: #e8e8f0 !important;
     background-color: #1a1a26 !important;
+}
+
+.form-label,
+label {
+    color: var(--obiora-text) !important;
 }
 
 .form-control,
@@ -464,6 +498,13 @@ textarea.form-control {
     --bs-table-bg: transparent;
     --bs-table-color: var(--obiora-text);
     --bs-table-border-color: var(--obiora-border);
+    --bs-table-hover-bg: var(--obiora-bg-card-hover);
+    --bs-table-hover-color: var(--obiora-text);
+
+    &.table-hover > tbody > tr:hover > * {
+        color: var(--obiora-text) !important;
+        --bs-table-color-state: var(--obiora-text);
+    }
 }
 
 .dropdown-menu {
@@ -506,5 +547,10 @@ textarea.form-control {
 
 .badge.text-bg-light {
     background: var(--obiora-bg-elevated) !important;
+    color: var(--obiora-text-muted) !important;
+}
+
+.badge.text-bg-light.text-dark,
+.badge.bg-light.text-dark {
     color: var(--obiora-text-muted) !important;
 }

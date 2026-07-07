@@ -42,6 +42,53 @@ final readonly class ApplicationPackage
         return $this->path.DIRECTORY_SEPARATOR.$script;
     }
 
+    public function systemdService(): ?string
+    {
+        $service = $this->manifest['runtime']['service'] ?? null;
+
+        return is_string($service) && $service !== '' ? $service : null;
+    }
+
+    public function runtimeType(): string
+    {
+        return (string) ($this->manifest['runtime']['type'] ?? 'docker');
+    }
+
+    public function containerName(): string
+    {
+        return (string) ($this->manifest['runtime']['container'] ?? 'obiora-'.$this->slug);
+    }
+
+    public function port(): ?int
+    {
+        if (! isset($this->manifest['runtime']['port'])) {
+            return null;
+        }
+
+        return (int) $this->manifest['runtime']['port'];
+    }
+
+    public function usageNotes(): string
+    {
+        return (string) ($this->manifest['runtime']['usage']
+            ?? $this->manifest['runtime']['credentials']
+            ?? '');
+    }
+
+    public function accessUrl(?string $host = null): ?string
+    {
+        $port = $this->port();
+
+        if ($port === null) {
+            return null;
+        }
+
+        $host = $host ?? 'localhost';
+        $template = (string) ($this->manifest['runtime']['url'] ?? 'http://{host}:{port}');
+
+        return str_replace(['{host}', '{port}'], [$host, (string) $port], $template);
+    }
+
     public function uninstallScript(): string
     {
         $script = $this->manifest['scripts']['uninstall'] ?? 'uninstall.sh';

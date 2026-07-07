@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-transmission",
+        "port": 9091,
+        "url": "http://{host}:9091",
+        "usage": "Interface web Transmission sur le port 9091."
     }
 }

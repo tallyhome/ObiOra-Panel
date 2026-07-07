@@ -7,7 +7,12 @@
 
 set -euo pipefail
 
-OBIORA_VERSION="1.9.4"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "${SCRIPT_DIR}/../VERSION" ]]; then
+    OBIORA_VERSION="$(tr -d ' \n\r' < "${SCRIPT_DIR}/../VERSION")"
+else
+    OBIORA_VERSION="1.9.21"
+fi
 OBIORA_INSTALL_DIR="${OBIORA_INSTALL_DIR:-/opt/obiora-panel}"
 OBIORA_REPO="https://github.com/tallyhome/ObiOra-Panel.git"
 OBIORA_BRANCH="main"
@@ -65,6 +70,9 @@ if _obiora_bootstrap_needed; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "${SCRIPT_DIR}/../VERSION" ]]; then
+    OBIORA_VERSION="$(tr -d ' \n\r' < "${SCRIPT_DIR}/../VERSION")"
+fi
 
 # Chargement des modules
 # shellcheck source=lib/common.sh

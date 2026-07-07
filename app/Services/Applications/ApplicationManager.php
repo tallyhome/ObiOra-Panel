@@ -6,17 +6,21 @@ namespace App\Services\Applications;
 
 use App\DTOs\ApplicationPackage;
 use App\Enums\ApplicationStatus;
+use App\Jobs\ApplicationInstallJob;
 use App\Models\InstalledApplication;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
 use App\Services\System\PrivilegedScriptRunner;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 
 final class ApplicationManager
 {
+    private const APP_ACTIONS = ['start', 'stop', 'restart'];
+
     public function __construct(
         private readonly ServerManager $serverManager,
         private readonly ApplicationCatalog $catalog,
@@ -55,7 +59,12 @@ final class ApplicationManager
             ->exists();
     }
 
-    public function install(string $slug, ?Server $server = null): InstalledApplication
+    public function progressCacheKey(int $serverId, string $slug): string
+    {
+        return "obiora_progress:marketplace:{$serverId}:{$slug}";
+    }
+
+    public function queueInstall(string $slug, ?Server $server = null): InstalledApplication
     {
         $server ??= $this->serverManager->getCurrentServer();
 
@@ -73,6 +82,15 @@ final class ApplicationManager
             throw new InvalidArgumentException("« {$package->name()} » est déjà installé sur ce serveur.");
         }
 
+        $existing = InstalledApplication::query()
+            ->where('server_id', $server->id)
+            ->where('slug', $slug)
+            ->first();
+
+        if ($existing !== null && $existing->status === ApplicationStatus::Installing) {
+            throw new InvalidArgumentException('Une installation est déjà en cours pour cette application.');
+        }
+
         $record = InstalledApplication::query()->updateOrCreate(
             ['server_id' => $server->id, 'slug' => $slug],
             [
@@ -83,7 +101,57 @@ final class ApplicationManager
             ],
         );
 
-        $result = $this->runScript($server, $package, 'install');
+        Cache::put($this->progressCacheKey($server->id, $slug), [
+            'progress' => 3,
+            'message' => 'Mise en file d\'attente…',
+            'running' => true,
+            'success' => null,
+            'slug' => $slug,
+            'updated_at' => now()->toIso8601String(),
+        ], 3600);
+
+        ApplicationInstallJob::dispatch($record->id, $slug, $server->id, 'install');
+
+        return $record;
+    }
+
+    public function queueUninstall(InstalledApplication $application): void
+    {
+        if ($application->status === ApplicationStatus::Removing) {
+            throw new InvalidArgumentException('Une désinstallation est déjà en cours.');
+        }
+
+        $application->update(['status' => ApplicationStatus::Removing]);
+
+        Cache::put($this->progressCacheKey($application->server_id, $application->slug), [
+            'progress' => 3,
+            'message' => 'Désinstallation en file d\'attente…',
+            'running' => true,
+            'success' => null,
+            'slug' => $application->slug,
+            'action' => 'uninstall',
+            'updated_at' => now()->toIso8601String(),
+        ], 3600);
+
+        ApplicationInstallJob::dispatch($application->id, $application->slug, $application->server_id, 'uninstall');
+    }
+
+    public function runInstallJob(int $applicationId, string $slug, int $serverId): void
+    {
+        $record = InstalledApplication::query()->findOrFail($applicationId);
+        $server = Server::query()->findOrFail($serverId);
+        $package = $this->catalog->find($slug);
+
+        if ($package === null) {
+            $this->finishProgress($serverId, $slug, false, 'Package introuvable');
+
+            return;
+        }
+
+        $cacheKey = $this->progressCacheKey($serverId, $slug);
+        $progressKey = "{$serverId}:{$slug}";
+
+        $result = $this->runScript($server, $package, 'install', $progressKey);
 
         if (! $result['success']) {
             $record->update([
@@ -93,49 +161,224 @@ final class ApplicationManager
 
             Log::channel('provisioning')->error('Application install failed', [
                 'slug' => $slug,
-                'server_id' => $server->id,
+                'server_id' => $serverId,
                 'output' => $result['output'],
             ]);
 
-            throw new InvalidArgumentException('Échec installation : '.trim($result['output']));
+            $this->finishProgress($serverId, $slug, false, 'Échec : '.trim($result['output']));
+
+            return;
         }
 
         $record->update([
             'status' => ApplicationStatus::Installed,
             'installed_at' => now(),
-            'metadata' => ['output' => $result['output']],
+            'metadata' => $this->buildMetadata($package, $server, $result['output']),
         ]);
 
-        return $record->fresh() ?? $record;
+        $this->finishProgress($serverId, $slug, true, "« {$package->name()} » installé avec succès.");
     }
 
-    public function uninstall(InstalledApplication $application): void
+    public function runUninstallJob(int $applicationId): void
     {
+        $application = InstalledApplication::query()->findOrFail($applicationId);
         $package = $this->catalog->find($application->slug);
         $server = $application->server;
-
-        $application->update(['status' => ApplicationStatus::Removing]);
+        $progressKey = "{$application->server_id}:{$application->slug}";
 
         if ($package !== null && is_file($package->uninstallScript())) {
-            $result = $this->runScript($server, $package, 'uninstall');
+            $result = $this->runScript($server, $package, 'uninstall', $progressKey);
 
             if (! $result['success']) {
                 $application->update([
                     'status' => ApplicationStatus::Error,
-                    'metadata' => ['error' => $result['output']],
+                    'metadata' => array_merge($application->metadata ?? [], ['error' => $result['output']]),
                 ]);
 
-                throw new InvalidArgumentException('Échec désinstallation : '.trim($result['output']));
+                $this->finishProgress($application->server_id, $application->slug, false, 'Échec désinstallation : '.trim($result['output']));
+
+                return;
             }
         }
 
+        $name = $application->name;
+        $serverId = $application->server_id;
+        $slug = $application->slug;
         $application->delete();
+
+        $this->finishProgress($serverId, $slug, true, "« {$name} » désinstallé.");
     }
 
     /**
      * @return array{success: bool, output: string}
      */
-    private function runScript(Server $server, ApplicationPackage $package, string $action): array
+    public function appControl(InstalledApplication $application, string $action): array
+    {
+        if (! in_array($action, self::APP_ACTIONS, true)) {
+            throw new InvalidArgumentException('Action non autorisée.');
+        }
+
+        $package = $this->catalog->find($application->slug);
+
+        if ($package === null) {
+            return ['success' => false, 'output' => 'Package introuvable'];
+        }
+
+        $server = $application->server;
+
+        if ($this->isLocal($server)) {
+            if (PHP_OS_FAMILY !== 'Linux') {
+                return ['success' => true, 'output' => "OK:{$action} (dev stub)"];
+            }
+
+            if ($package->runtimeType() === 'docker') {
+                $result = $this->scripts->run(
+                    base_path('agent/scripts/docker-action.sh'),
+                    [$package->containerName(), $action],
+                );
+            } else {
+                $service = $package->systemdService() ?? $application->slug;
+                $result = $this->scripts->run(
+                    base_path('agent/scripts/systemctl-action.sh'),
+                    [$action, $service],
+                );
+            }
+
+            return [
+                'success' => $result->successful || str_contains($result->output, 'OK:'),
+                'output' => trim($result->output.$result->errorOutput),
+            ];
+        }
+
+        return $this->remoteAppAction($server, $application->slug, $action);
+    }
+
+    public function appRuntimeStatus(InstalledApplication $application): string
+    {
+        $package = $this->catalog->find($application->slug);
+
+        if ($package === null || $application->status !== ApplicationStatus::Installed) {
+            return 'unknown';
+        }
+
+        $server = $application->server;
+
+        if (! $this->isLocal($server) || PHP_OS_FAMILY !== 'Linux') {
+            return 'unknown';
+        }
+
+        if ($package->runtimeType() === 'docker') {
+            $result = $this->scripts->run(
+                base_path('agent/scripts/docker-status.sh'),
+                [$package->containerName()],
+            );
+            $output = trim($result->output);
+
+            if (str_contains($output, 'STATUS:running')) {
+                return 'running';
+            }
+            if (str_contains($output, 'STATUS:stopped')) {
+                return 'stopped';
+            }
+            if (str_contains($output, 'STATUS:not_found')) {
+                return 'not_found';
+            }
+
+            return 'unknown';
+        }
+
+        $service = $package->systemdService() ?? $application->slug;
+        $result = $this->scripts->run(
+            base_path('agent/scripts/systemctl-action.sh'),
+            ['is-active', $service],
+        );
+
+        $output = trim($result->output.$result->errorOutput);
+
+        return $output === 'active' ? 'running' : 'stopped';
+    }
+
+    public function appLogs(InstalledApplication $application, int $lines = 100): string
+    {
+        $package = $this->catalog->find($application->slug);
+
+        if ($package === null) {
+            return 'Package introuvable.';
+        }
+
+        $server = $application->server;
+        $metadata = $application->metadata ?? [];
+
+        if (! $this->isLocal($server) || PHP_OS_FAMILY !== 'Linux') {
+            $info = collect([
+                'Application' => $application->name,
+                'Slug' => $application->slug,
+                'Version' => $application->version,
+                'Port' => $metadata['port'] ?? '—',
+                'URL' => $metadata['url'] ?? '—',
+                'Usage' => $metadata['usage'] ?? $package->usageNotes() ?: '—',
+            ])->map(fn ($v, $k) => "{$k}: {$v}")->implode("\n");
+
+            return $info."\n\n".($metadata['install_output'] ?? 'Aucun log disponible.');
+        }
+
+        if ($package->runtimeType() === 'docker') {
+            $result = $this->scripts->run(
+                base_path('agent/scripts/docker-logs.sh'),
+                [$package->containerName(), (string) $lines],
+            );
+
+            return trim($result->output.$result->errorOutput) ?: 'Aucun log.';
+        }
+
+        $service = $package->systemdService() ?? $application->slug;
+        $result = $this->scripts->run(
+            base_path('agent/scripts/systemctl-logs.sh'),
+            [$service, (string) $lines],
+        );
+
+        return trim($result->output.$result->errorOutput) ?: 'Aucun log.';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function appInfo(InstalledApplication $application): array
+    {
+        $package = $this->catalog->find($application->slug);
+        $metadata = $application->metadata ?? [];
+        $host = $application->server->ip_address ?: request()->getHost();
+
+        return [
+            'name' => $application->name,
+            'slug' => $application->slug,
+            'version' => $application->version,
+            'status' => $application->status->value,
+            'runtime_status' => $this->appRuntimeStatus($application),
+            'runtime_type' => $metadata['runtime_type'] ?? $package?->runtimeType() ?? 'docker',
+            'container' => $metadata['container'] ?? $package?->containerName(),
+            'port' => $metadata['port'] ?? $package?->port(),
+            'url' => $metadata['url'] ?? $package?->accessUrl($host),
+            'usage' => $metadata['usage'] ?? $package?->usageNotes() ?? '',
+            'installed_at' => $application->installed_at?->format('d/m/Y H:i'),
+            'install_output' => $metadata['install_output'] ?? '',
+        ];
+    }
+
+    public function install(string $slug, ?Server $server = null): InstalledApplication
+    {
+        return $this->queueInstall($slug, $server);
+    }
+
+    public function uninstall(InstalledApplication $application): void
+    {
+        $this->queueUninstall($application);
+    }
+
+    /**
+     * @return array{success: bool, output: string}
+     */
+    private function runScript(Server $server, ApplicationPackage $package, string $action, ?string $progressKey = null): array
     {
         $script = $action === 'install' ? $package->installScript() : $package->uninstallScript();
 
@@ -149,7 +392,14 @@ final class ApplicationManager
             }
 
             $wrapper = base_path('agent/scripts/marketplace-exec.sh');
-            $result = $this->scripts->run($wrapper, [$script], 600);
+            $args = [$script];
+
+            if ($progressKey !== null) {
+                $args[] = $progressKey;
+                $args[] = $action === 'install' ? 'installation' : 'désinstallation';
+            }
+
+            $result = $this->scripts->run($wrapper, $args, 900);
 
             return [
                 'success' => $result->successful || str_contains($result->output, 'OK:'),
@@ -158,6 +408,46 @@ final class ApplicationManager
         }
 
         return $this->remoteRun($server, $package->slug, $action);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildMetadata(ApplicationPackage $package, Server $server, string $output): array
+    {
+        $host = $server->ip_address ?: (request()->getHost() ?: 'localhost');
+        $port = $package->port();
+
+        if (preg_match('/port (\d+)/i', $output, $matches)) {
+            $port = (int) $matches[1];
+        }
+
+        $url = $package->accessUrl($host);
+        if ($url === null && $port !== null) {
+            $url = "http://{$host}:{$port}";
+        }
+
+        return [
+            'runtime_type' => $package->runtimeType(),
+            'container' => $package->containerName(),
+            'service' => $package->systemdService(),
+            'port' => $port,
+            'url' => $url,
+            'usage' => $package->usageNotes(),
+            'install_output' => trim($output),
+        ];
+    }
+
+    private function finishProgress(int $serverId, string $slug, bool $success, string $message): void
+    {
+        Cache::put($this->progressCacheKey($serverId, $slug), [
+            'progress' => 100,
+            'message' => $message,
+            'running' => false,
+            'success' => $success,
+            'slug' => $slug,
+            'updated_at' => now()->toIso8601String(),
+        ], 3600);
     }
 
     private function isLocal(Server $server): bool
@@ -185,6 +475,34 @@ final class ApplicationManager
                 ->post("http://{$host}:{$port}/api/v1/applications/{$action}", [
                     'slug' => $slug,
                 ]);
+        } catch (\Throwable $e) {
+            return ['success' => false, 'output' => $e->getMessage()];
+        }
+
+        return [
+            'success' => (bool) $response->json('success', false),
+            'output' => (string) $response->json('output', $response->body()),
+        ];
+    }
+
+    /**
+     * @return array{success: bool, output: string}
+     */
+    private function remoteAppAction(Server $server, string $slug, string $action): array
+    {
+        $node = $server->primaryNode;
+
+        if ($node === null) {
+            return ['success' => false, 'output' => 'Nœud agent introuvable'];
+        }
+
+        try {
+            $host = $node->host ?? $server->ip_address;
+            $port = $node->port ?? 9100;
+
+            $response = Http::timeout(120)
+                ->withToken($server->agent_token)
+                ->post("http://{$host}:{$port}/api/v1/applications/{$slug}/{$action}");
         } catch (\Throwable $e) {
             return ['success' => false, 'output' => $e->getMessage()];
         }

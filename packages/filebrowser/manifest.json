@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-filebrowser",
+        "port": 8080,
+        "url": "http://{host}:8080",
+        "usage": "Gestionnaire de fichiers web sur le port 8080. Identifiants par défaut : admin / admin."
     }
 }
