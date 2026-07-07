@@ -554,3 +554,27 @@ label {
 .badge.bg-light.text-dark {
     color: var(--obiora-text-muted) !important;
 }
+
+// Onglets (Docker, etc.) — évite texte noir sur fond sombre
+.obiora-nav-tabs {
+    border-bottom-color: var(--obiora-border);
+
+    .nav-link {
+        color: var(--obiora-text-muted) !important;
+        background: transparent;
+        border-color: transparent transparent var(--obiora-border);
+
+        &:hover,
+        &:focus {
+            color: var(--obiora-text) !important;
+            border-color: var(--obiora-border) var(--obiora-border) transparent;
+            isolation: isolate;
+        }
+
+        &.active {
+            color: var(--obiora-primary) !important;
+            background-color: var(--obiora-bg-card) !important;
+            border-color: var(--obiora-border) var(--obiora-border) var(--obiora-bg-card) !important;
+        }
+    }
+}

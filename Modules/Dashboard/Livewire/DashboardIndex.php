@@ -32,12 +32,25 @@ final class DashboardIndex extends Component
     /** @var array<string, mixed> */
     public array $network = [];
 
+  /** Intervalle de rafraîchissement auto (secondes). 0 = désactivé. */
+    public int $pollInterval = 10;
+
     public function mount(
         MetricsCollector $collector,
         ServerManager $serverManager,
         ServiceManager $serviceManager,
     ): void {
+        $this->pollInterval = (int) session('dashboard_poll_interval', 10);
         $this->loadData($collector, $serverManager, $serviceManager);
+    }
+
+    public function updatedPollInterval($value): void
+    {
+        $allowed = [0, 3, 5, 10, 30, 60];
+        $value = (int) $value;
+        $this->pollInterval = in_array($value, $allowed, true) ? $value : 10;
+        session(['dashboard_poll_interval' => $this->pollInterval]);
+        $this->dispatch('dashboard-poll-changed', interval: $this->pollInterval);
     }
 
     #[On('server-changed')]
@@ -78,6 +91,7 @@ final class DashboardIndex extends Component
         $this->glance = DashboardHealth::glance($this->metrics);
         $this->network = $this->metrics['network'] ?? [];
         $this->services = $this->filterDashboardServices($serviceManager->list($server));
+        $this->dispatch('dashboard-refreshed', metrics: $this->metrics);
     }
 
     /**

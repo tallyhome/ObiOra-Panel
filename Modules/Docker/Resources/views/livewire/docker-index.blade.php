@@ -105,7 +105,7 @@
         </div>
     </div>
 
-    <ul class="nav nav-tabs mb-3">
+    <ul class="nav nav-tabs obiora-nav-tabs mb-3">
         <li class="nav-item">
             <button type="button" class="nav-link {{ $activeTab === 'containers' ? 'active' : '' }}" wire:click="$set('activeTab', 'containers')">
                 Conteneurs

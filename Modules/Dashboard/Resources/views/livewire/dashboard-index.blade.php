@@ -8,7 +8,7 @@
     $net = $network;
 @endphp
 
-<div wire:poll.10s="refresh">
+<div @if($pollInterval > 0) wire:poll.{{ $pollInterval }}s="refresh" @endif>
     {{-- En-tête --}}
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
@@ -19,10 +19,22 @@
                 · {{ $metrics['os'] ?? 'Linux' }}
             </p>
         </div>
-        <div class="d-flex gap-2 align-items-center">
-            <span class="badge rounded-pill" style="background: rgba(61,214,140,0.15); color: var(--obiora-primary); font-size: 0.7rem;">
-                <span class="obiora-status-dot ok me-1" style="width:6px;height:6px;"></span> Live · 3s réseau
-            </span>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            @if ($pollInterval > 0)
+                <span class="badge rounded-pill" style="background: rgba(61,214,140,0.15); color: var(--obiora-primary); font-size: 0.7rem;">
+                    <span class="obiora-status-dot ok me-1" style="width:6px;height:6px;"></span> Live · {{ $pollInterval }}s
+                </span>
+            @else
+                <span class="badge rounded-pill text-bg-secondary" style="font-size: 0.7rem;">Manuel</span>
+            @endif
+            <select wire:model.live="pollInterval" class="form-select form-select-sm" style="width: auto; min-width: 9rem;" title="Rafraîchissement automatique">
+                <option value="0">Auto : désactivé</option>
+                <option value="3">Auto : 3 sec</option>
+                <option value="5">Auto : 5 sec</option>
+                <option value="10">Auto : 10 sec</option>
+                <option value="30">Auto : 30 sec</option>
+                <option value="60">Auto : 1 min</option>
+            </select>
             <button wire:click="refresh" class="btn btn-outline-primary btn-sm" wire:loading.attr="disabled">
                 <span wire:loading.remove wire:target="refresh">↻ Actualiser</span>
                 <span wire:loading wire:target="refresh">...</span>
@@ -452,10 +464,13 @@
         }
     }
 
-    function startBwPoll() {
+    function startBwPoll(intervalSec) {
         if (bwPollTimer) clearInterval(bwPollTimer);
         pollNetwork();
-        bwPollTimer = setInterval(pollNetwork, 3000);
+        const sec = Number(intervalSec) || 0;
+        if (sec > 0) {
+            bwPollTimer = setInterval(pollNetwork, sec * 1000);
+        }
     }
 
     $wire.on('server-changed', () => {
@@ -463,15 +478,24 @@
         bwDown = [];
         bwUp = [];
         $wire.refresh();
-        startBwPoll();
+        startBwPoll($wire.pollInterval > 0 ? $wire.pollInterval : 0);
+    });
+
+    $wire.on('dashboard-poll-changed', ({ interval }) => {
+        startBwPoll(interval > 0 ? interval : 0);
+    });
+
+    $wire.on('dashboard-refreshed', ({ metrics }) => {
+        if (metrics) renderCpuChart(metrics);
     });
 
     initBandwidthChart();
     renderCpuChart(@js($metrics));
-    startBwPoll();
+    startBwPoll(@js($pollInterval) > 0 ? @js($pollInterval) : 0);
 
     Livewire.hook('morph.updated', () => {
-        renderCpuChart(@js($metrics));
+        const metrics = $wire.get('metrics');
+        if (metrics && metrics.cpu) renderCpuChart(metrics);
     });
 </script>
 @endscript
