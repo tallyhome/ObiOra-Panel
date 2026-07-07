@@ -43,6 +43,16 @@ body {
         color: var(--obiora-primary);
     }
 
+    .obiora-logo-link {
+        line-height: 0;
+    }
+
+    .obiora-logo {
+        display: block;
+        max-width: 100%;
+        height: auto;
+    }
+
     .nav-link {
         color: var(--obiora-sidebar-text) !important;
         border-radius: 0.5rem;

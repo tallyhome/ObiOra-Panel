@@ -130,6 +130,10 @@
         <div class="card obiora-card mt-4">
             <div class="card-body">
                 <h2 class="h6 mb-3">Historique des mises à jour</h2>
+                <p class="text-muted small mb-3">
+                    Les entrées <span class="badge bg-danger">failed</span> correspondent à d'anciennes tentatives (ex. avant v1.9.6).
+                    Elles restent en historique à titre informatif et n'empêchent pas les mises à jour suivantes.
+                </p>
                 <div class="table-responsive">
                     <table class="table table-sm align-middle mb-0">
                         <thead>

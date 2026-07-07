@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.9.10 - 2026-07-07
+
+Logo SVG ObiOra Panel + SeedBox (sidebar, page login). Note explicative sur l'historique MAJ failed.
+
 ## v1.9.9 - 2026-07-07
 
 Corrige le bouton Verifier (toast + chargement) et detecte les tags GitHub sans release.

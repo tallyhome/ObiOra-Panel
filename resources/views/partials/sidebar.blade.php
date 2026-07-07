@@ -1,7 +1,6 @@
 <aside class="obiora-sidebar text-white p-3" style="width: 240px; min-height: 100vh;">
     <div class="mb-4 pt-1">
-        <div class="obiora-brand">ObiOra</div>
-        <div class="small text-muted">Seedbox Panel</div>
+        @include('partials.logo')
     </div>
 
     <nav class="nav flex-column gap-1 flex-grow-1">
