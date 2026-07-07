@@ -1,4 +1,4 @@
-<header class="bg-white border-bottom px-4 py-3 d-flex align-items-center justify-content-between">
+<header class="obiora-navbar px-4 py-3 d-flex align-items-center justify-content-between">
     <div class="d-flex align-items-center gap-3">
         <livewire:server-switcher />
     </div>

@@ -2,7 +2,7 @@
 
 Plateforme moderne de gestion de serveurs Linux — Laravel 12, Livewire 3, Bootstrap 5.3.
 
-**Version actuelle : v1.9.2**
+**Version actuelle : v1.9.3**
 
 ## Stack
 

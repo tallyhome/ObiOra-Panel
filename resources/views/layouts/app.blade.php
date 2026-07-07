@@ -14,7 +14,7 @@
         <div class="flex-grow-1 d-flex flex-column">
             @include('partials.navbar')
 
-            <main class="p-4">
+            <main class="p-4 obiora-main flex-grow-1">
                 @if (session('success'))
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         {{ session('success') }}

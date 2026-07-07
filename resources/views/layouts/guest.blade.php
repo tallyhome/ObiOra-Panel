@@ -12,8 +12,8 @@
         <div class="row justify-content-center">
             <div class="col-md-5">
                 <div class="text-center mb-4">
-                    <h1 class="h3 fw-bold text-primary">{{ config('obiora.name') }}</h1>
-                    <p class="text-muted small">v{{ config('obiora.version') }}</p>
+                    <h1 class="h3 fw-bold" style="color: var(--obiora-primary)">{{ config('obiora.name') }}</h1>
+                    <p class="text-muted small">Seedbox Panel · v{{ config('obiora.version') }}</p>
                 </div>
                 {{ $slot }}
             </div>

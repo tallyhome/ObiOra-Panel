@@ -12,6 +12,14 @@ Corrige la detection des mises a jour (VERSION, git, GitHub API) et affiche un b
 
 Phase 10: page Licence et MAJ, integration AdminLicence, correctifs installateur (404, permissions, SELinux).
 
+## [1.9.3] - 2026-07-07
+
+### Amélioré
+
+- **Dashboard seedbox** : thème sombre inspiré Swizzin / QuickBox (widgets, barres de progression, uptime, services clés)
+- **Navigation** : sidebar repensée, raccourcis Marketplace / Services / Sites / Docker
+- **Auto-refresh** : métriques actualisées toutes les 30 secondes
+
 ## [1.9.2] - 2026-07-07
 
 ### Corrigé

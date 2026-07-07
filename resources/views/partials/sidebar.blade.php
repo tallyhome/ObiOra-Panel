@@ -1,35 +1,36 @@
-<aside class="obiora-sidebar text-white p-3" style="width: 260px; min-height: 100vh; background: var(--obiora-sidebar-bg);">
-    <div class="mb-4">
-        <span class="fw-bold fs-5">ObiOra</span>
-        <span class="badge bg-primary ms-1">Panel</span>
+<aside class="obiora-sidebar text-white p-3" style="width: 240px; min-height: 100vh;">
+    <div class="mb-4 pt-1">
+        <div class="obiora-brand">ObiOra</div>
+        <div class="small text-muted">Seedbox Panel</div>
     </div>
 
-    <nav class="nav flex-column gap-1">
-        <a href="{{ route('dashboard') }}" class="nav-link text-white {{ request()->routeIs('dashboard') ? 'active bg-primary rounded' : '' }}">
+    <nav class="nav flex-column gap-1 flex-grow-1">
+        <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
             Dashboard
         </a>
-        <a href="{{ route('servers.index') }}" class="nav-link text-white {{ request()->routeIs('servers.*') ? 'active bg-primary rounded' : '' }}">
-            Serveurs
-        </a>
-        <a href="{{ route('services.index') }}" class="nav-link text-white {{ request()->routeIs('services.*') ? 'active bg-primary rounded' : '' }}">
-            Services
-        </a>
-        <a href="{{ route('websites.index') }}" class="nav-link text-white {{ request()->routeIs('websites.*') ? 'active bg-primary rounded' : '' }}">
-            Sites web
-        </a>
-        <a href="{{ route('databases.index') }}" class="nav-link text-white {{ request()->routeIs('databases.*') ? 'active bg-primary rounded' : '' }}">
-            Bases de données
-        </a>
-        <a href="{{ route('docker.index') }}" class="nav-link text-white {{ request()->routeIs('docker.*') ? 'active bg-primary rounded' : '' }}">
-            Docker
-        </a>
-        <a href="{{ route('backups.index') }}" class="nav-link text-white {{ request()->routeIs('backups.*') ? 'active bg-primary rounded' : '' }}">
-            Sauvegardes
-        </a>
-        <a href="{{ route('plugins.index') }}" class="nav-link text-white {{ request()->routeIs('plugins.*') ? 'active bg-primary rounded' : '' }}">
+        <a href="{{ route('plugins.index') }}" class="nav-link {{ request()->routeIs('plugins.*') ? 'active' : '' }}">
             Marketplace
         </a>
-        <a href="{{ route('settings.index') }}" class="nav-link text-white {{ request()->routeIs('settings.*') ? 'active bg-primary rounded' : '' }}">
+        <a href="{{ route('services.index') }}" class="nav-link {{ request()->routeIs('services.*') ? 'active' : '' }}">
+            Services
+        </a>
+        <a href="{{ route('servers.index') }}" class="nav-link {{ request()->routeIs('servers.*') ? 'active' : '' }}">
+            Serveurs
+        </a>
+        <a href="{{ route('websites.index') }}" class="nav-link {{ request()->routeIs('websites.*') ? 'active' : '' }}">
+            Sites web
+        </a>
+        <a href="{{ route('databases.index') }}" class="nav-link {{ request()->routeIs('databases.*') ? 'active' : '' }}">
+            Bases de données
+        </a>
+        <a href="{{ route('docker.index') }}" class="nav-link {{ request()->routeIs('docker.*') ? 'active' : '' }}">
+            Docker
+        </a>
+        <a href="{{ route('backups.index') }}" class="nav-link {{ request()->routeIs('backups.*') ? 'active' : '' }}">
+            Sauvegardes
+        </a>
+        <hr class="border-secondary opacity-25 my-2">
+        <a href="{{ route('settings.index') }}" class="nav-link {{ request()->routeIs('settings.*') ? 'active' : '' }}">
             Licence & MAJ
             @if(!empty($updateAvailable))
                 <span class="badge bg-warning text-dark ms-1">!</span>
@@ -37,7 +38,7 @@
         </a>
     </nav>
 
-    <div class="mt-auto pt-4 small text-secondary">
+    <div class="mt-auto pt-4 small text-muted">
         v{{ config('obiora.version') }}
     </div>
 </aside>
