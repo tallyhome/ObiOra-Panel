@@ -31,8 +31,8 @@
                 "label": "Mot de passe administrateur",
                 "type": "password",
                 "required": true,
-                "min": 12,
-                "help": "Minimum 12 caractères (exigence File Browser 2.x)."
+                "min": 1,
+                "help": "Mot de passe de votre choix. ObiOra configure File Browser pour accepter ce mot de passe dès l'installation."
             }
         ]
     },

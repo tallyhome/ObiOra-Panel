@@ -500,8 +500,15 @@ final class ApplicationManager
             }
 
             $env = $this->installOptionsToEnv($installOptions);
+            if ($env !== []) {
+                $args[] = '__obiora_env';
+                $args[] = (string) count($env);
+                foreach ($env as $key => $value) {
+                    $args[] = $key.'='.base64_encode($value);
+                }
+            }
 
-            $result = $this->scripts->run($wrapper, $args, 900, $env);
+            $result = $this->scripts->run($wrapper, $args, 900);
 
             return [
                 'success' => $result->successful || str_contains($result->output, 'OK:'),

@@ -14,8 +14,8 @@ data_dir="/var/lib/obiora/filebrowser"
 fb_user="${OBIORA_APP_USERNAME:-admin}"
 fb_pass="${OBIORA_APP_PASS:-}"
 
-if [[ -z "${fb_pass}" ]] || [[ ${#fb_pass} -lt 12 ]]; then
-    echo "ERREUR: mot de passe administrateur requis (minimum 12 caractères)." >&2
+if [[ -z "${fb_pass}" ]]; then
+    echo "ERREUR: mot de passe administrateur requis." >&2
     exit 1
 fi
 
@@ -42,7 +42,7 @@ docker run --rm \
     -v "${data_dir}/config:/config" \
     --entrypoint filebrowser \
     "${image}" \
-    -d /database/filebrowser.db config set --minimumPasswordLength 12
+    -d /database/filebrowser.db config set --minimumPasswordLength 1
 
 docker run --rm \
     -v "${data_dir}/database:/database" \

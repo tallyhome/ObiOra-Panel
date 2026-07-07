@@ -36,6 +36,32 @@ fi
 
 shift 3 2>/dev/null || shift $#
 
+if [[ "${1:-}" == "__obiora_env" ]]; then
+    env_count="${2:-0}"
+    shift 2
+
+    if [[ ! "${env_count}" =~ ^[0-9]+$ ]]; then
+        echo "ERREUR: options d'installation invalides" >&2
+        exit 1
+    fi
+
+    for ((i = 0; i < env_count; i++)); do
+        pair="${1:-}"
+        shift || true
+
+        key="${pair%%=*}"
+        value_b64="${pair#*=}"
+
+        if [[ ! "${key}" =~ ^OBIORA_APP_[A-Z0-9_]+$ ]]; then
+            echo "ERREUR: option d'installation non autorisée: ${key}" >&2
+            exit 1
+        fi
+
+        value="$(printf '%s' "${value_b64}" | base64 -d 2>/dev/null || true)"
+        export "${key}=${value}"
+    done
+fi
+
 progress 10 "Préparation ${ACTION_LABEL}…"
 progress 25 "Exécution du script (peut prendre plusieurs minutes)…"
 

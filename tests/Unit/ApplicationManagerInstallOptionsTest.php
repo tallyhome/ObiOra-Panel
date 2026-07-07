@@ -39,15 +39,15 @@ final class ApplicationManagerInstallOptionsTest extends TestCase
         $this->assertSame('secret123456', $validated['pass']);
     }
 
-    public function test_rejects_short_filebrowser_password(): void
+    public function test_accepts_short_filebrowser_password(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        $this->manager()->validateInstallOptions($this->fileBrowserPackage(), [
+        $validated = $this->manager()->validateInstallOptions($this->fileBrowserPackage(), [
             'label' => 'File Browser',
             'username' => 'admin',
             'pass' => 'court',
         ]);
+
+        $this->assertSame('court', $validated['pass']);
     }
 
     public function test_rejects_missing_password(): void
