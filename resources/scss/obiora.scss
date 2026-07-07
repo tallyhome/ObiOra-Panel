@@ -1,3 +1,17 @@
+// Variables Bootstrap (AVANT l'import — sinon les champs texte restent illisibles sur fond sombre)
+$body-bg: #12121a;
+$body-color: #e8e8f0;
+$input-bg: #1a1a26;
+$input-color: #e8e8f0;
+$input-border-color: #2d2d42;
+$input-focus-bg: #1a1a26;
+$input-focus-color: #e8e8f0;
+$input-focus-border-color: #3dd68c;
+$input-placeholder-color: #8b8ba3;
+$form-select-bg: #1a1a26;
+$form-select-color: #e8e8f0;
+$form-select-border-color: #2d2d42;
+
 @import "bootstrap/scss/bootstrap";
 
 :root {
@@ -399,6 +413,18 @@ body {
     background: rgba(61, 214, 140, 0.12);
     border-color: rgba(61, 214, 140, 0.3);
     color: var(--obiora-success);
+}
+
+.obiora-input,
+input.form-control[type="text"],
+input.form-control[type="password"],
+input.form-control[type="email"],
+input.form-control[type="search"],
+input.form-control[type="url"],
+textarea.form-control {
+    color: #e8e8f0 !important;
+    -webkit-text-fill-color: #e8e8f0 !important;
+    background-color: #1a1a26 !important;
 }
 
 .form-control,

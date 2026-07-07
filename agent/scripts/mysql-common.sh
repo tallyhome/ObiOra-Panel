@@ -2,6 +2,8 @@
 # Fonctions communes MySQL/MariaDB ObiOra
 set -euo pipefail
 
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 mysql_root_exec() {
     if [[ "${EUID}" -eq 0 ]]; then
         _mysql_as_root "$@"
@@ -17,15 +19,34 @@ mysql_root_exec() {
 }
 
 _mysql_as_root() {
-    if mysql -u root -e "SELECT 1" &>/dev/null; then
+    if mysql -u root -e "SELECT 1" &>/dev/null 2>&1; then
         mysql -u root "$@"
-    elif [[ -f /etc/obiora/mysql-admin.cnf ]]; then
-        mysql --defaults-file=/etc/obiora/mysql-admin.cnf "$@"
-    elif [[ -f /root/.obiora_mysql.cnf ]]; then
-        mysql --defaults-file=/root/.obiora_mysql.cnf "$@"
-    else
-        mysql "$@"
+        return
     fi
+
+    if [[ -f /etc/obiora/mysql-admin.cnf ]]; then
+        mysql --defaults-file=/etc/obiora/mysql-admin.cnf "$@"
+        return
+    fi
+
+    if [[ -f /root/.obiora_mysql.cnf ]]; then
+        mysql --defaults-file=/root/.obiora_mysql.cnf "$@"
+        return
+    fi
+
+    if [[ -f /root/.obiora_db_credentials ]]; then
+        local pass
+        pass="$(grep '^DB_PASSWORD=' /root/.obiora_db_credentials | cut -d= -f2-)"
+        if [[ -n "${pass}" ]]; then
+            MYSQL_PWD="${pass}" mysql -u root "$@"
+            return
+        fi
+    fi
+
+    mysql "$@" || {
+        echo "ERREUR: impossible de se connecter à MySQL (vérifiez mariadb/mysqld)" >&2
+        return 1
+    }
 }
 
 validate_db_name() {

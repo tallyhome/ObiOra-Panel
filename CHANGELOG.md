@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.9.19 - 2026-07-07
+
+Champs texte formulaires enfin lisibles (variables Bootstrap compilées avant import + classe obiora-input). Sauvegarde BDD corrigée (pipefail grep vide). Installation Docker avec barre de progression % et correction cache DNF corrompu.
+
 ## v1.9.18 - 2026-07-07
 
 Correction définitive des mises à jour panel : binaire setuid `/usr/local/bin/obiora-panel-update` (plus de dépendance sudoers). Bouton « Installer Docker » dans le panel. Champs formulaire serveurs lisibles (texte visible sur fond sombre). Docker installé par défaut à l'installation.

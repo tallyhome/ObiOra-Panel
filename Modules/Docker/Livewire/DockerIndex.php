@@ -42,9 +42,14 @@ final class DockerIndex extends Component
 
     public bool $installingDocker = false;
 
+    public int $dockerProgress = 0;
+
+    public string $dockerProgressMessage = '';
+
     public function mount(DockerManager $dockerManager, ServerManager $serverManager): void
     {
         $this->loadData($dockerManager, $serverManager);
+        $this->resumeDockerInstall();
     }
 
     #[On('server-changed')]
@@ -66,14 +71,48 @@ final class DockerIndex extends Component
             return;
         }
 
-        $this->installingDocker = true;
-
         $result = $dockerManager->installDocker($serverManager->getCurrentServer());
 
-        $this->installingDocker = false;
-        $this->loadData($dockerManager, $serverManager);
+        if ($result['success']) {
+            $this->installingDocker = true;
+            $this->dockerProgress = 2;
+            $this->dockerProgressMessage = 'Installation Docker démarrée…';
+        }
 
-        $this->dispatch('notify', type: $result['success'] ? 'success' : 'danger', message: $result['message']);
+        $this->dispatch('notify', type: $result['success'] ? 'info' : 'danger', message: $result['message']);
+    }
+
+    public function pollDockerInstall(DockerManager $dockerManager, ServerManager $serverManager): void
+    {
+        $status = \Illuminate\Support\Facades\Cache::get('obiora_progress:docker_install');
+
+        if (! is_array($status)) {
+            $this->installingDocker = false;
+
+            return;
+        }
+
+        $this->dockerProgress = (int) ($status['progress'] ?? 0);
+        $this->dockerProgressMessage = (string) ($status['message'] ?? '');
+        $this->installingDocker = (bool) ($status['running'] ?? false);
+
+        if (! $this->installingDocker && ($status['success'] ?? null) !== null) {
+            $this->loadData($dockerManager, $serverManager);
+            $this->dispatch('notify', type: ($status['success'] ?? false) ? 'success' : 'danger', message: $this->dockerProgressMessage);
+        }
+    }
+
+    private function resumeDockerInstall(): void
+    {
+        $status = \Illuminate\Support\Facades\Cache::get('obiora_progress:docker_install');
+
+        if (! is_array($status) || ! ($status['running'] ?? false)) {
+            return;
+        }
+
+        $this->installingDocker = true;
+        $this->dockerProgress = (int) ($status['progress'] ?? 0);
+        $this->dockerProgressMessage = (string) ($status['message'] ?? '');
     }
 
     public function runContainer(DockerManager $dockerManager, ServerManager $serverManager): void

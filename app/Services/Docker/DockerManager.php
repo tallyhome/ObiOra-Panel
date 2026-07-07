@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Docker;
 
+use App\Jobs\DockerInstallJob;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
 use App\Services\System\PrivilegedScriptRunner;
@@ -68,12 +69,34 @@ final class DockerManager
             return ['success' => false, 'message' => 'Installation Docker non supportée sur cet environnement.'];
         }
 
+        $status = \Illuminate\Support\Facades\Cache::get('obiora_progress:docker_install');
+        if (is_array($status) && ($status['running'] ?? false)) {
+            return ['success' => false, 'message' => 'Une installation Docker est déjà en cours.'];
+        }
+
+        \Illuminate\Support\Facades\Cache::put('obiora_progress:docker_install', [
+            'progress' => 2,
+            'message' => 'Mise en file d\'attente…',
+            'running' => true,
+            'success' => null,
+            'updated_at' => now()->toIso8601String(),
+        ], 3600);
+
+        DockerInstallJob::dispatch();
+
+        return ['success' => true, 'message' => 'Installation Docker lancée en arrière-plan.'];
+    }
+
+    /**
+     * @return array{success: bool, message: string}
+     */
+    public function runInstallScript(): array
+    {
         $result = $this->scripts->run(base_path('agent/scripts/docker-install.sh'), [], 900);
 
-        $output = trim($result->output.$result->errorOutput);
-        $success = $result->successful && str_contains($output, 'OK:');
+        $output = trim($result->output."\n".$result->errorOutput);
 
-        if ($success) {
+        if ($result->successful && str_contains($output, 'OK:')) {
             $message = trim(str_replace('OK:', '', strstr($output, 'OK:') ?: 'Docker installé'));
 
             return ['success' => true, 'message' => $message !== '' ? $message : 'Docker installé'];

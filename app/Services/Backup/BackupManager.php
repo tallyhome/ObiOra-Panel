@@ -77,7 +77,7 @@ final class BackupManager
                 'output' => $result['output'],
             ]);
 
-            throw new InvalidArgumentException('Échec sauvegarde : '.trim($result['output']));
+            throw new InvalidArgumentException('Échec sauvegarde : '.trim($result['output'] ?: 'erreur inconnue (vérifiez que MariaDB/MySQL est démarré)'));
         }
 
         $backup->update([

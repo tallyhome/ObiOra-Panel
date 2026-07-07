@@ -25,10 +25,18 @@ case "${TYPE}" in
         DB_NAME="${TARGET:-all}"
         FILE="${BACKUP_ROOT}/${SAFE_LABEL}-db-${TIMESTAMP}.sql.gz"
         if [[ "${DB_NAME}" == "all" ]]; then
-            mysql_root_exec -N -e "SHOW DATABASES" | grep -Ev '^(information_schema|performance_schema|mysql|sys)$' | while read -r db; do
-                echo "-- DB: ${db}"
-                mysql_root_exec "${db}"
-            done | gzip > "${FILE}"
+            DB_LIST="$(mysql_root_exec -N -e "SHOW DATABASES" 2>/dev/null | grep -Ev '^(information_schema|performance_schema|mysql|sys)$' || true)"
+            if [[ -z "${DB_LIST}" ]]; then
+                echo "ERREUR: aucune base de données à sauvegarder" >&2
+                exit 1
+            fi
+            {
+                while read -r db; do
+                    [[ -z "${db}" ]] && continue
+                    echo "-- DB: ${db}"
+                    mysql_root_exec "${db}" 2>/dev/null
+                done <<< "${DB_LIST}"
+            } | gzip > "${FILE}"
         else
             [[ "${DB_NAME}" =~ ^[a-zA-Z0-9_]{1,64}$ ]] || { echo "Base invalide" >&2; exit 1; }
             mysql_root_exec "${DB_NAME}" | gzip > "${FILE}"
@@ -42,10 +50,16 @@ case "${TYPE}" in
     full)
         TMP_DIR="$(mktemp -d)"
         DB_DUMP="${TMP_DIR}/databases.sql"
-        mysql_root_exec -N -e "SHOW DATABASES" | grep -Ev '^(information_schema|performance_schema|mysql|sys)$' | while read -r db; do
-            echo "-- DB: ${db}" >> "${DB_DUMP}"
-            mysql_root_exec "${db}" >> "${DB_DUMP}"
-        done
+        DB_LIST="$(mysql_root_exec -N -e "SHOW DATABASES" 2>/dev/null | grep -Ev '^(information_schema|performance_schema|mysql|sys)$' || true)"
+        if [[ -n "${DB_LIST}" ]]; then
+            while read -r db; do
+                [[ -z "${db}" ]] && continue
+                echo "-- DB: ${db}" >> "${DB_DUMP}"
+                mysql_root_exec "${db}" >> "${DB_DUMP}" 2>/dev/null
+            done <<< "${DB_LIST}"
+        else
+            echo "-- Aucune base utilisateur" > "${DB_DUMP}"
+        fi
         gzip "${DB_DUMP}"
         FILE="${BACKUP_ROOT}/${SAFE_LABEL}-full-${TIMESTAMP}.tar.gz"
         tar_cmd -czf "${FILE}" -C "${TMP_DIR}" databases.sql.gz -C / var/www 2>/dev/null || tar_cmd -czf "${FILE}" -C "${TMP_DIR}" databases.sql.gz

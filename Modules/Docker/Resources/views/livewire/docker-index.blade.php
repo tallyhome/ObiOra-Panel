@@ -1,4 +1,4 @@
-<div>
+<div @if($installingDocker) wire:poll.2s="pollDockerInstall" @endif>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-1">Docker</h1>
@@ -43,18 +43,36 @@
             </div>
         </div>
     @else
-        <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <div>
-                Docker n'est pas installé ou inaccessible sur ce serveur.
-                @if (!empty($dockerInfo['error']))
-                    <div class="small mt-1">{{ $dockerInfo['error'] }}</div>
-                @endif
+        @if($installingDocker)
+            <div class="card obiora-card mb-4 border-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong class="small text-uppercase">Installation Docker</strong>
+                        <span class="badge bg-info">{{ $dockerProgress }}%</span>
+                    </div>
+                    <div class="obiora-progress info mb-2" style="height: 12px;">
+                        <div class="bar" style="width: {{ max(2, $dockerProgress) }}%"></div>
+                    </div>
+                    <p class="mb-0 small text-muted d-flex align-items-center gap-2">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        {{ $dockerProgressMessage ?: 'Installation en cours…' }}
+                    </p>
+                </div>
             </div>
-            <button type="button" class="btn btn-primary btn-sm" wire:click="installDocker" wire:loading.attr="disabled" @if($installingDocker) disabled @endif>
-                <span wire:loading.remove wire:target="installDocker">Installer Docker</span>
-                <span wire:loading wire:target="installDocker">Installation en cours…</span>
-            </button>
-        </div>
+        @else
+            <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    Docker n'est pas installé ou inaccessible sur ce serveur.
+                    @if (!empty($dockerInfo['error']))
+                        <div class="small mt-1">{{ $dockerInfo['error'] }}</div>
+                    @endif
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" wire:click="installDocker" wire:loading.attr="disabled">
+                    <span wire:loading.remove wire:target="installDocker">Installer Docker</span>
+                    <span wire:loading wire:target="installDocker">Lancement…</span>
+                </button>
+            </div>
+        @endif
     @endif
 
     <div class="card obiora-card mb-3">
