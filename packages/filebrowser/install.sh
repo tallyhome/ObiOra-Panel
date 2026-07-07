@@ -12,7 +12,12 @@ image="filebrowser/filebrowser:latest"
 port=8082
 data_dir="/var/lib/obiora/filebrowser"
 fb_user="${OBIORA_APP_USERNAME:-admin}"
-fb_pass="${OBIORA_APP_PASS:-admin}"
+fb_pass="${OBIORA_APP_PASS:-}"
+
+if [[ -z "${fb_pass}" ]] || [[ ${#fb_pass} -lt 12 ]]; then
+    echo "ERREUR: mot de passe administrateur requis (minimum 12 caractères)." >&2
+    exit 1
+fi
 
 if docker ps -a --format '{{.Names}}' | grep -q "^${name}$"; then
     echo "OK:filebrowser (déjà installé)"

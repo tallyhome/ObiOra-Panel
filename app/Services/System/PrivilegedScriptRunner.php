@@ -19,25 +19,25 @@ final class PrivilegedScriptRunner
      */
     public function run(string $script, array $args = [], int $timeout = 120, array $env = []): ProcessResult
     {
-        // Exécuter le script directement (pas via `bash`) pour correspondre aux
-        // règles sudoers : NOPASSWD: .../agent/scripts/*.sh
         $command = escapeshellarg($script);
 
         if ($args !== []) {
             $command .= ' '.implode(' ', array_map('escapeshellarg', $args));
         }
 
-        if ($this->needsSudo()) {
-            $command = 'sudo -n '.$command;
-        }
-
+        // Les variables avant « sudo » sont ignorées par sudo (reset env).
+        // On passe par « sudo env KEY=val … » pour les options d'installation marketplace.
         if ($env !== []) {
-            $prefix = implode(' ', array_map(
+            $envPrefix = implode(' ', array_map(
                 fn (string $key, string $value): string => $key.'='.escapeshellarg($value),
                 array_keys($env),
                 array_values($env),
             ));
-            $command = $prefix.' '.$command;
+            $command = 'env '.$envPrefix.' '.$command;
+        }
+
+        if ($this->needsSudo()) {
+            $command = 'sudo -n '.$command;
         }
 
         return $this->executor->run($command, ['timeout' => $timeout]);
