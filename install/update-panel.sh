@@ -45,12 +45,43 @@ echo "[1/8] git fetch..."
 progress 12 "Téléchargement depuis GitHub…"
 git fetch origin main --tags
 
+TARGET_VERSION="${2:-}"
+TARGET_VERSION="${TARGET_VERSION#v}"
+
 echo "[2/8] git sync..."
 progress 28 "Synchronisation du code source…"
 if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
-    echo "WARN: modifications locales détectées — alignement forcé sur origin/main"
+    echo "WARN: modifications locales détectées — alignement forcé sur la release cible"
 fi
-git reset --hard origin/main
+
+checkout_target_release() {
+    local tag="$1"
+
+    if [[ -z "${tag}" ]]; then
+        tag="$(git tag -l 'v*' --sort=-v:refname 2>/dev/null | head -1 || true)"
+        tag="${tag#v}"
+    fi
+
+    if [[ -z "${tag}" ]]; then
+        echo "WARN: aucun tag semver — fallback origin/main"
+        git reset --hard origin/main
+        return
+    fi
+
+    local ref="v${tag}"
+    if git checkout -f "${ref}" 2>/dev/null; then
+        echo "OK: code aligné sur ${ref}"
+        if [[ -f VERSION ]]; then
+            echo "INFO: VERSION=$(tr -d ' \n\r' < VERSION)"
+        fi
+        return
+    fi
+
+    echo "WARN: tag ${ref} introuvable — fallback origin/main"
+    git reset --hard origin/main
+}
+
+checkout_target_release "${TARGET_VERSION}"
 
 # Helper setuid APRÈS git sync (pour récupérer les correctifs avant installation)
 if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/common.sh" ]] && [[ -f "${OBIORA_INSTALL_DIR}/install/lib/panel-update-helper.sh" ]]; then

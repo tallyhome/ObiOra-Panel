@@ -108,6 +108,7 @@ final class PanelUpdater
         $panelRoot = base_path();
         $updateScript = $panelRoot.'/install/update-panel.sh';
         $helper = '/usr/local/bin/obiora-panel-update';
+        $targetVersion = ltrim((string) $history->to_version, 'v');
 
         try {
             // IMPORTANT : on fusionne stdout+stderr avec "2>&1" au niveau shell
@@ -117,16 +118,18 @@ final class PanelUpdater
             // anodin (écrit sur stderr en fin d'exécution) alors que la vraie
             // erreur (ex. commande artisan en échec) est en réalité plus tôt
             // dans le flux stdout et se retrouve masquée.
+            $versionArg = escapeshellarg($targetVersion);
+
             if ($this->setuidHelperAvailable($helper)) {
                 // Binaire ELF setuid root — ne dépend pas de sudoers
                 $result = $this->executor->run(
-                    escapeshellarg($helper).' '.escapeshellarg((string) $historyId).' 2>&1',
+                    escapeshellarg($helper).' '.escapeshellarg((string) $historyId).' '.$versionArg.' 2>&1',
                     ['timeout' => 1500],
                 );
             } else {
                 // Fallback sudo (obiora-queue tourne sous l'utilisateur obiora)
                 $result = $this->executor->run(
-                    'sudo -n '.escapeshellarg($updateScript).' '.escapeshellarg((string) $historyId).' 2>&1',
+                    'sudo -n '.escapeshellarg($updateScript).' '.escapeshellarg((string) $historyId).' '.$versionArg.' 2>&1',
                     ['timeout' => 1500],
                 );
             }

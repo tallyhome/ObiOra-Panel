@@ -13,6 +13,6 @@
     "container": "obiora-qbittorrent",
     "port": 8080,
     "url": "http://{host}:8080",
-    "usage": "Interface web sur le port 8080. Identifiants par défaut : admin / adminadmin. Port P2P : 6881."
+    "usage": "Interface web sur le port 8080. Identifiants : admin / adminadmin (définis à l'installation). Port P2P : 6881. Si vous avez installé avant v1.9.45, consultez les logs Docker pour le mot de passe temporaire ou réinstallez."
   }
 }

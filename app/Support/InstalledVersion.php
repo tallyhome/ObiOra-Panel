@@ -10,16 +10,16 @@ final class InstalledVersion
 {
     public function current(): string
     {
-        $fromGit = $this->fromGitTag();
-
-        if ($fromGit !== null) {
-            return $fromGit;
-        }
-
         $fromFile = $this->fromVersionFile();
 
         if ($fromFile !== null) {
             return $fromFile;
+        }
+
+        $fromGit = $this->fromGitTag();
+
+        if ($fromGit !== null) {
+            return $fromGit;
         }
 
         return ltrim((string) config('obiora.version', '0.0.0'), 'v');

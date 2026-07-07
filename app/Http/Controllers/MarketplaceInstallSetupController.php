@@ -9,7 +9,9 @@ use App\Services\Applications\ApplicationManager;
 use App\Services\Core\ServerManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
+use Throwable;
 
 final class MarketplaceInstallSetupController extends Controller
 {
@@ -56,6 +58,17 @@ final class MarketplaceInstallSetupController extends Controller
                 ->withInput()
                 ->with('install_setup_slug', $slug)
                 ->with('error', $e->getMessage());
+        } catch (Throwable $e) {
+            Log::error('Marketplace install setup failed', [
+                'slug' => $slug,
+                'message' => $e->getMessage(),
+            ]);
+
+            return redirect()
+                ->route('plugins.index')
+                ->withInput()
+                ->with('install_setup_slug', $slug)
+                ->with('error', 'Erreur interne lors du lancement de l\'installation. Consultez les logs du panel.');
         }
     }
 }

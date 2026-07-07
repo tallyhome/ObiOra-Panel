@@ -38,6 +38,6 @@
     </nav>
 
     <div class="mt-auto pt-4 small text-muted">
-        v{{ config('obiora.version') }}
+        v{{ $panelVersion ?? config('obiora.version') }}
     </div>
 </aside>

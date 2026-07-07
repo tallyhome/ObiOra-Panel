@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 {
     char script[512];
     char history_id[32] = "0";
-    char *exec_args[4];
+    char *exec_args[5];
 
     if (geteuid() != 0) {
         fprintf(stderr, "ERREUR: privilèges insuffisants pour la mise à jour\n");
@@ -63,7 +63,12 @@ int main(int argc, char *argv[])
     exec_args[0] = "bash";
     exec_args[1] = script;
     exec_args[2] = history_id;
-    exec_args[3] = NULL;
+    if (argc > 2 && argv[2][0] != '\0') {
+        exec_args[3] = argv[2];
+        exec_args[4] = NULL;
+    } else {
+        exec_args[3] = NULL;
+    }
 
     execv("/bin/bash", exec_args);
     perror("execv");

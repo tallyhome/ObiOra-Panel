@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Modules\Updates\Livewire;
 
+use App\Jobs\RunSystemPackageUpdateJob;
 use App\Models\UpdateHistory;
 use App\Services\Core\LicenseService;
 use App\Services\Core\PanelUpdater;
+use App\Services\Core\SystemMaintenance;
 use App\Services\Core\UpdateManager;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -49,13 +52,22 @@ final class SettingsIndex extends Component
 
     public string $viewingOutput = '';
 
-    public function mount(LicenseService $licenseService, UpdateManager $updateManager): void
+    public bool $systemUpdateRunning = false;
+
+    public ?string $systemMessage = null;
+
+    public bool $systemSuccess = false;
+
+    public string $systemOutput = '';
+
+    public function mount(LicenseService $licenseService, UpdateManager $updateManager, SystemMaintenance $systemMaintenance): void
     {
         $this->loadLicense($licenseService);
         $this->updateInfo = $updateManager->checkForUpdates();
         $this->lastCheckedAt = now()->format('d/m/Y H:i:s');
         $this->setUpdateFeedback();
         $this->resumePendingUpdate();
+        $this->loadSystemMaintenanceStatus($systemMaintenance);
     }
 
     public function activateLicense(LicenseService $licenseService): void
@@ -113,6 +125,8 @@ final class SettingsIndex extends Component
 
     public function pollUpdateStatus(UpdateManager $updateManager): void
     {
+        $this->pollSystemUpdateStatus();
+
         if ($this->pendingHistoryId === null) {
             $this->updateRunning = false;
 
@@ -164,6 +178,55 @@ final class SettingsIndex extends Component
                 ? 'Mise à jour en cours d\'exécution (composer, migrations, build)…'
                 : 'Mise à jour en file d\'attente, démarrage imminent…');
         $this->updateSuccess = true;
+    }
+
+    public function queueSystemUpdate(): void
+    {
+        abort_unless(auth()->user()?->can('updates.manage'), 403);
+
+        if ($this->systemUpdateRunning) {
+            return;
+        }
+
+        RunSystemPackageUpdateJob::dispatch();
+        $this->systemUpdateRunning = true;
+        $this->systemSuccess = true;
+        $this->systemMessage = 'Mise à jour système lancée en arrière-plan. Cela peut prendre plusieurs minutes.';
+        $this->dispatch('notify', type: 'info', message: $this->systemMessage);
+    }
+
+    public function scheduleSystemReboot(SystemMaintenance $maintenance): void
+    {
+        abort_unless(auth()->user()?->can('updates.manage'), 403);
+
+        $result = $maintenance->scheduleReboot(60);
+        $this->systemSuccess = $result['success'];
+        $this->systemMessage = $result['message'];
+        $this->systemOutput = $result['output'];
+        $this->dispatch('notify', type: $result['success'] ? 'warning' : 'danger', message: $result['message']);
+    }
+
+    private function loadSystemMaintenanceStatus(SystemMaintenance $systemMaintenance): void
+    {
+        $this->pollSystemUpdateStatus();
+    }
+
+    private function pollSystemUpdateStatus(): void
+    {
+        /** @var array{running?: bool, message?: string, output?: string, success?: ?bool}|null $status */
+        $status = Cache::get('obiora:system_update');
+
+        if (! is_array($status)) {
+            return;
+        }
+
+        $this->systemUpdateRunning = (bool) ($status['running'] ?? false);
+        $this->systemMessage = (string) ($status['message'] ?? '');
+        $this->systemOutput = (string) ($status['output'] ?? '');
+
+        if (array_key_exists('success', $status) && $status['success'] !== null) {
+            $this->systemSuccess = (bool) $status['success'];
+        }
     }
 
     private function resumePendingUpdate(): void
@@ -238,12 +301,13 @@ final class SettingsIndex extends Component
         }
     }
 
-    public function render()
+    public function render(SystemMaintenance $systemMaintenance)
     {
         return view('updates::livewire.settings-index', [
             'history' => UpdateHistory::query()->latest()->limit(10)->get(),
             'licenseEnabled' => (bool) config('license.enabled', false),
             'adminLicenceUrl' => (string) config('license.admin_licence_url'),
+            'systemInfo' => $systemMaintenance->detectPackageManager(),
         ]);
     }
 }

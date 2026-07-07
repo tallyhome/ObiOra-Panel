@@ -1,4 +1,4 @@
-<div @if($updateRunning) wire:poll.3s="pollUpdateStatus" @endif>
+<div @if($updateRunning || $systemUpdateRunning) wire:poll.3s="pollUpdateStatus" @endif>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-1">Licence & Mises à jour</h1>
@@ -150,6 +150,48 @@
             </div>
         </div>
     </div>
+
+    @can('updates.manage')
+        @if(($systemInfo['can_update'] ?? false) || ($systemInfo['can_reboot'] ?? false))
+            <div class="card obiora-card mt-4">
+                <div class="card-body">
+                    <h2 class="h5 mb-3">Maintenance système</h2>
+                    <p class="text-muted small mb-3">
+                        Met à jour les paquets du système d'exploitation ({{ $systemInfo['manager'] ?? 'inconnu' }}) et permet de planifier un redémarrage du serveur.
+                    </p>
+
+                    @if($systemMessage)
+                        <div class="alert alert-{{ $systemSuccess ? 'success' : 'danger' }} py-2 small">{{ $systemMessage }}</div>
+                    @endif
+
+                    @if($systemUpdateRunning)
+                        <div class="d-flex align-items-center gap-2 small text-muted mb-3">
+                            <span class="spinner-border spinner-border-sm"></span>
+                            Mise à jour système en cours…
+                        </div>
+                    @endif
+
+                    <div class="d-flex flex-wrap gap-2">
+                        @if($systemInfo['can_update'] ?? false)
+                            <button type="button" class="btn btn-outline-primary btn-sm" wire:click="queueSystemUpdate" wire:loading.attr="disabled" @if($systemUpdateRunning) disabled @endif>
+                                Mettre à jour le système
+                            </button>
+                        @endif
+                        @if($systemInfo['can_reboot'] ?? false)
+                            <button type="button" class="btn btn-outline-danger btn-sm"
+                                onclick="obioraConfirmWire(this, 'scheduleSystemReboot', 'Redémarrer le serveur', 'Planifier un redémarrage dans environ 1 minute ? Le panel sera indisponible.')">
+                                Redémarrer
+                            </button>
+                        @endif
+                    </div>
+
+                    @if($systemOutput)
+                        <pre class="small mt-3 mb-0 p-3 rounded obiora-log-pre">{{ $systemOutput }}</pre>
+                    @endif
+                </div>
+            </div>
+        @endif
+    @endcan
 
     @if($history->isNotEmpty())
         <div class="card obiora-card mt-4">

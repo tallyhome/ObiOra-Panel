@@ -176,7 +176,7 @@
                         <button type="button" class="btn-close btn-close-white" wire:click="cancelInstallSetup"></button>
                     </div>
                     @if ($setupPackage->installOptions() !== [])
-                        <form method="POST" action="{{ route('plugins.install-setup') }}" id="obiora-setup-form-{{ $setupSlug }}">
+                        <form method="POST" action="{{ route('plugins.install-setup') }}" id="obiora-setup-form-{{ $setupSlug }}" wire:ignore>
                             @csrf
                             <input type="hidden" name="slug" value="{{ $setupSlug }}">
                             <div class="modal-body">

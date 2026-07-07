@@ -9,7 +9,7 @@ obiora_require_docker
 
 name="obiora-filebrowser"
 image="filebrowser/filebrowser:latest"
-port=8080
+port=8082
 data_dir="/var/lib/obiora/filebrowser"
 fb_user="${OBIORA_APP_USERNAME:-admin}"
 fb_pass="${OBIORA_APP_PASS:-admin}"
