@@ -94,10 +94,14 @@ final class ServerManager
     public function ping(Server $server): bool
     {
         if ($server->is_master || $server->type === ServerType::Local) {
+            $ip = $this->detectLocalIp();
+            $hostname = gethostname() ?: $server->hostname;
+
             $server->update([
                 'status' => ServerStatus::Online,
                 'last_seen_at' => now(),
-                'hostname' => gethostname() ?: $server->hostname,
+                'hostname' => $hostname,
+                'ip_address' => $ip ?: $server->ip_address,
                 'os_name' => PHP_OS_FAMILY,
             ]);
             $server->primaryNode?->update(['last_ping_at' => now()]);
@@ -149,5 +153,21 @@ final class ServerManager
         }
 
         $server->delete();
+    }
+
+    private function detectLocalIp(): ?string
+    {
+        if (PHP_OS_FAMILY !== 'Linux') {
+            return null;
+        }
+
+        $output = shell_exec('hostname -I 2>/dev/null') ?: '';
+        $ip = trim(explode(' ', trim($output))[0] ?? '');
+
+        if ($ip === '' || str_starts_with($ip, '127.')) {
+            return null;
+        }
+
+        return $ip;
     }
 }

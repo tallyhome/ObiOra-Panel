@@ -30,11 +30,14 @@ obiora_docker_install() {
     fi
 
     mkdir -p "/var/lib/obiora/${slug}"
+    chown -R 1000:1000 "/var/lib/obiora/${slug}" 2>/dev/null || chmod -R 0777 "/var/lib/obiora/${slug}"
+
+    local internal_port="${4:-$port}"
 
     docker run -d \
         --name "${name}" \
         --restart unless-stopped \
-        -p "${port}:${port}" \
+        -p "${port}:${internal_port}" \
         -v "/var/lib/obiora/${slug}:/config" \
         -e PUID=1000 -e PGID=1000 \
         "${image}"

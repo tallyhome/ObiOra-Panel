@@ -10,6 +10,7 @@ use App\Jobs\ApplicationInstallJob;
 use App\Models\InstalledApplication;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
+use App\Support\ServerAccessHost;
 use App\Services\System\PrivilegedScriptRunner;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -25,6 +26,7 @@ final class ApplicationManager
         private readonly ServerManager $serverManager,
         private readonly ApplicationCatalog $catalog,
         private readonly PrivilegedScriptRunner $scripts,
+        private readonly ServerAccessHost $accessHost,
     ) {}
 
     /**
@@ -351,7 +353,7 @@ final class ApplicationManager
     {
         $package = $this->catalog->find($application->slug);
         $metadata = $application->metadata ?? [];
-        $host = $application->server->ip_address ?: request()->getHost();
+        $host = $this->accessHost->resolve($application->server);
 
         return [
             'name' => $application->name,
@@ -362,7 +364,7 @@ final class ApplicationManager
             'runtime_type' => $metadata['runtime_type'] ?? $package?->runtimeType() ?? 'docker',
             'container' => $metadata['container'] ?? $package?->containerName(),
             'port' => $metadata['port'] ?? $package?->port(),
-            'url' => $metadata['url'] ?? $package?->accessUrl($host),
+            'url' => $package?->accessUrl($host) ?? $metadata['url'] ?? null,
             'usage' => $metadata['usage'] ?? $package?->usageNotes() ?? '',
             'installed_at' => $application->installed_at?->format('d/m/Y H:i'),
             'install_output' => $metadata['install_output'] ?? '',
@@ -419,7 +421,7 @@ final class ApplicationManager
      */
     private function buildMetadata(ApplicationPackage $package, Server $server, string $output): array
     {
-        $host = $server->ip_address ?: (request()->getHost() ?: 'localhost');
+        $host = $this->accessHost->resolve($server);
         $port = $package->port();
 
         if (preg_match('/port (\d+)/i', $output, $matches)) {
