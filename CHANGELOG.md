@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.9.4 - 2026-07-07
+
+Corrige erreur 500 lors de la mise a jour depuis le panel. Script install/update-panel.sh + sudoers pour PHP-FPM. Dashboard refresh 10s.
+
 ## v1.9.3 - 2026-07-07
 
 Dashboard refonte style Swizzin/QuickBox: theme sombre, widgets systeme, barres de progression, services cles, auto-refresh 30s.
@@ -224,11 +228,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 
 
 
+
 ```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
+
 
 
 
@@ -276,11 +282,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 
 
 
+
 ```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
+
 
 
 
