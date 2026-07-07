@@ -37,6 +37,10 @@ clone_panel() {
 setup_laravel() {
     info "Configuration Laravel..."
 
+    # Redis doit tourner avant les migrations (CACHE_STORE=redis, sinon
+    # "Connection refused" au moment du reset de cache spatie/permission).
+    systemctl_enable_start redis 2>/dev/null || systemctl_enable_start redis-server 2>/dev/null || true
+
     # shellcheck source=/dev/null
     source /root/.obiora_db_credentials
 

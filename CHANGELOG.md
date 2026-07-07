@@ -4,9 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
-## v1.8.6 - 2026-07-07
+## [1.8.7] - 2026-07-07
 
-Corrige Access denied for user obiora: ALTER USER synchronise le mot de passe, reutilisation du mdp existant, et creation pour localhost + 127.0.0.1.
+### Corrigé
+
+- **Redis Connection refused** : Redis est démarré **avant** les migrations (auparavant lancé à `setup_systemd`, après `setup_laravel`) — corrige l'échec de la migration `permission_tables` (reset de cache spatie sur `CACHE_STORE=redis`)
 
 ## [1.8.6] - 2026-07-07
 
