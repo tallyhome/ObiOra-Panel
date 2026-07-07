@@ -73,7 +73,7 @@ return [
     ],
 
     'realtime' => [
-        'enabled' => (bool) env('OBIORA_REALTIME_ENABLED', false),
+        'enabled' => (bool) env('OBIORA_REALTIME_ENABLED', true),
         'metrics_interval_seconds' => (int) env('OBIORA_REALTIME_METRICS_INTERVAL', 5),
         'fallback_poll_seconds' => (int) env('OBIORA_REALTIME_FALLBACK_POLL', 10),
     ],

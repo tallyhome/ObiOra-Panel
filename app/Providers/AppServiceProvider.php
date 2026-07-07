@@ -10,6 +10,7 @@ use App\Services\Core\LicenseManager;
 use App\Services\Core\ServerManager;
 use App\Services\Core\ModuleManager;
 use App\Services\Core\UpdateManager;
+use App\Services\Core\UpdateRecovery;
 use App\Support\InstalledVersion;
 use App\Services\System\LocalExecutor;
 use App\Livewire\Modules\ModuleStubIndex;
@@ -33,6 +34,10 @@ class AppServiceProvider extends ServiceProvider
         Livewire::component('modules.stub-index', ModuleStubIndex::class);
 
         View::composer('partials.sidebar', function ($view): void {
+            if (auth()->check()) {
+                $this->app->make(UpdateRecovery::class)->recoverStale(40);
+            }
+
             $updateAvailable = false;
 
             if (auth()->check()) {

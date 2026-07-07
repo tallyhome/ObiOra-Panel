@@ -15,7 +15,12 @@ final class ModuleStubRoutesTest extends TestCase
 
     public function test_stub_module_pages_require_auth(): void
     {
-        $slug = array_key_first(ModuleStubRegistry::all());
+        $slug = array_key_first(ModuleStubRegistry::infrastructure());
+        if ($slug === null) {
+            $this->markTestSkipped('Aucun module stub — route modules.stub non enregistrée.');
+
+            return;
+        }
 
         $response = $this->get(route('modules.stub', $slug));
 

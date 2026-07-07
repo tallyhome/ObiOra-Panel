@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.1 - 2026-07-08
+
+- Fix MAJ panel bloquée à 58 % : purge caches routes/vues après git checkout, timeout npm build, recovery MAJ stale
+- Fix erreur 500 Licence & MAJ : route stub `/modules/{slug}` avec contrainte vide (Phase 13)
+- Reverb activé par défaut (install + MAJ) sauf `OBIORA_REALTIME_ENABLED=false`
+- Job MAJ : marque failed si timeout/worker tué (`ApplyPanelUpdateJob::failed`)
+
 ## v2.1.0 - 2026-07-08
 
 - Phase 13 : modules Infrastructure métier (SSL, Firewall, Users, Nginx, Redis, Apache, FTP, DNS, Applications, Virtualizor, Cluster)

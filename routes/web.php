@@ -98,10 +98,12 @@ Route::middleware(['setup', 'auth', 'server'])->group(function () {
         Route::get('/servers/{server}/diagnostics', [DiagnosticReportController::class, 'index'])->name('diagnostics.index');
     });
 
-    $stubModules = implode('|', array_keys(ModuleStubRegistry::infrastructure()));
-    Route::get('/modules/{slug}', ModuleStubIndex::class)
-        ->where('slug', $stubModules)
-        ->name('modules.stub');
+    $stubSlugs = array_keys(ModuleStubRegistry::infrastructure());
+    if ($stubSlugs !== []) {
+        Route::get('/modules/{slug}', ModuleStubIndex::class)
+            ->where('slug', implode('|', $stubSlugs))
+            ->name('modules.stub');
+    }
 
     Route::get('/settings', \Modules\Updates\Livewire\SettingsIndex::class)->name('settings.index');
 });

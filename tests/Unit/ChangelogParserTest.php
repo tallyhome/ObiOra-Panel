@@ -15,7 +15,7 @@ final class ChangelogParserTest extends TestCase
         $sections = $parser->sections(3);
 
         $this->assertNotEmpty($sections);
-        $this->assertSame('2.1.0', $sections[0]['version']);
+        $this->assertSame('2.1.1', $sections[0]['version']);
         $this->assertNotEmpty($sections[0]['items']);
     }
 

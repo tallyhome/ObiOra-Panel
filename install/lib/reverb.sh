@@ -1,23 +1,46 @@
 #!/usr/bin/env bash
-# Configuration Laravel Reverb (Phase 11) — opt-in via OBIORA_REALTIME_ENABLED
+# Configuration Laravel Reverb (Phase 11) — activé par défaut sauf OBIORA_REALTIME_ENABLED=false
+
+reverb_is_enabled() {
+    local env_file="${1:-${OBIORA_INSTALL_DIR:-/opt/obiora-panel}/.env}"
+
+    if [[ -f "${env_file}" ]] && grep -q '^OBIORA_REALTIME_ENABLED=false' "${env_file}"; then
+        return 1
+    fi
+
+    return 0
+}
 
 setup_reverb() {
-    if [[ "${OBIORA_REALTIME_ENABLED:-false}" != "true" ]]; then
-        info "Reverb desactive (OBIORA_REALTIME_ENABLED=false)."
+    local env_file="${OBIORA_INSTALL_DIR}/.env"
+
+    if ! reverb_is_enabled "${env_file}"; then
+        info "Reverb desactive explicitement (OBIORA_REALTIME_ENABLED=false)."
         return 0
     fi
 
-    info "Configuration Laravel Reverb..."
+    info "Configuration Laravel Reverb (temps reel)..."
 
-    local env_file="${OBIORA_INSTALL_DIR}/.env"
     if [[ ! -f "${env_file}" ]]; then
         warn "Fichier .env introuvable, Reverb non configure."
         return 0
     fi
 
     local app_key app_secret
-    app_key="$(openssl rand -hex 16 2>/dev/null || head -c 16 /dev/urandom | xxd -p)"
-    app_secret="$(openssl rand -hex 32 2>/dev/null || head -c 32 /dev/urandom | xxd -p)"
+    app_key="$(grep '^REVERB_APP_KEY=' "${env_file}" 2>/dev/null | cut -d= -f2- | tr -d ' \r' || true)"
+    app_secret="$(grep '^REVERB_APP_SECRET=' "${env_file}" 2>/dev/null | cut -d= -f2- | tr -d ' \r' || true)"
+
+    if [[ -z "${app_key}" ]]; then
+        app_key="$(openssl rand -hex 16 2>/dev/null || head -c 16 /dev/urandom | xxd -p)"
+    fi
+    if [[ -z "${app_secret}" ]]; then
+        app_secret="$(openssl rand -hex 32 2>/dev/null || head -c 32 /dev/urandom | xxd -p)"
+    fi
+
+    local panel_host="${OBIORA_DOMAIN:-127.0.0.1}"
+    if [[ -z "${OBIORA_DOMAIN:-}" ]] && grep -q '^APP_URL=' "${env_file}"; then
+        panel_host="$(grep '^APP_URL=' "${env_file}" | cut -d= -f2- | tr -d ' \r' | sed -E 's#^https?://([^/:]+).*#\1#')"
+    fi
 
     grep -q '^BROADCAST_CONNECTION=' "${env_file}" \
         && sed -i 's/^BROADCAST_CONNECTION=.*/BROADCAST_CONNECTION=reverb/' "${env_file}" \
@@ -30,11 +53,11 @@ setup_reverb() {
         "REVERB_APP_SECRET=${app_secret}" \
         "REVERB_SERVER_HOST=127.0.0.1" \
         "REVERB_SERVER_PORT=8080" \
-        "REVERB_HOST=${OBIORA_DOMAIN:-127.0.0.1}" \
+        "REVERB_HOST=${panel_host}" \
         "REVERB_PORT=8080" \
         "REVERB_SCHEME=http" \
         "VITE_REVERB_APP_KEY=${app_key}" \
-        "VITE_REVERB_HOST=${OBIORA_DOMAIN:-127.0.0.1}" \
+        "VITE_REVERB_HOST=${panel_host}" \
         "VITE_REVERB_PORT=8080" \
         "VITE_REVERB_SCHEME=http"
     do
@@ -69,7 +92,7 @@ SERVICE
 }
 
 append_reverb_nginx() {
-    if [[ "${OBIORA_REALTIME_ENABLED:-false}" != "true" ]]; then
+    if ! reverb_is_enabled; then
         return 0
     fi
 

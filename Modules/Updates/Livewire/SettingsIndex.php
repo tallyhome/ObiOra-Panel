@@ -11,6 +11,7 @@ use App\Services\Core\LicenseService;
 use App\Services\Core\PanelUpdater;
 use App\Services\Core\SystemMaintenance;
 use App\Services\Core\UpdateManager;
+use App\Services\Core\UpdateRecovery;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -61,8 +62,13 @@ final class SettingsIndex extends Component
 
     public string $systemOutput = '';
 
-    public function mount(LicenseService $licenseService, UpdateManager $updateManager, SystemMaintenance $systemMaintenance): void
-    {
+    public function mount(
+        LicenseService $licenseService,
+        UpdateManager $updateManager,
+        SystemMaintenance $systemMaintenance,
+        UpdateRecovery $updateRecovery,
+    ): void {
+        $updateRecovery->recoverStale();
         $this->loadLicense($licenseService);
         $this->updateInfo = $updateManager->checkForUpdates();
         $this->lastCheckedAt = now()->format('d/m/Y H:i:s');
