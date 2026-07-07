@@ -6,7 +6,7 @@
     $swap = $metrics['swap'] ?? [];
 @endphp
 
-<div wire:poll.30s="refresh">
+<div wire:poll.10s="refresh">
     {{-- En-tête --}}
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
@@ -17,7 +17,10 @@
                 · {{ $metrics['os'] ?? 'Linux' }}
             </p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 align-items-center">
+            <span class="badge rounded-pill" style="background: rgba(61,214,140,0.15); color: var(--obiora-primary); font-size: 0.7rem;">
+                <span class="obiora-status-dot ok me-1" style="width:6px;height:6px;"></span> Live · 10s
+            </span>
             <button wire:click="refresh" class="btn btn-outline-primary btn-sm" wire:loading.attr="disabled">
                 <span wire:loading.remove wire:target="refresh">↻ Actualiser</span>
                 <span wire:loading wire:target="refresh">...</span>

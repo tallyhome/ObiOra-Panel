@@ -12,6 +12,14 @@ Corrige la detection des mises a jour (VERSION, git, GitHub API) et affiche un b
 
 Phase 10: page Licence et MAJ, integration AdminLicence, correctifs installateur (404, permissions, SELinux).
 
+## [1.9.4] - 2026-07-07
+
+### Corrigé
+
+- **Mise à jour panel (500)** : import manquant + script `install/update-panel.sh` exécuté via sudo (PHP-FPM ne peut pas faire git/composer directement)
+- **Sudoers** : autorise `apache`/`nginx` à lancer `update-panel.sh` sans mot de passe
+- **Dashboard** : rafraîchissement auto toutes les **10 secondes** (badge Live)
+
 ## [1.9.3] - 2026-07-07
 
 ### Amélioré

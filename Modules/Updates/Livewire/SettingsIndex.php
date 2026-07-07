@@ -70,11 +70,21 @@ final class SettingsIndex extends Component
 
     public function applyUpdate(PanelUpdater $panelUpdater, UpdateManager $updateManager): void
     {
-        $this->authorize('updates.manage');
+        abort_unless(auth()->user()?->can('updates.manage'), 403);
 
-        $result = $panelUpdater->apply();
-        $this->updateSuccess = $result['success'];
-        $this->updateMessage = $result['message'];
+        try {
+            $result = $panelUpdater->apply();
+            $this->updateSuccess = $result['success'];
+            $this->updateMessage = $result['message'];
+
+            if (! $result['success'] && $result['output'] !== '') {
+                $this->updateMessage .= ' — '.mb_substr($result['output'], 0, 200);
+            }
+        } catch (\Throwable $e) {
+            $this->updateSuccess = false;
+            $this->updateMessage = 'Erreur : '.$e->getMessage();
+        }
+
         $this->updateInfo = $updateManager->checkForUpdates(fresh: true);
     }
 

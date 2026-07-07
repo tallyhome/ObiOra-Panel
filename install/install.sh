@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-OBIORA_VERSION="1.9.3"
+OBIORA_VERSION="1.9.4"
 OBIORA_INSTALL_DIR="${OBIORA_INSTALL_DIR:-/opt/obiora-panel}"
 OBIORA_REPO="https://github.com/tallyhome/ObiOra-Panel.git"
 OBIORA_BRANCH="main"
