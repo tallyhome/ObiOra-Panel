@@ -18,6 +18,9 @@
                 @if (session('success'))
                     <span id="obiora-flash-success" class="d-none" data-message="{{ session('success') }}"></span>
                 @endif
+                @if (session('error'))
+                    <span id="obiora-flash-error" class="d-none" data-message="{{ session('error') }}"></span>
+                @endif
 
                 {{ $slot }}
             </main>

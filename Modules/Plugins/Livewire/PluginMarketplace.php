@@ -51,8 +51,18 @@ final class PluginMarketplace extends Component
 
     public string $failedInstallLog = '';
 
-    public function mount(ApplicationManager $manager, ServerManager $serverManager): void
+    public function mount(ApplicationManager $manager, ServerManager $serverManager, ApplicationCatalog $catalog): void
     {
+        $resumeSlug = session('install_setup_slug');
+        if (is_string($resumeSlug) && $resumeSlug !== '') {
+            $this->openInstallSetup($resumeSlug, $catalog);
+            session()->forget('install_setup_slug');
+        }
+
+        if (session('error')) {
+            $this->dispatch('notify', type: 'danger', message: (string) session('error'));
+        }
+
         $this->resumeInstall($manager, $serverManager);
     }
 

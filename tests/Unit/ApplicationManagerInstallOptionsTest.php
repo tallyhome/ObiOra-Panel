@@ -28,42 +28,26 @@ final class ApplicationManagerInstallOptionsTest extends TestCase
         return new ApplicationPackage('filebrowser', base_path('packages/filebrowser'), $manifest);
     }
 
-    public function test_validates_matching_passwords(): void
+    public function test_validates_filebrowser_password(): void
     {
         $validated = $this->manager()->validateInstallOptions($this->fileBrowserPackage(), [
             'label' => 'File Browser',
             'username' => 'admin',
             'pass' => 'secret123',
-            'pass2' => 'secret123',
         ]);
 
         $this->assertSame('secret123', $validated['pass']);
-        $this->assertArrayNotHasKey('pass2', $validated);
     }
 
-    public function test_rejects_missing_password_confirmation(): void
+    public function test_rejects_missing_password(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Confirmer le mot de passe');
+        $this->expectExceptionMessage('Mot de passe');
 
         $this->manager()->validateInstallOptions($this->fileBrowserPackage(), [
             'label' => 'File Browser',
             'username' => 'admin',
-            'pass' => 'secret123',
-            'pass2' => '',
-        ]);
-    }
-
-    public function test_rejects_mismatched_passwords(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Les mots de passe ne correspondent pas.');
-
-        $this->manager()->validateInstallOptions($this->fileBrowserPackage(), [
-            'label' => 'File Browser',
-            'username' => 'admin',
-            'pass' => 'secret123',
-            'pass2' => 'other123',
+            'pass' => '',
         ]);
     }
 

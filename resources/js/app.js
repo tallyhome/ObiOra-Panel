@@ -20,4 +20,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (flash?.dataset.message) {
         obioraToast('success', flash.dataset.message);
     }
+
+    const flashError = document.getElementById('obiora-flash-error');
+
+    if (flashError?.dataset.message) {
+        obioraToast('danger', flashError.dataset.message);
+    }
 });

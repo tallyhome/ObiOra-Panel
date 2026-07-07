@@ -28,17 +28,11 @@
             },
             {
                 "name": "pass",
-                "label": "Mot de passe",
+                "label": "Mot de passe administrateur",
                 "type": "password",
                 "required": true,
-                "min": 4
-            },
-            {
-                "name": "pass2",
-                "label": "Confirmer le mot de passe",
-                "type": "password",
-                "required": true,
-                "matches": "pass"
+                "min": 4,
+                "help": "Saisissez un mot de passe d'au moins 4 caractères."
             }
         ]
     },
@@ -47,6 +41,6 @@
         "container": "obiora-filebrowser",
         "port": 8080,
         "url": "http://{host}:8080",
-        "usage": "Gestionnaire de fichiers web sur le port 8080. Identifiants par défaut : admin / admin. Accès à l'ensemble du serveur — réservez cet accès aux administrateurs de confiance."
+        "usage": "Gestionnaire de fichiers web sur le port 8080. Changez le mot de passe depuis les paramètres File Browser si besoin. Accès à l'ensemble du serveur — réservez cet accès aux administrateurs de confiance."
     }
 }

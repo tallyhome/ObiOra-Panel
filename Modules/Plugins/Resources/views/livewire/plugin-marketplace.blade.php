@@ -176,7 +176,9 @@
                         <button type="button" class="btn-close btn-close-white" wire:click="cancelInstallSetup"></button>
                     </div>
                     @if ($setupPackage->installOptions() !== [])
-                        <form id="obiora-setup-form-{{ $setupSlug }}">
+                        <form method="POST" action="{{ route('plugins.install-setup') }}" id="obiora-setup-form-{{ $setupSlug }}">
+                            @csrf
+                            <input type="hidden" name="slug" value="{{ $setupSlug }}">
                             <div class="modal-body">
                                 <p class="small text-muted mb-4">
                                     Configurez l'application avant l'installation.
@@ -191,8 +193,9 @@
                                             $name = $field['name'] ?? '';
                                             $type = $field['type'] ?? 'text';
                                             $isPassword = $type === 'password';
+                                            $oldValue = old($name, $isPassword ? '' : ($field['default'] ?? ''));
                                         @endphp
-                                        <div class="col-12" wire:key="setup-field-{{ $setupSlug }}-{{ $name }}">
+                                        <div class="col-12">
                                             <label class="form-label small mb-1" for="setup-{{ $name }}">
                                                 {{ $field['label'] ?? $name }}
                                                 @if ($field['required'] ?? false)
@@ -201,11 +204,13 @@
                                             </label>
                                             <input
                                                 id="setup-{{ $name }}"
+                                                name="{{ $name }}"
                                                 type="{{ $isPassword ? 'password' : 'text' }}"
                                                 class="form-control obiora-input"
-                                                data-setup-field="{{ $name }}"
-                                                value="{{ $isPassword ? '' : ($field['default'] ?? '') }}"
+                                                value="{{ $isPassword ? '' : $oldValue }}"
+                                                @if($isPassword && !empty($field['min'])) minlength="{{ (int) $field['min'] }}" @endif
                                                 autocomplete="{{ $isPassword ? 'new-password' : 'off' }}"
+                                                @if(($field['required'] ?? false)) required @endif
                                             >
                                             @if (!empty($field['help']))
                                                 <div class="form-text">{{ $field['help'] }}</div>
@@ -217,11 +222,9 @@
                             <div class="modal-footer border-secondary">
                                 <button type="button" class="btn btn-outline-secondary" wire:click="cancelInstallSetup">Annuler</button>
                                 <button
-                                    type="button"
+                                    type="submit"
                                     class="btn btn-primary"
-                                    wire:loading.attr="disabled"
                                     @if($installRunning) disabled @endif
-                                    onclick="obioraSubmitInstallSetup(this)"
                                 >
                                     Installer maintenant
                                 </button>
