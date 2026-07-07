@@ -69,4 +69,14 @@ class Server extends Model
     {
         return $this->hasMany(InstalledApplication::class);
     }
+
+    public function diagnosticReports(): HasMany
+    {
+        return $this->hasMany(DiagnosticReport::class);
+    }
+
+    public function latestDiagnosticReport(): HasOne
+    {
+        return $this->hasOne(DiagnosticReport::class)->latestOfMany('generated_at');
+    }
 }

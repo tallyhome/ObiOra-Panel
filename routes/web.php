@@ -62,5 +62,7 @@ Route::middleware(['setup', 'auth', 'server'])->group(function () {
     Route::post('/plugins/install-setup', [MarketplaceInstallSetupController::class, 'store'])->name('plugins.install-setup');
     Route::get('/plugins/icons/{slug}', ApplicationIconController::class)->name('plugins.icon');
 
+    Route::get('/monitoring', \Modules\Monitoring\Livewire\MonitoringIndex::class)->name('monitoring.index');
+
     Route::get('/settings', \Modules\Updates\Livewire\SettingsIndex::class)->name('settings.index');
 });

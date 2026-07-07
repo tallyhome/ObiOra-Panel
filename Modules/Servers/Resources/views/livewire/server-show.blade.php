@@ -46,6 +46,16 @@
                         <dd class="col-8">{{ $server->os_name ?? '—' }} {{ $server->os_version }}</dd>
                         <dt class="col-4">Dernière vue</dt>
                         <dd class="col-8">{{ $server->last_seen_at?->format('d/m/Y H:i') ?? '—' }}</dd>
+                        @php $doctor = $server->metadata['doctor'] ?? null; @endphp
+                        @if ($doctor)
+                            <dt class="col-4">Obiora Doctor</dt>
+                            <dd class="col-8">
+                                <span class="badge text-bg-{{ ($doctor['score'] ?? 0) >= 90 ? 'success' : 'warning' }}">
+                                    {{ $doctor['score'] ?? '—' }}%
+                                </span>
+                                <span class="text-muted small ms-1">{{ $doctor['last_report_at'] ?? '' }}</span>
+                            </dd>
+                        @endif
                         @if ($server->is_master)
                             <dt class="col-4">Agent</dt>
                             <dd class="col-8">Local (port 9100)</dd>
@@ -73,6 +83,34 @@
                 </div>
             </div>
         @endunless
+
+        <div class="col-12">
+            <div class="card obiora-card">
+                <div class="card-body">
+                    <h2 class="h6 mb-3">Diagnostics Obiora Doctor</h2>
+                    @if ($server->latestDiagnosticReport)
+                        <p class="mb-2">
+                            Score:
+                            <strong>{{ $server->latestDiagnosticReport->score }}%</strong>
+                            — {{ $server->latestDiagnosticReport->generated_at?->format('d/m/Y H:i') }}
+                        </p>
+                        @if (!empty($server->latestDiagnosticReport->critical_findings))
+                            <ul class="small text-danger mb-0">
+                                @foreach ($server->latestDiagnosticReport->critical_findings as $finding)
+                                    <li>{{ $finding['module'] ?? '' }}: {{ $finding['title'] ?? '' }}</li>
+                                @endforeach
+                            </ul>
+                        @else
+                            <p class="text-muted small mb-0">Aucune alerte critique sur le dernier rapport.</p>
+                        @endif
+                    @else
+                        <p class="text-muted small mb-0">
+                            Installez l'agent Obiora sur ce serveur pour envoyer les rapports au panel.
+                        </p>
+                    @endif
+                </div>
+            </div>
+        </div>
 
         <div class="col-12">
             <div class="card obiora-card">

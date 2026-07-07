@@ -18,7 +18,7 @@ final class ServerShow extends Component
 
     public function mount(Server $server): void
     {
-        $this->server = $server->load('nodes');
+        $this->server = $server->load(['nodes', 'latestDiagnosticReport']);
     }
 
     public function ping(ServerManager $serverManager): void

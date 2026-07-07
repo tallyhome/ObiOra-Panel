@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'setup' => EnsureSetupComplete::class,
             'server' => SetCurrentServer::class,
+            'agent.token' => \App\Http\Middleware\AuthenticateAgentToken::class,
         ]);
 
         $middleware->priority([
