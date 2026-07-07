@@ -175,93 +175,82 @@
                         </div>
                         <button type="button" class="btn-close btn-close-white" wire:click="cancelInstallSetup"></button>
                     </div>
-                    <form
-                        x-data
-                        @submit.prevent="$wire.confirmInstallSetup(
-                            document.querySelector('[data-setup-password=\'0\']')?.value ?? '',
-                            document.querySelector('[data-setup-password=\'1\']')?.value ?? '',
-                            document.querySelector('[data-setup-password=\'2\']')?.value ?? ''
-                        )"
-                    >
-                        <div class="modal-body">
-                            <p class="small text-muted mb-4">
-                                Configurez l'application avant l'installation. Les identifiants saisis seront utilisés pour créer le compte administrateur.
-                            </p>
+                    @if ($setupPackage->installOptions() !== [])
+                        <form id="obiora-setup-form-{{ $setupSlug }}">
+                            <div class="modal-body">
+                                <p class="small text-muted mb-4">
+                                    Configurez l'application avant l'installation.
+                                    @if ($setupPackage->databaseAutoProvision())
+                                        Une base MySQL sera créée automatiquement.
+                                    @endif
+                                </p>
 
-                            <div class="row g-3">
-                                @php $setupPasswordIndex = -1; @endphp
-                                @foreach ($setupPackage->installOptions() as $field)
-                                    @php
-                                        $name = $field['name'] ?? '';
-                                        $type = $field['type'] ?? 'text';
-                                        $inputType = $type === 'password' ? 'password' : 'text';
-                                        $isPassword = $type === 'password';
-                                        if ($isPassword) {
-                                            $setupPasswordIndex++;
-                                        }
-                                    @endphp
-                                    <div class="col-12" wire:key="setup-field-{{ $setupSlug }}-{{ $name }}">
-                                        <label class="form-label small mb-1" for="setup-{{ $name }}">
-                                            {{ $field['label'] ?? $name }}
-                                            @if ($field['required'] ?? false)
-                                                <span class="text-danger">*</span>
-                                            @endif
-                                        </label>
-                                        @if ($isPassword)
-                                            @if ($setupPasswordIndex === 0)
-                                                <input
-                                                    id="setup-{{ $name }}"
-                                                    type="password"
-                                                    class="form-control obiora-input"
-                                                    data-setup-password="0"
-                                                    autocomplete="new-password"
-                                                >
-                                            @elseif ($setupPasswordIndex === 1)
-                                                <input
-                                                    id="setup-{{ $name }}"
-                                                    type="password"
-                                                    class="form-control obiora-input"
-                                                    data-setup-password="1"
-                                                    autocomplete="new-password"
-                                                >
-                                            @else
-                                                <input
-                                                    id="setup-{{ $name }}"
-                                                    type="password"
-                                                    class="form-control obiora-input"
-                                                    data-setup-password="2"
-                                                    autocomplete="new-password"
-                                                >
-                                            @endif
-                                        @else
+                                <div class="row g-3">
+                                    @foreach ($setupPackage->installOptions() as $field)
+                                        @php
+                                            $name = $field['name'] ?? '';
+                                            $type = $field['type'] ?? 'text';
+                                            $isPassword = $type === 'password';
+                                        @endphp
+                                        <div class="col-12" wire:key="setup-field-{{ $setupSlug }}-{{ $name }}">
+                                            <label class="form-label small mb-1" for="setup-{{ $name }}">
+                                                {{ $field['label'] ?? $name }}
+                                                @if ($field['required'] ?? false)
+                                                    <span class="text-danger">*</span>
+                                                @endif
+                                            </label>
                                             <input
                                                 id="setup-{{ $name }}"
-                                                type="text"
+                                                type="{{ $isPassword ? 'password' : 'text' }}"
                                                 class="form-control obiora-input"
-                                                wire:model="setupValues.{{ $name }}"
-                                                autocomplete="off"
-                                                @if(!empty($field['default'])) placeholder="{{ $field['default'] }}" @endif
+                                                data-setup-field="{{ $name }}"
+                                                value="{{ $isPassword ? '' : ($field['default'] ?? '') }}"
+                                                autocomplete="{{ $isPassword ? 'new-password' : 'off' }}"
                                             >
-                                        @endif
-                                        @if (!empty($field['help']))
-                                            <div class="form-text">{{ $field['help'] }}</div>
-                                        @endif
-                                    </div>
-                                @endforeach
+                                            @if (!empty($field['help']))
+                                                <div class="form-text">{{ $field['help'] }}</div>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
                             </div>
+                            <div class="modal-footer border-secondary">
+                                <button type="button" class="btn btn-outline-secondary" wire:click="cancelInstallSetup">Annuler</button>
+                                <button
+                                    type="button"
+                                    class="btn btn-primary"
+                                    wire:loading.attr="disabled"
+                                    @if($installRunning) disabled @endif
+                                    onclick="obioraSubmitInstallSetup(this)"
+                                >
+                                    Installer maintenant
+                                </button>
+                            </div>
+                        </form>
+                    @else
+                        <div class="modal-body">
+                            <p class="small text-muted mb-0">
+                                @if ($setupPackage->databaseAutoProvision())
+                                    L'installation va créer automatiquement une base MySQL dédiée pour {{ $setupPackage->name() }}.
+                                    Les identifiants seront affichés dans les informations de l'application une fois l'installation terminée.
+                                @else
+                                    Confirmez l'installation de {{ $setupPackage->name() }}.
+                                @endif
+                            </p>
                         </div>
                         <div class="modal-footer border-secondary">
                             <button type="button" class="btn btn-outline-secondary" wire:click="cancelInstallSetup">Annuler</button>
                             <button
-                                type="submit"
+                                type="button"
                                 class="btn btn-primary"
+                                wire:click="confirmInstallSetupWithoutForm"
                                 wire:loading.attr="disabled"
                                 @if($installRunning) disabled @endif
                             >
                                 Installer maintenant
                             </button>
                         </div>
-                    </form>
+                    @endif
                 </div>
             </div>
         </div>

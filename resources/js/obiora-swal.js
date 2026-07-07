@@ -37,6 +37,35 @@ export function obioraConfirm(callback, title = 'Confirmer', text = 'Cette actio
 }
 
 /**
+ * Soumission formulaire d'installation marketplace (mots de passe via JSON, hors Livewire wire:model).
+ */
+export function obioraSubmitInstallSetup(button) {
+    const form = button?.closest?.('form');
+
+    if (! form) {
+        return;
+    }
+
+    const fields = {};
+
+    form.querySelectorAll('[data-setup-field]').forEach((el) => {
+        fields[el.dataset.setupField] = el.value;
+    });
+
+    const root = button?.closest?.('[wire\\:id]');
+
+    if (! root || ! window.Livewire) {
+        return;
+    }
+
+    const component = window.Livewire.find(root.getAttribute('wire:id'));
+
+    if (component) {
+        component.call('submitInstallSetup', JSON.stringify(fields));
+    }
+}
+
+/**
  * Confirmation SweetAlert2 reliée à une méthode Livewire.
  * Fonctionne depuis onclick="" (contrairement à $wire qui n'existe que dans Alpine).
  */

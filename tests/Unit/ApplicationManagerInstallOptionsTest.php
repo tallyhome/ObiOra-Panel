@@ -66,4 +66,16 @@ final class ApplicationManagerInstallOptionsTest extends TestCase
             'pass2' => 'other123',
         ]);
     }
+
+    public function test_nextcloud_auto_provisions_database_from_config(): void
+    {
+        $package = new ApplicationPackage('nextcloud', base_path('packages/nextcloud'), [
+            'name' => 'Nextcloud',
+            'slug' => 'nextcloud',
+        ]);
+
+        $this->assertTrue($package->databaseAutoProvision());
+        $this->assertSame('nextcloud', $package->databaseNamePrefix());
+        $this->assertTrue($package->needsInstallWizard());
+    }
 }

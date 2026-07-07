@@ -39,4 +39,13 @@ return [
         'mango' => 'mangaplus',
     ],
 
+    /**
+     * Applications nécessitant une base MySQL/MariaDB externe (création auto à l'install).
+     *
+     * @var array<string, array{name_prefix?: string}>
+     */
+    'database_provision' => [
+        'nextcloud' => ['name_prefix' => 'nextcloud'],
+    ],
+
 ];

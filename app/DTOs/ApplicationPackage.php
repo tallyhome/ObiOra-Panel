@@ -135,12 +135,32 @@ final readonly class ApplicationPackage
 
     public function databaseAutoProvision(): bool
     {
-        return (bool) ($this->manifest['database']['auto_provision'] ?? false);
+        if ((bool) ($this->manifest['database']['auto_provision'] ?? false)) {
+            return true;
+        }
+
+        return array_key_exists($this->slug, (array) config('applications.database_provision', []));
     }
 
     public function databaseNamePrefix(): string
     {
-        return (string) ($this->manifest['database']['name_prefix'] ?? $this->slug);
+        $fromManifest = (string) ($this->manifest['database']['name_prefix'] ?? '');
+        if ($fromManifest !== '') {
+            return $fromManifest;
+        }
+
+        $fromConfig = config('applications.database_provision.'.$this->slug);
+
+        if (is_array($fromConfig) && isset($fromConfig['name_prefix'])) {
+            return (string) $fromConfig['name_prefix'];
+        }
+
+        return $this->slug;
+    }
+
+    public function needsInstallWizard(): bool
+    {
+        return $this->hasInstallOptions() || $this->databaseAutoProvision();
     }
 
     public function iconUrl(): string

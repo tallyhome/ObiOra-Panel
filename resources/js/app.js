@@ -1,11 +1,12 @@
 import './bootstrap';
 import ApexCharts from 'apexcharts';
-import { obioraConfirm, obioraConfirmWire, obioraToast } from './obiora-swal';
+import { obioraConfirm, obioraConfirmWire, obioraSubmitInstallSetup, obioraToast } from './obiora-swal';
 
 window.ApexCharts = ApexCharts;
 window.obioraToast = obioraToast;
 window.obioraConfirm = obioraConfirm;
 window.obioraConfirmWire = obioraConfirmWire;
+window.obioraSubmitInstallSetup = obioraSubmitInstallSetup;
 
 document.addEventListener('livewire:init', () => {
     Livewire.on('notify', ({ type, message }) => {

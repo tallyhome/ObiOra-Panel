@@ -43,12 +43,6 @@ final class PluginMarketplace extends Component
     /** @var array<string, string> */
     public array $setupValues = [];
 
-    public string $setupPassword0 = '';
-
-    public string $setupPassword1 = '';
-
-    public string $setupPassword2 = '';
-
     public ?string $installLogModalSlug = null;
 
     public string $installLogModalOutput = '';
@@ -79,13 +73,7 @@ final class PluginMarketplace extends Component
 
         $package = $catalog->find($slug);
 
-        if ($package !== null && $package->hasInstallOptions()) {
-            $this->openInstallSetup($slug, $catalog);
-
-            return;
-        }
-
-        if ($package !== null && $package->databaseAutoProvision()) {
+        if ($package !== null && $package->needsInstallWizard()) {
             $this->openInstallSetup($slug, $catalog);
 
             return;
@@ -117,38 +105,76 @@ final class PluginMarketplace extends Component
             $values[$name] = (string) ($field['default'] ?? '');
         }
         $this->setupValues = $values;
-        $this->resetSetupPasswords();
-    }
-
-    private function resetSetupPasswords(): void
-    {
-        $this->setupPassword0 = '';
-        $this->setupPassword1 = '';
-        $this->setupPassword2 = '';
     }
 
     public function cancelInstallSetup(): void
     {
         $this->setupSlug = null;
         $this->setupValues = [];
-        $this->resetSetupPasswords();
     }
 
-    public function confirmInstallSetup(
+    /**
+     * Soumission du formulaire d'installation via JSON (contourne les bugs Livewire sur les mots de passe).
+     */
+    public function submitInstallSetup(
+        string $fieldsJson,
         ApplicationManager $manager,
         ServerManager $serverManager,
         ApplicationCatalog $catalog,
-        string $password0 = '',
-        string $password1 = '',
-        string $password2 = '',
     ): void {
         if ($this->setupSlug === null || $this->installRunning) {
             return;
         }
 
-        $this->setupPassword0 = $password0;
-        $this->setupPassword1 = $password1;
-        $this->setupPassword2 = $password2;
+        $package = $catalog->find($this->setupSlug);
+
+        if ($package === null) {
+            $this->cancelInstallSetup();
+
+            return;
+        }
+
+        /** @var array<string, mixed> $decoded */
+        $decoded = json_decode($fieldsJson, true);
+        if (! is_array($decoded)) {
+            $this->dispatch('notify', type: 'danger', message: 'Formulaire invalide. Réessayez.');
+
+            return;
+        }
+
+        $options = [];
+        foreach ($package->installOptions() as $field) {
+            $name = (string) ($field['name'] ?? '');
+            if ($name === '') {
+                continue;
+            }
+            $options[$name] = trim((string) ($decoded[$name] ?? $this->setupValues[$name] ?? ''));
+        }
+
+        try {
+            $server = $serverManager->getCurrentServer();
+
+            if ($server === null) {
+                throw new \InvalidArgumentException('Aucun serveur sélectionné.');
+            }
+
+            $options = $manager->validateInstallOptions($package, $options);
+            $slug = $this->setupSlug;
+            $this->cancelInstallSetup();
+            $this->startInstall($slug, $manager, $serverManager, $options);
+        } catch (\InvalidArgumentException $e) {
+            $this->dispatch('notify', type: 'danger', message: $e->getMessage());
+        }
+    }
+
+    public function confirmInstallSetupWithoutForm(
+        ApplicationManager $manager,
+        ServerManager $serverManager,
+        ApplicationCatalog $catalog,
+    ): void {
+        if ($this->setupSlug === null || $this->installRunning) {
+            return;
+        }
 
         $package = $catalog->find($this->setupSlug);
 
@@ -165,7 +191,10 @@ final class PluginMarketplace extends Component
                 throw new \InvalidArgumentException('Aucun serveur sélectionné.');
             }
 
-            $options = $manager->validateInstallOptions($package, $this->buildInstallOptionsFromSetup($package));
+            $options = $package->hasInstallOptions()
+                ? $manager->validateInstallOptions($package, $this->setupValues)
+                : [];
+
             $slug = $this->setupSlug;
             $this->cancelInstallSetup();
             $this->startInstall($slug, $manager, $serverManager, $options);
@@ -394,40 +423,5 @@ final class PluginMarketplace extends Component
                 return;
             }
         }
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function buildInstallOptionsFromSetup(\App\DTOs\ApplicationPackage $package): array
-    {
-        $options = $this->setupValues;
-        $passwordIndex = 0;
-
-        foreach ($package->installOptions() as $field) {
-            if (($field['type'] ?? '') !== 'password') {
-                continue;
-            }
-
-            $name = (string) ($field['name'] ?? '');
-            if ($name === '') {
-                continue;
-            }
-
-            $options[$name] = trim($this->setupPasswordValue($passwordIndex));
-            $passwordIndex++;
-        }
-
-        return $options;
-    }
-
-    private function setupPasswordValue(int $index): string
-    {
-        return match ($index) {
-            0 => $this->setupPassword0,
-            1 => $this->setupPassword1,
-            2 => $this->setupPassword2,
-            default => '',
-        };
     }
 }
