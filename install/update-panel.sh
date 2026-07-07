@@ -83,7 +83,18 @@ checkout_target_release() {
 
 checkout_target_release "${TARGET_VERSION}"
 
-# Helper setuid APRÈS git sync (pour récupérer les correctifs avant installation)
+# git checkout en root laisse des fichiers root:root — npm/vite (utilisateur obiora)
+# ne peut alors pas vider public/build (rimraf EACCES).
+chown -R "${OBIORA_USER}:${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}"
+
+prepare_frontend_build_dir() {
+    local build_dir="${OBIORA_INSTALL_DIR}/public/build"
+
+    rm -rf "${build_dir}"
+    mkdir -p "${build_dir}"
+    chown "${OBIORA_USER}:${OBIORA_GROUP}" "${build_dir}"
+    chmod 775 "${build_dir}"
+} (pour récupérer les correctifs avant installation)
 if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/common.sh" ]] && [[ -f "${OBIORA_INSTALL_DIR}/install/lib/panel-update-helper.sh" ]]; then
     # shellcheck source=/dev/null
     source "${OBIORA_INSTALL_DIR}/install/lib/common.sh"
@@ -103,6 +114,8 @@ sudo -u "${OBIORA_USER}" env PATH=/usr/local/bin:/usr/bin:/bin \
 
 echo "[4/8] assets frontend..."
 if command -v npm &>/dev/null && [[ -f package.json ]]; then
+    prepare_frontend_build_dir
+
     progress 52 "Installation des dépendances npm…"
     # Toujours réinstaller avant build : évite les erreurs « cannot resolve sweetalert2 »
     # quand package.json a changé mais node_modules est obsolète.
