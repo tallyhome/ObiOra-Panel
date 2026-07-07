@@ -1,0 +1,27 @@
+---
+description: Commit et tag en fin de chaque session de travail ObiOra Panel
+alwaysApply: true
+---
+
+# Workflow release ObiOra Panel
+
+À la **fin de chaque session de travail** (quand une tâche est terminée ou un lot de changements est prêt) :
+
+1. **Mettre à jour `VERSION`** si des changements utilisateur ont été livrés (semver patch : `1.9.x`).
+2. **Commiter** tous les fichiers pertinents avec un message au format :
+   - `feat(vX.Y.Z): résumé court` pour une nouvelle fonctionnalité
+   - `fix(vX.Y.Z): résumé court` pour un correctif
+3. **Créer le tag annoté** correspondant : `git tag -a vX.Y.Z -m "vX.Y.Z — résumé"`
+4. **Pousser** branche et tag : `git push origin main && git push origin vX.Y.Z`
+
+Ne pas laisser de changements non commités en fin de session sans raison explicite.
+Ne pas committer de secrets (`.env`, credentials).
+Ne pas force-push sur `main`.
+
+Exemple fin de session :
+```
+VERSION → 1.9.22
+git add … && git commit -m "fix(v1.9.22): …"
+git tag -a v1.9.22 -m "v1.9.22 — …"
+git push origin main && git push origin v1.9.22
+```
