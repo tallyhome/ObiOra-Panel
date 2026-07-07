@@ -135,6 +135,10 @@
                             </dd>
                             <dt class="text-muted">Installé le</dt>
                             <dd>{{ $appInfo['installed_at'] ?? '—' }}</dd>
+                            @if (!empty($appInfo['username']))
+                                <dt class="text-muted">Identifiant</dt>
+                                <dd class="font-monospace">{{ $appInfo['username'] }}</dd>
+                            @endif
                             <dt class="text-muted">Utilisation</dt>
                             <dd>{{ $appInfo['usage'] ?: 'Consultez la documentation du package.' }}</dd>
                         </dl>
@@ -148,6 +152,64 @@
                     <p class="small text-muted mb-1">Sortie installation :</p>
                     <pre class="small mb-0 p-3 rounded obiora-log-pre">{{ $appInfo['install_output'] }}</pre>
                 @endif
+            </div>
+        </div>
+    @endif
+
+    @if ($setupPackage)
+        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,.65);">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content obiora-card border-secondary">
+                    <div class="modal-header border-secondary">
+                        <h2 class="modal-title h5 mb-0">Paramètres d'installation — {{ $setupPackage->name() }}</h2>
+                        <button type="button" class="btn-close btn-close-white" wire:click="cancelInstallSetup"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="small text-muted mb-4">
+                            Configurez l'application avant l'installation. Les identifiants saisis seront utilisés pour créer le compte administrateur.
+                        </p>
+
+                        <div class="row g-3">
+                            @foreach ($setupPackage->installOptions() as $field)
+                                @php
+                                    $name = $field['name'] ?? '';
+                                    $type = $field['type'] ?? 'text';
+                                    $inputType = $type === 'password' ? 'password' : 'text';
+                                @endphp
+                                <div class="col-12">
+                                    <label class="form-label small mb-1" for="setup-{{ $name }}">
+                                        {{ $field['label'] ?? $name }}
+                                        @if ($field['required'] ?? false)
+                                            <span class="text-danger">*</span>
+                                        @endif
+                                    </label>
+                                    <input
+                                        id="setup-{{ $name }}"
+                                        type="{{ $inputType }}"
+                                        class="form-control obiora-input"
+                                        wire:model="setupValues.{{ $name }}"
+                                        @if(!empty($field['default']) && $type !== 'password') placeholder="{{ $field['default'] }}" @endif
+                                    >
+                                    @if (!empty($field['help']))
+                                        <div class="form-text">{{ $field['help'] }}</div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <button type="button" class="btn btn-outline-secondary" wire:click="cancelInstallSetup">Annuler</button>
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            wire:click="confirmInstallSetup"
+                            wire:loading.attr="disabled"
+                            @if($installRunning) disabled @endif
+                        >
+                            Installer maintenant
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     @endif

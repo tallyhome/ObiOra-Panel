@@ -66,7 +66,71 @@ final class ApplicationManager
         return "obiora_progress:marketplace:{$serverId}:{$slug}";
     }
 
-    public function queueInstall(string $slug, ?Server $server = null): InstalledApplication
+    public function installOptionsCacheKey(int $serverId, string $slug): string
+    {
+        return "obiora_marketplace_install_options:{$serverId}:{$slug}";
+    }
+
+    /**
+     * @param  array<string, string>  $options
+     * @return array<string, string>
+     */
+    public function validateInstallOptions(ApplicationPackage $package, array $options): array
+    {
+        $validated = [];
+        $errors = [];
+
+        foreach ($package->installOptions() as $field) {
+            $name = (string) ($field['name'] ?? '');
+            if ($name === '') {
+                continue;
+            }
+
+            $value = trim((string) ($options[$name] ?? ''));
+            $required = (bool) ($field['required'] ?? false);
+            $label = (string) ($field['label'] ?? $name);
+
+            if ($required && $value === '') {
+                $errors[] = "« {$label} » est requis.";
+
+                continue;
+            }
+
+            $min = isset($field['min']) ? (int) $field['min'] : null;
+            if ($min !== null && $value !== '' && mb_strlen($value) < $min) {
+                $errors[] = "« {$label} » doit contenir au moins {$min} caractères.";
+            }
+
+            if (($field['type'] ?? '') === 'password' && isset($field['confirm'])) {
+                $confirmName = (string) $field['confirm'];
+                if ($value !== trim((string) ($options[$confirmName] ?? ''))) {
+                    $errors[] = 'Les mots de passe ne correspondent pas.';
+                }
+            }
+
+            if (isset($field['matches'])) {
+                $matchName = (string) $field['matches'];
+                if ($value !== trim((string) ($options[$matchName] ?? ''))) {
+                    $errors[] = 'Les mots de passe ne correspondent pas.';
+                }
+            }
+
+            if (! isset($field['matches'])) {
+                $validated[$name] = $value;
+            }
+        }
+
+        if ($errors !== []) {
+            throw new InvalidArgumentException(implode(' ', $errors));
+        }
+
+        return $validated;
+    }
+
+    /**
+     * @param  array<string, string>  $options
+     */
+    public function queueInstall(string $slug, ?Server $server = null, array $options = []): InstalledApplication
     {
         $server ??= $this->serverManager->getCurrentServer();
 
@@ -88,6 +152,18 @@ final class ApplicationManager
             $this->assertDockerAvailable($server);
         }
 
+        if ($package->hasInstallOptions()) {
+            $options = $this->validateInstallOptions($package, $options);
+            Cache::put($this->installOptionsCacheKey($server->id, $slug), $options, 3600);
+        } else {
+            Cache::forget($this->installOptionsCacheKey($server->id, $slug));
+        }
+
+        $displayName = trim((string) ($options['label'] ?? ''));
+        if ($displayName === '') {
+            $displayName = $package->name();
+        }
+
         $existing = InstalledApplication::query()
             ->where('server_id', $server->id)
             ->where('slug', $slug)
@@ -100,7 +176,7 @@ final class ApplicationManager
         $record = InstalledApplication::query()->updateOrCreate(
             ['server_id' => $server->id, 'slug' => $slug],
             [
-                'name' => $package->name(),
+                'name' => $displayName,
                 'version' => $package->version(),
                 'category' => $package->category(),
                 'status' => ApplicationStatus::Installing,
@@ -157,7 +233,12 @@ final class ApplicationManager
         $cacheKey = $this->progressCacheKey($serverId, $slug);
         $progressKey = "{$serverId}:{$slug}";
 
-        $result = $this->runScript($server, $package, 'install', $progressKey);
+        /** @var array<string, string> $installOptions */
+        $installOptions = Cache::get($this->installOptionsCacheKey($serverId, $slug), []);
+
+        $result = $this->runScript($server, $package, 'install', $progressKey, $installOptions);
+
+        Cache::forget($this->installOptionsCacheKey($serverId, $slug));
 
         if (! $result['success']) {
             $record->update([
@@ -179,7 +260,7 @@ final class ApplicationManager
         $record->update([
             'status' => ApplicationStatus::Installed,
             'installed_at' => now(),
-            'metadata' => $this->buildMetadata($package, $server, $result['output']),
+            'metadata' => $this->buildMetadata($package, $server, $result['output'], $installOptions),
         ]);
 
         $this->finishProgress($serverId, $slug, true, "« {$package->name()} » installé avec succès.");
@@ -366,6 +447,7 @@ final class ApplicationManager
             'port' => $metadata['port'] ?? $package?->port(),
             'url' => $package?->accessUrl($host) ?? $metadata['url'] ?? null,
             'usage' => $metadata['usage'] ?? $package?->usageNotes() ?? '',
+            'username' => $metadata['credentials']['username'] ?? null,
             'installed_at' => $application->installed_at?->format('d/m/Y H:i'),
             'install_output' => $metadata['install_output'] ?? '',
         ];
@@ -382,9 +464,10 @@ final class ApplicationManager
     }
 
     /**
+     * @param  array<string, string>  $installOptions
      * @return array{success: bool, output: string}
      */
-    private function runScript(Server $server, ApplicationPackage $package, string $action, ?string $progressKey = null): array
+    private function runScript(Server $server, ApplicationPackage $package, string $action, ?string $progressKey = null, array $installOptions = []): array
     {
         $script = $action === 'install' ? $package->installScript() : $package->uninstallScript();
 
@@ -405,7 +488,9 @@ final class ApplicationManager
                 $args[] = $action === 'install' ? 'installation' : 'désinstallation';
             }
 
-            $result = $this->scripts->run($wrapper, $args, 900);
+            $env = $this->installOptionsToEnv($installOptions);
+
+            $result = $this->scripts->run($wrapper, $args, 900, $env);
 
             return [
                 'success' => $result->successful || str_contains($result->output, 'OK:'),
@@ -417,9 +502,10 @@ final class ApplicationManager
     }
 
     /**
+     * @param  array<string, string>  $installOptions
      * @return array<string, mixed>
      */
-    private function buildMetadata(ApplicationPackage $package, Server $server, string $output): array
+    private function buildMetadata(ApplicationPackage $package, Server $server, string $output, array $installOptions = []): array
     {
         $host = $this->accessHost->resolve($server);
         $port = $package->port();
@@ -433,15 +519,55 @@ final class ApplicationManager
             $url = "http://{$host}:{$port}";
         }
 
-        return [
+        $username = trim((string) ($installOptions['username'] ?? ''));
+        if ($username === '' && preg_match('/credentials:([^\s\/]+)/', $output, $credMatch)) {
+            $username = $credMatch[1];
+        }
+
+        $usage = $package->usageNotes();
+        if ($username !== '') {
+            $usage = preg_replace(
+                '/Identifiants par défaut\s*:\s*[^\n.]*/iu',
+                "Identifiant : {$username} (mot de passe défini à l'installation)",
+                $usage,
+            ) ?? $usage;
+        }
+
+        $metadata = [
             'runtime_type' => $package->runtimeType(),
             'container' => $package->containerName(),
             'service' => $package->systemdService(),
             'port' => $port,
             'url' => $url,
-            'usage' => $package->usageNotes(),
+            'usage' => $usage,
             'install_output' => trim($output),
         ];
+
+        if ($username !== '') {
+            $metadata['credentials'] = ['username' => $username];
+        }
+
+        return $metadata;
+    }
+
+    /**
+     * @param  array<string, string>  $installOptions
+     * @return array<string, string>
+     */
+    private function installOptionsToEnv(array $installOptions): array
+    {
+        $env = [];
+
+        foreach ($installOptions as $key => $value) {
+            if ($value === '' || str_ends_with($key, '_confirm')) {
+                continue;
+            }
+
+            $envKey = 'OBIORA_APP_'.strtoupper(preg_replace('/[^a-z0-9_]/', '_', $key) ?? $key);
+            $env[$envKey] = $value;
+        }
+
+        return $env;
     }
 
     private function finishProgress(int $serverId, string $slug, bool $success, string $message): void

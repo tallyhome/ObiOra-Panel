@@ -38,6 +38,11 @@ final class PluginMarketplace extends Component
     /** @var array<string, mixed> */
     public array $appInfo = [];
 
+    public ?string $setupSlug = null;
+
+    /** @var array<string, string> */
+    public array $setupValues = [];
+
     public function mount(ApplicationManager $manager, ServerManager $serverManager): void
     {
         $this->resumeInstall($manager, $serverManager);
@@ -52,9 +57,52 @@ final class PluginMarketplace extends Component
         $this->resumeInstall($manager, $serverManager);
     }
 
-    public function install(string $slug, ApplicationManager $manager, ServerManager $serverManager): void
+    public function install(string $slug, ApplicationManager $manager, ServerManager $serverManager, ApplicationCatalog $catalog): void
     {
         if ($this->installRunning) {
+            return;
+        }
+
+        $package = $catalog->find($slug);
+
+        if ($package !== null && $package->hasInstallOptions()) {
+            $this->openInstallSetup($slug, $catalog);
+
+            return;
+        }
+
+        $this->startInstall($slug, $manager, $serverManager);
+    }
+
+    public function openInstallSetup(string $slug, ApplicationCatalog $catalog): void
+    {
+        $package = $catalog->find($slug);
+
+        if ($package === null) {
+            return;
+        }
+
+        $this->setupSlug = $slug;
+        $this->setupValues = $package->defaultInstallOptionValues();
+    }
+
+    public function cancelInstallSetup(): void
+    {
+        $this->setupSlug = null;
+        $this->setupValues = [];
+    }
+
+    public function confirmInstallSetup(ApplicationManager $manager, ServerManager $serverManager, ApplicationCatalog $catalog): void
+    {
+        if ($this->setupSlug === null || $this->installRunning) {
+            return;
+        }
+
+        $package = $catalog->find($this->setupSlug);
+
+        if ($package === null) {
+            $this->cancelInstallSetup();
+
             return;
         }
 
@@ -65,7 +113,28 @@ final class PluginMarketplace extends Component
                 throw new \InvalidArgumentException('Aucun serveur sélectionné.');
             }
 
-            $manager->queueInstall($slug, $server);
+            $options = $manager->validateInstallOptions($package, $this->setupValues);
+            $slug = $this->setupSlug;
+            $this->cancelInstallSetup();
+            $this->startInstall($slug, $manager, $serverManager, $options);
+        } catch (\InvalidArgumentException $e) {
+            $this->dispatch('notify', type: 'danger', message: $e->getMessage());
+        }
+    }
+
+    /**
+     * @param  array<string, string>  $options
+     */
+    private function startInstall(string $slug, ApplicationManager $manager, ServerManager $serverManager, array $options = []): void
+    {
+        try {
+            $server = $serverManager->getCurrentServer();
+
+            if ($server === null) {
+                throw new \InvalidArgumentException('Aucun serveur sélectionné.');
+            }
+
+            $manager->queueInstall($slug, $server, $options);
             $this->installingSlug = $slug;
             $this->installRunning = true;
             $this->installProgress = 3;
@@ -204,6 +273,7 @@ final class PluginMarketplace extends Component
             'filtered' => $filtered,
             'installedSlugs' => $installedSlugs,
             'categories' => $categories,
+            'setupPackage' => $this->setupSlug ? $catalog->find($this->setupSlug) : null,
         ]);
     }
 

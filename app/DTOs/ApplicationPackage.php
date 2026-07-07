@@ -95,4 +95,39 @@ final readonly class ApplicationPackage
 
         return $this->path.DIRECTORY_SEPARATOR.$script;
     }
+
+    /**
+     * Champs du formulaire affiché avant installation (manifest.install.options).
+     *
+     * @return list<array{name: string, label: string, type: string, default?: string, required?: bool, min?: int, help?: string, confirm?: string}>
+     */
+    public function installOptions(): array
+    {
+        $options = $this->manifest['install']['options'] ?? [];
+
+        return is_array($options) ? array_values($options) : [];
+    }
+
+    public function hasInstallOptions(): bool
+    {
+        return $this->installOptions() !== [];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function defaultInstallOptionValues(): array
+    {
+        $values = [];
+
+        foreach ($this->installOptions() as $field) {
+            $name = (string) ($field['name'] ?? '');
+            if ($name === '') {
+                continue;
+            }
+            $values[$name] = (string) ($field['default'] ?? '');
+        }
+
+        return $values;
+    }
 }

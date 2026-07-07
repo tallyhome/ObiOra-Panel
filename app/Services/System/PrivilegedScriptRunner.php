@@ -15,8 +15,9 @@ final class PrivilegedScriptRunner
 
     /**
      * @param  list<string>  $args
+     * @param  array<string, string>  $env
      */
-    public function run(string $script, array $args = [], int $timeout = 120): ProcessResult
+    public function run(string $script, array $args = [], int $timeout = 120, array $env = []): ProcessResult
     {
         // Exécuter le script directement (pas via `bash`) pour correspondre aux
         // règles sudoers : NOPASSWD: .../agent/scripts/*.sh
@@ -28,6 +29,15 @@ final class PrivilegedScriptRunner
 
         if ($this->needsSudo()) {
             $command = 'sudo -n '.$command;
+        }
+
+        if ($env !== []) {
+            $prefix = implode(' ', array_map(
+                fn (string $key, string $value): string => $key.'='.escapeshellarg($value),
+                array_keys($env),
+                array_values($env),
+            ));
+            $command = $prefix.' '.$command;
         }
 
         return $this->executor->run($command, ['timeout' => $timeout]);

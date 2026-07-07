@@ -9,11 +9,44 @@
         "install": "install.sh",
         "uninstall": "uninstall.sh"
     },
+    "install": {
+        "options": [
+            {
+                "name": "label",
+                "label": "Nom affiché dans le panel",
+                "type": "text",
+                "default": "File Browser",
+                "help": "Libellé visible dans le centre de contrôle. Modifiable plus tard."
+            },
+            {
+                "name": "username",
+                "label": "Identifiant administrateur",
+                "type": "text",
+                "default": "admin",
+                "required": true,
+                "min": 3
+            },
+            {
+                "name": "password",
+                "label": "Mot de passe",
+                "type": "password",
+                "required": true,
+                "min": 4
+            },
+            {
+                "name": "password_confirm",
+                "label": "Confirmer le mot de passe",
+                "type": "password",
+                "required": true,
+                "matches": "password"
+            }
+        ]
+    },
     "runtime": {
         "type": "docker",
         "container": "obiora-filebrowser",
         "port": 8080,
         "url": "http://{host}:8080",
-        "usage": "Gestionnaire de fichiers web sur le port 8080. Identifiants par défaut : admin / admin (changez le mot de passe après la première connexion). Accès à l'ensemble du serveur (/) — réservez cet accès aux administrateurs de confiance."
+        "usage": "Gestionnaire de fichiers web sur le port 8080. Identifiants par défaut : admin / admin. Accès à l'ensemble du serveur — réservez cet accès aux administrateurs de confiance."
     }
 }
