@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.8.8 - 2026-07-07
+
+Corrige l ecriture de la config Nginx dans conf.d sur RHEL/AlmaLinux (pas de sites-available).
+
 ## [1.8.8] - 2026-07-07
 
 ### Corrigé
@@ -148,11 +152,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 
 
 
+
 ```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
+
 
 
 
@@ -190,11 +196,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 
 
 
+
 ```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
+
 
 
 
