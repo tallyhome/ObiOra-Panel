@@ -89,19 +89,20 @@ final class DatabaseProvisioner
 
             $script = base_path('agent/scripts/mysql-grant-docker.sh');
             $result = $this->scripts->run($script, [$username, $password, $database]);
+            $output = trim($result->output.($result->errorOutput !== '' ? "\n".$result->errorOutput : ''));
 
-            if ($result->successful && preg_match('/OK:[^:]+:(.++)/', trim($result->output), $m)) {
+            if (preg_match('/OK:[^:]+:(.+)$/m', $output, $m)) {
                 return [
                     'success' => true,
                     'docker_host' => trim($m[1]),
-                    'output' => trim($result->output),
+                    'output' => $output,
                 ];
             }
 
             return [
                 'success' => false,
                 'docker_host' => '172.17.0.1',
-                'output' => trim($result->output.$result->errorOutput),
+                'output' => $output !== '' ? $output : 'Script mysql-grant-docker.sh sans sortie (code '.$result->exitCode.')',
             ];
         }
 

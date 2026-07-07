@@ -35,6 +35,9 @@ final class DatabaseShow extends Component
             $this->dispatch('notify', type: 'success', message: 'Accès Docker activé pour cette base.');
         } catch (\InvalidArgumentException $e) {
             $this->dispatch('notify', type: 'danger', message: $e->getMessage());
+        } catch (\Throwable $e) {
+            report($e);
+            $this->dispatch('notify', type: 'danger', message: 'Erreur interne : '.$e->getMessage());
         }
     }
 

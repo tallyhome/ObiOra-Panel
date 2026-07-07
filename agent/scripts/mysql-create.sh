@@ -27,17 +27,22 @@ if [[ -z "${DB_PASS}" ]]; then
     DB_PASS="$(generate_db_password)"
 fi
 
-docker_ip="$("${SCRIPT_DIR}/mysql-docker-enable.sh" 2>/dev/null | sed -n 's/^OK://p' | head -1)"
-docker_ip="${docker_ip:-172.17.0.1}"
+docker_ip="172.17.0.1"
+enable_out="$("${SCRIPT_DIR}/mysql-docker-enable.sh" 2>&1)" || true
+if [[ "${enable_out}" == OK:* ]]; then
+    docker_ip="${enable_out#OK:}"
+fi
+
+DB_PASS_SQL="${DB_PASS//\'/\'\'}"
 
 mysql_root_exec <<SQL
 CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
-CREATE USER IF NOT EXISTS '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASS}';
-CREATE USER IF NOT EXISTS '${DB_USER}'@'172.%' IDENTIFIED BY '${DB_PASS}';
-ALTER USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
-ALTER USER '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASS}';
-ALTER USER '${DB_USER}'@'172.%' IDENTIFIED BY '${DB_PASS}';
+CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS_SQL}';
+CREATE USER IF NOT EXISTS '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASS_SQL}';
+CREATE USER IF NOT EXISTS '${DB_USER}'@'172.%' IDENTIFIED BY '${DB_PASS_SQL}';
+ALTER USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS_SQL}';
+ALTER USER '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASS_SQL}';
+ALTER USER '${DB_USER}'@'172.%' IDENTIFIED BY '${DB_PASS_SQL}';
 GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
 GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'127.0.0.1';
 GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'172.%';

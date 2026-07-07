@@ -8,6 +8,7 @@ use App\Enums\DatabaseStatus;
 use App\Models\ManagedDatabase;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
@@ -111,10 +112,28 @@ final class DatabaseManager
 
     public function grantDockerAccess(ManagedDatabase $database): ManagedDatabase
     {
+        if ($database->status !== DatabaseStatus::Active) {
+            throw new InvalidArgumentException('Cette base n\'est pas active.');
+        }
+
+        if ($database->username === '') {
+            throw new InvalidArgumentException('Utilisateur MySQL manquant pour cette base.');
+        }
+
+        try {
+            $password = $database->password_plain;
+        } catch (DecryptException) {
+            throw new InvalidArgumentException('Impossible de lire le mot de passe de la base (clé APP_KEY ou données corrompues).');
+        }
+
+        if ($password === '' || $password === 'pending') {
+            throw new InvalidArgumentException('Mot de passe de la base indisponible.');
+        }
+
         $result = $this->provisioner->grantDockerAccess(
             $database->server,
             $database->username,
-            $database->password_plain,
+            $password,
             $database->name,
         );
 
