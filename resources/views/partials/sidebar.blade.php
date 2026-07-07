@@ -31,6 +31,9 @@
         </a>
         <a href="{{ route('settings.index') }}" class="nav-link text-white {{ request()->routeIs('settings.*') ? 'active bg-primary rounded' : '' }}">
             Licence & MAJ
+            @if(!empty($updateAvailable))
+                <span class="badge bg-warning text-dark ms-1">!</span>
+            @endif
         </a>
     </nav>
 

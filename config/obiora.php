@@ -6,7 +6,7 @@ return [
 
     'name' => env('OBIORA_NAME', 'ObiOra Panel'),
 
-    'version' => '1.9.1',
+    'version' => ltrim(trim((string) @file_get_contents(dirname(__DIR__).'/VERSION')), 'v') ?: '1.9.2',
 
     'installation_uuid' => env('OBIORA_INSTALLATION_UUID'),
 

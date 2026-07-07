@@ -1,0 +1,83 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Support;
+
+use Illuminate\Support\Facades\Process;
+
+final class InstalledVersion
+{
+    public function current(): string
+    {
+        $fromGit = $this->fromGitTag();
+
+        if ($fromGit !== null) {
+            return $fromGit;
+        }
+
+        $fromFile = $this->fromVersionFile();
+
+        if ($fromFile !== null) {
+            return $fromFile;
+        }
+
+        return ltrim((string) config('obiora.version', '0.0.0'), 'v');
+    }
+
+    /**
+     * Nombre de commits sur origin/main non présents en local (0 = à jour).
+     */
+    public function commitsBehindMain(): ?int
+    {
+        if (! is_dir(base_path('.git'))) {
+            return null;
+        }
+
+        $root = base_path();
+
+        Process::path($root)->run('git fetch origin main --quiet 2>/dev/null');
+
+        $result = Process::path($root)->run('git rev-list --count HEAD..origin/main 2>/dev/null');
+
+        if (! $result->successful()) {
+            return null;
+        }
+
+        $count = (int) trim($result->output());
+
+        return $count >= 0 ? $count : null;
+    }
+
+    private function fromGitTag(): ?string
+    {
+        if (! is_dir(base_path('.git'))) {
+            return null;
+        }
+
+        Process::path(base_path())->run('git fetch --tags --quiet 2>/dev/null');
+
+        $result = Process::path(base_path())->run('git describe --tags --abbrev=0 2>/dev/null');
+
+        if (! $result->successful()) {
+            return null;
+        }
+
+        $tag = ltrim(trim($result->output()), 'v');
+
+        return $tag !== '' ? $tag : null;
+    }
+
+    private function fromVersionFile(): ?string
+    {
+        $path = base_path('VERSION');
+
+        if (! is_readable($path)) {
+            return null;
+        }
+
+        $version = ltrim(trim((string) file_get_contents($path)), 'v');
+
+        return $version !== '' ? $version : null;
+    }
+}

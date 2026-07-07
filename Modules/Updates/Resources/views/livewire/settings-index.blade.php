@@ -76,7 +76,21 @@
                                 <span class="text-muted">Indisponible</span>
                             @endif
                         </dd>
+                        @if(($updateInfo['commits_behind'] ?? 0) > 0)
+                            <dt class="col-sm-5">Git main</dt>
+                            <dd class="col-sm-7"><span class="badge bg-warning text-dark">{{ $updateInfo['commits_behind'] }} commit(s) en retard</span></dd>
+                        @endif
                     </dl>
+
+                    @if($updateInfo['available'] ?? false)
+                        <div class="alert alert-warning py-2 small mb-3">
+                            Une mise à jour est disponible. Cliquez sur « Mettre à jour » pour appliquer.
+                        </div>
+                    @elseif(!empty($updateInfo['error']))
+                        <div class="alert alert-danger py-2 small mb-3">
+                            {{ $updateInfo['error'] }}
+                        </div>
+                    @endif
 
                     <div class="d-flex flex-wrap gap-2 mb-3">
                         <button wire:click="checkUpdates" class="btn btn-outline-primary btn-sm" wire:loading.attr="disabled">

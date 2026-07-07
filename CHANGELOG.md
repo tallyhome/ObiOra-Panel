@@ -12,6 +12,15 @@ Corrige la detection des mises a jour (VERSION, git, GitHub API) et affiche un b
 
 Phase 10: page Licence et MAJ, integration AdminLicence, correctifs installateur (404, permissions, SELinux).
 
+## [1.9.2] - 2026-07-07
+
+### Corrigé
+
+- **Mises à jour** : détection fiable via fichier `VERSION`, tag git et commits en retard sur `main`
+- **GitHub API** : en-têtes requis + repli sur la liste des releases si `/releases/latest` échoue
+- **UI** : bandeau « Mise à jour disponible », badge `!` dans la sidebar, messages d'erreur API visibles
+- **PanelUpdater** : `config:clear` après mise à jour, détection hors strict `/opt/`
+
 ## [1.9.1] - 2026-07-07
 
 ### Corrigé

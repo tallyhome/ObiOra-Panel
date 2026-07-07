@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Core;
 
-use App\Contracts\SystemExecutorInterface;
+use App\Support\InstalledVersion;
 use App\Models\UpdateHistory;
 use Illuminate\Support\Facades\File;
 
@@ -13,6 +13,7 @@ final class PanelUpdater
     public function __construct(
         private readonly SystemExecutorInterface $executor,
         private readonly UpdateManager $updateManager,
+        private readonly InstalledVersion $installedVersion,
     ) {}
 
     /**
@@ -28,17 +29,17 @@ final class PanelUpdater
             ];
         }
 
-        $check = $this->updateManager->checkForUpdates();
+        $check = $this->updateManager->checkForUpdates(fresh: true);
 
         if (! ($check['available'] ?? false)) {
             return [
                 'success' => false,
-                'message' => 'Aucune mise à jour disponible.',
+                'message' => $check['error'] ?? 'Aucune mise à jour disponible.',
                 'output' => '',
             ];
         }
 
-        $fromVersion = (string) config('obiora.version');
+        $fromVersion = $this->installedVersion->current();
         $toVersion = (string) ($check['latest'] ?? $fromVersion);
         $panelRoot = base_path();
 
@@ -50,10 +51,11 @@ final class PanelUpdater
         ]);
 
         $commands = [
-            "cd {$panelRoot} && git fetch origin main",
+            "cd {$panelRoot} && git fetch origin main --tags",
             "cd {$panelRoot} && git checkout main && git pull --ff-only origin main",
             "cd {$panelRoot} && sudo -u obiora env PATH=/usr/local/bin:/usr/bin:/bin composer install --no-dev --optimize-autoloader --no-interaction",
             "cd {$panelRoot} && sudo -u obiora php artisan migrate --force",
+            "cd {$panelRoot} && sudo -u obiora php artisan config:clear",
             "cd {$panelRoot} && sudo -u obiora php artisan optimize",
         ];
 
@@ -100,7 +102,6 @@ final class PanelUpdater
         $panelRoot = base_path();
 
         return File::isDirectory($panelRoot.'/.git')
-            && is_writable($panelRoot)
-            && str_starts_with($panelRoot, '/opt/');
+            && is_writable($panelRoot);
     }
 }

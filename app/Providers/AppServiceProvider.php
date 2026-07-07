@@ -8,7 +8,9 @@ use App\Contracts\LicenseValidatorInterface;
 use App\Contracts\SystemExecutorInterface;
 use App\Services\Core\LicenseManager;
 use App\Services\Core\ServerManager;
+use App\Services\Core\UpdateManager;
 use App\Services\System\LocalExecutor;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -22,6 +24,15 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        View::composer('partials.sidebar', function ($view): void {
+            $updateAvailable = false;
+
+            if (auth()->check()) {
+                $check = $this->app->make(UpdateManager::class)->checkForUpdates();
+                $updateAvailable = (bool) ($check['available'] ?? false);
+            }
+
+            $view->with('updateAvailable', $updateAvailable);
+        });
     }
 }
