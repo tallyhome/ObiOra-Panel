@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-lidarr",
+        "port": 8686,
+        "url": "http://{host}:8686",
+        "usage": "Gestion et téléchargement de musique."
     }
 }

@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-calibreweb",
+        "port": 8083,
+        "url": "http://{host}:8083",
+        "usage": "Interface web pour bibliothèques Calibre."
     }
 }

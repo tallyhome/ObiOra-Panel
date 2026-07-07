@@ -1,12 +1,19 @@
 {
     "slug": "bazarr",
     "name": "Bazarr",
-    "description": "Gestion des sous-titres pour Sonarr\/Radarr.",
+    "description": "Gestion des sous-titres pour Sonarr/Radarr.",
     "version": "1.0.0",
     "category": "media",
     "source": "swizzin-catalog",
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-bazarr",
+        "port": 6767,
+        "url": "http://{host}:6767",
+        "usage": "Gestion des sous-titres pour Sonarr/Radarr."
     }
 }

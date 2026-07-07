@@ -1,18 +1,18 @@
 {
-  "slug": "rutorrent",
-  "name": "ruTorrent",
-  "description": "Interface web pour rTorrent.",
-  "version": "1.0.0",
-  "category": "download",
-  "scripts": {
-    "install": "install.sh",
-    "uninstall": "uninstall.sh"
-  },
-  "runtime": {
-    "type": "docker",
-    "container": "obiora-rutorrent",
-    "port": 80,
-    "url": "http://{host}",
-    "usage": "Interface ruTorrent accessible sur le port 80 (HTTP)."
-  }
+    "slug": "rutorrent",
+    "name": "ruTorrent",
+    "description": "Interface web pour rTorrent.",
+    "version": "1.0.0",
+    "category": "download",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-rutorrent",
+        "port": 80,
+        "url": "http://{host}:80",
+        "usage": "Interface web pour rTorrent."
+    }
 }

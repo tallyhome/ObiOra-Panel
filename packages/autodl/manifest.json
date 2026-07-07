@@ -8,5 +8,10 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "systemd",
+        "service": "autodl-irssi",
+        "usage": "Plugin auto-download IRC pour rTorrent."
     }
 }

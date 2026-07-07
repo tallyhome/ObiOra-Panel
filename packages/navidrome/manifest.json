@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-navidrome",
+        "port": 4533,
+        "url": "http://{host}:4533",
+        "usage": "Serveur musical léger compatible Subsonic."
     }
 }

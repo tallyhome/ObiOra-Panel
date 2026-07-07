@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-mylar",
+        "port": 8090,
+        "url": "http://{host}:8090",
+        "usage": "Gestionnaire de bandes dessinées."
     }
 }

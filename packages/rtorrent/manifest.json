@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-rtorrent",
+        "port": 80,
+        "url": "http://{host}:80",
+        "usage": "Client BitTorrent en ligne de commande."
     }
 }

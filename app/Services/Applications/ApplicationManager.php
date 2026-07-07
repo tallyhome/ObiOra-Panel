@@ -152,7 +152,7 @@ final class ApplicationManager
             throw new InvalidArgumentException("« {$package->name()} » est déjà installé sur ce serveur.");
         }
 
-        if ($package->runtimeType() === 'docker') {
+        if ($package->effectiveRuntimeType() === 'docker') {
             $this->assertDockerAvailable($server);
         }
 
@@ -329,17 +329,21 @@ final class ApplicationManager
                 return ['success' => true, 'output' => "OK:{$action} (dev stub)"];
             }
 
-            if ($package->runtimeType() === 'docker') {
+            $runtimeType = $package->effectiveRuntimeType();
+
+            if ($runtimeType === 'docker') {
                 $result = $this->scripts->run(
                     base_path('agent/scripts/docker-action.sh'),
-                    [$package->containerName(), $action],
+                    [$package->effectiveContainerName(), $action],
                 );
-            } else {
-                $service = $package->systemdService() ?? $application->slug;
+            } elseif ($runtimeType === 'systemd') {
+                $service = $package->effectiveSystemdService() ?? $application->slug;
                 $result = $this->scripts->run(
                     base_path('agent/scripts/systemctl-action.sh'),
                     [$action, $service],
                 );
+            } else {
+                return ['success' => false, 'output' => 'Cette application ne supporte pas start/stop/restart.'];
             }
 
             return [
@@ -365,10 +369,12 @@ final class ApplicationManager
             return 'unknown';
         }
 
-        if ($package->runtimeType() === 'docker') {
+        $runtimeType = $package->effectiveRuntimeType();
+
+        if ($runtimeType === 'docker') {
             $result = $this->scripts->run(
                 base_path('agent/scripts/docker-status.sh'),
-                [$package->containerName()],
+                [$package->effectiveContainerName()],
             );
             $output = trim($result->output);
 
@@ -385,7 +391,11 @@ final class ApplicationManager
             return 'unknown';
         }
 
-        $service = $package->systemdService() ?? $application->slug;
+        if ($runtimeType !== 'systemd') {
+            return 'installed';
+        }
+
+        $service = $package->effectiveSystemdService() ?? $application->slug;
         $result = $this->scripts->run(
             base_path('agent/scripts/systemctl-action.sh'),
             ['is-active', $service],
@@ -393,7 +403,15 @@ final class ApplicationManager
 
         $output = trim($result->output.$result->errorOutput);
 
-        return $output === 'active' ? 'running' : 'stopped';
+        if (preg_match('/\bactive\b/', $output)) {
+            return 'running';
+        }
+
+        if (preg_match('/\b(inactive|failed|dead)\b/', $output)) {
+            return 'stopped';
+        }
+
+        return 'unknown';
     }
 
     public function appLogs(InstalledApplication $application, int $lines = 100): string
@@ -420,16 +438,22 @@ final class ApplicationManager
             return $info."\n\n".($metadata['install_output'] ?? 'Aucun log disponible.');
         }
 
-        if ($package->runtimeType() === 'docker') {
+        $runtimeType = $package->effectiveRuntimeType();
+
+        if ($runtimeType === 'docker') {
             $result = $this->scripts->run(
                 base_path('agent/scripts/docker-logs.sh'),
-                [$package->containerName(), (string) $lines],
+                [$package->effectiveContainerName(), (string) $lines],
             );
 
             return trim($result->output.$result->errorOutput) ?: 'Aucun log.';
         }
 
-        $service = $package->systemdService() ?? $application->slug;
+        if ($runtimeType !== 'systemd') {
+            return trim((string) ($metadata['install_output'] ?? '')) ?: 'Aucun log runtime pour cette application.';
+        }
+
+        $service = $package->effectiveSystemdService() ?? $application->slug;
         $result = $this->scripts->run(
             base_path('agent/scripts/systemctl-logs.sh'),
             [$service, (string) $lines],
@@ -444,13 +468,18 @@ final class ApplicationManager
     public function appInfo(InstalledApplication $application): array
     {
         $package = $this->catalog->find($application->slug);
+
+        if ($package !== null) {
+            $this->syncRuntimeMetadata($application, $package);
+            $application->refresh();
+        }
+
         $metadata = $application->metadata ?? [];
         $host = $this->accessHost->resolve($application->server);
-
-        $runtimeType = $package?->runtimeType() ?? $metadata['runtime_type'] ?? 'docker';
+        $runtimeType = $package?->effectiveRuntimeType() ?? $metadata['runtime_type'] ?? 'docker';
         $runtimeTarget = $runtimeType === 'docker'
-            ? ($metadata['container'] ?? $package?->containerName())
-            : ($metadata['service'] ?? $package?->systemdService() ?? $application->slug);
+            ? ($package?->effectiveContainerName() ?? $metadata['container'] ?? 'obiora-'.$application->slug)
+            : ($package?->effectiveSystemdService() ?? $metadata['service'] ?? $application->slug);
 
         return [
             'name' => $application->name,
@@ -558,9 +587,9 @@ final class ApplicationManager
         }
 
         $metadata = [
-            'runtime_type' => $package->runtimeType(),
-            'container' => $package->runtimeType() === 'docker' ? $package->containerName() : null,
-            'service' => $package->systemdService(),
+            'runtime_type' => $package->effectiveRuntimeType(),
+            'container' => $package->effectiveRuntimeType() === 'docker' ? $package->effectiveContainerName() : null,
+            'service' => $package->effectiveSystemdService(),
             'port' => $port,
             'url' => $url,
             'usage' => $usage,
@@ -655,6 +684,37 @@ final class ApplicationManager
         $options['db_host'] = $result['docker_host'];
 
         return $options;
+    }
+
+    private function syncRuntimeMetadata(InstalledApplication $application, ApplicationPackage $package): void
+    {
+        $host = $this->accessHost->resolve($application->server);
+        $runtimeType = $package->effectiveRuntimeType();
+        $resolved = array_filter([
+            'runtime_type' => $runtimeType,
+            'service' => $runtimeType === 'systemd' ? $package->effectiveSystemdService() : null,
+            'container' => $runtimeType === 'docker' ? $package->effectiveContainerName() : null,
+            'port' => $package->port(),
+            'url' => $package->accessUrl($host),
+        ], static fn ($value): bool => $value !== null && $value !== '');
+
+        $metadata = $application->metadata ?? [];
+        $changed = false;
+
+        foreach ($resolved as $key => $value) {
+            if (($metadata[$key] ?? null) !== $value) {
+                $changed = true;
+                break;
+            }
+        }
+
+        if (! $changed) {
+            return;
+        }
+
+        $application->update([
+            'metadata' => array_merge($metadata, $resolved),
+        ]);
     }
 
     private function isLocal(Server $server): bool

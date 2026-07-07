@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-couchpotato",
+        "port": 5050,
+        "url": "http://{host}:5050",
+        "usage": "Gestionnaire de films (legacy)."
     }
 }

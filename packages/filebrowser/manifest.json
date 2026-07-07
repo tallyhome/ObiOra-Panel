@@ -39,8 +39,8 @@
     "runtime": {
         "type": "docker",
         "container": "obiora-filebrowser",
-        "port": 8082,
-        "url": "http://{host}:8082",
-        "usage": "Gestionnaire de fichiers web sur le port 8082 (évite le conflit avec qBittorrent sur 8080). Changez le mot de passe depuis les paramètres File Browser si besoin. Accès à l'ensemble du serveur — réservez cet accès aux administrateurs de confiance."
+        "port": 8080,
+        "url": "http://{host}:8080",
+        "usage": "Gestionnaire de fichiers web."
     }
 }

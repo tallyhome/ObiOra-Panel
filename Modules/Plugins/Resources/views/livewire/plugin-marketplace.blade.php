@@ -125,7 +125,7 @@
                             <dd>{{ $appInfo['runtime_status'] ?? '—' }}</dd>
                             <dt class="text-muted">Type</dt>
                             <dd>{{ $appInfo['runtime_type'] ?? '—' }}</dd>
-                            <dt class="text-muted">Conteneur / service</dt>
+                            <dt class="text-muted">{{ ($appInfo['runtime_type'] ?? '') === 'docker' ? 'Conteneur' : 'Service' }}</dt>
                             <dd class="font-monospace">{{ $appInfo['container'] ?? '—' }}</dd>
                             <dt class="text-muted">Port</dt>
                             <dd>{{ $appInfo['port'] ?? '—' }}</dd>

@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-prowlarr",
+        "port": 9696,
+        "url": "http://{host}:9696",
+        "usage": "Gestionnaire d'indexeurs pour *arr."
     }
 }

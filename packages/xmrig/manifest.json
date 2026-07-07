@@ -1,12 +1,19 @@
 {
     "slug": "xmrig",
     "name": "XMRig",
-    "description": "Mineur Monero (CPU\/GPU) — usage à vos risques.",
+    "description": "Mineur Monero (CPU/GPU) — usage à vos risques.",
     "version": "1.0.0",
     "category": "tools",
     "source": "swizzin-catalog",
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-xmrig",
+        "port": 8080,
+        "url": "http://{host}:8080",
+        "usage": "Mineur Monero (CPU/GPU) — usage à vos risques."
     }
 }

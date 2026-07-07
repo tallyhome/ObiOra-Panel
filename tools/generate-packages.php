@@ -55,6 +55,11 @@ foreach ($apps as $app) {
         ],
     ];
 
+    $runtime = buildGeneratedRuntime($app);
+    if ($runtime !== null) {
+        $manifest['runtime'] = $runtime;
+    }
+
     file_put_contents(
         $dir.'/manifest.json',
         json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)."\n"
@@ -375,4 +380,35 @@ function stubUninstallScript(string $slug): string
 #!/usr/bin/env bash
 echo "OK:{$slug} removed"
 BASH;
+}
+
+/**
+ * @param  array<string, mixed>  $app
+ * @return array<string, mixed>|null
+ */
+function buildGeneratedRuntime(array $app): ?array
+{
+    $slug = (string) $app['slug'];
+    $type = (string) ($app['type'] ?? 'docker');
+
+    return match ($type) {
+        'docker' => [
+            'type' => 'docker',
+            'container' => 'obiora-'.$slug,
+            'port' => (int) $app['port'],
+            'url' => 'http://{host}:'.(int) $app['port'],
+            'usage' => (string) $app['description'],
+        ],
+        'apt' => [
+            'type' => 'systemd',
+            'service' => (string) ($app['package'] ?? $slug),
+            'usage' => (string) $app['description'],
+        ],
+        'script' => [
+            'type' => 'systemd',
+            'service' => (string) ($app['service'] ?? $slug),
+            'usage' => (string) $app['description'],
+        ],
+        default => null,
+    };
 }

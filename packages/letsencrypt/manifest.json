@@ -8,5 +8,9 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "binary",
+        "usage": "Certificats SSL — utilisez le module Sites ObiOra."
     }
 }

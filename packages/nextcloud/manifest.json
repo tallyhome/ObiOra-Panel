@@ -50,8 +50,8 @@
     "runtime": {
         "type": "docker",
         "container": "obiora-nextcloud",
-        "port": 8443,
-        "url": "https://{host}:8443",
-        "usage": "Une base MySQL est créée automatiquement à l'installation. Lors de l'assistant Nextcloud, utilisez host.docker.internal comme hôte de base de données (jamais localhost). Les identifiants BDD sont affichés dans les informations de l'application après installation."
+        "port": 443,
+        "url": "https://{host}:443",
+        "usage": "Suite bureautique et cloud privé."
     }
 }

@@ -1,12 +1,19 @@
 {
     "slug": "ombi",
     "name": "Ombi",
-    "description": "Demandes de médias pour Plex\/Emby\/Jellyfin.",
+    "description": "Demandes de médias pour Plex/Emby/Jellyfin.",
     "version": "1.0.0",
     "category": "media",
     "source": "swizzin-catalog",
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-ombi",
+        "port": 3579,
+        "url": "http://{host}:3579",
+        "usage": "Demandes de médias pour Plex/Emby/Jellyfin."
     }
 }

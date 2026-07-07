@@ -24,6 +24,12 @@ __pycache__/
 Homestead.json
 Homestead.yaml
 Thumbs.db
-/.cursor/rules/obiora_doctor.md
-/ObiOra-Doctor/
+/ObiOra-Doctor/.tmp-reports/
+/ObiOra-Doctor/cache/*
+!/ObiOra-Doctor/cache/.gitkeep
+/ObiOra-Doctor/logs/*
+!/ObiOra-Doctor/logs/.gitkeep
+/ObiOra-Doctor/reports/*
+!/ObiOra-Doctor/reports/.gitkeep
+/ObiOra-Doctor/config/web.token
 /obiora-report-*/

@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-calibre",
+        "port": 8080,
+        "url": "http://{host}:8080",
+        "usage": "Gestion d'ebooks et bibliothèque."
     }
 }

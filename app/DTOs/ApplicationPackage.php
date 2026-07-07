@@ -56,9 +56,67 @@ final readonly class ApplicationPackage
         return (string) ($this->manifest['runtime']['type'] ?? 'docker');
     }
 
+    public function hasExplicitRuntime(): bool
+    {
+        return isset($this->manifest['runtime']['type']);
+    }
+
+    public function effectiveRuntimeType(): string
+    {
+        if ($this->hasExplicitRuntime()) {
+            return $this->runtimeType();
+        }
+
+        $script = @file_get_contents($this->installScript());
+
+        if (! is_string($script)) {
+            return 'docker';
+        }
+
+        if (str_contains($script, 'obiora_docker_install') || preg_match('/\bdocker\s+run\b/', $script)) {
+            return 'docker';
+        }
+
+        if (preg_match('/\bsystemctl\s+(?:enable|start|restart)\b/', $script)) {
+            return 'systemd';
+        }
+
+        return 'binary';
+    }
+
+    public function effectiveSystemdService(): ?string
+    {
+        $explicit = $this->systemdService();
+
+        if ($explicit !== null) {
+            return $explicit;
+        }
+
+        if ($this->effectiveRuntimeType() !== 'systemd') {
+            return null;
+        }
+
+        $script = @file_get_contents($this->installScript());
+
+        if (is_string($script) && preg_match('/\bsystemctl\s+(?:enable|start|restart)\s+([a-zA-Z0-9@._-]+)/', $script, $matches)) {
+            return $matches[1];
+        }
+
+        return $this->slug;
+    }
+
     public function containerName(): string
     {
         return (string) ($this->manifest['runtime']['container'] ?? 'obiora-'.$this->slug);
+    }
+
+    public function effectiveContainerName(): string
+    {
+        if (isset($this->manifest['runtime']['container'])) {
+            return $this->containerName();
+        }
+
+        return 'obiora-'.$this->slug;
     }
 
     public function port(): ?int

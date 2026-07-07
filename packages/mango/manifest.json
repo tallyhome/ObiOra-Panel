@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-mango",
+        "port": 25600,
+        "url": "http://{host}:25600",
+        "usage": "Lecteur de mangas self-hosted."
     }
 }

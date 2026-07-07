@@ -14,6 +14,6 @@
         "container": "obiora-deluge",
         "port": 8112,
         "url": "http://{host}:8112",
-        "usage": "Interface web Deluge sur le port 8112. Mot de passe affiché dans les logs du conteneur au premier démarrage."
+        "usage": "Client BitTorrent avec interface web."
     }
 }

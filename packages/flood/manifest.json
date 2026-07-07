@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-flood",
+        "port": 3000,
+        "url": "http://{host}:3000",
+        "usage": "Interface web pour rTorrent."
     }
 }

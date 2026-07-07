@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-librespeed",
+        "port": 80,
+        "url": "http://{host}:80",
+        "usage": "Test de débit réseau self-hosted."
     }
 }

@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-qui",
+        "port": 7476,
+        "url": "http://{host}:7476",
+        "usage": "Interface web pour qBittorrent."
     }
 }

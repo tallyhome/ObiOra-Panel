@@ -1,0 +1,47 @@
+{
+    "slug": "pure-ftpd",
+    "name": "Pure-FTPd",
+    "description": "Serveur FTP léger avec utilisateurs virtuels.",
+    "version": "1.0.0",
+    "category": "system",
+    "source": "obiora",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    },
+    "install": {
+        "options": [
+            {
+                "name": "label",
+                "label": "Nom affiché dans le panel",
+                "type": "text",
+                "default": "Pure-FTPd",
+                "help": "Libellé visible dans le centre de contrôle."
+            },
+            {
+                "name": "username",
+                "label": "Identifiant FTP",
+                "type": "text",
+                "default": "obioraftp",
+                "required": true,
+                "min": 3,
+                "help": "Utilisateur virtuel Pure-FTPd."
+            },
+            {
+                "name": "pass",
+                "label": "Mot de passe FTP",
+                "type": "password",
+                "required": true,
+                "min": 1,
+                "help": "Mot de passe de connexion FTP."
+            }
+        ]
+    },
+    "runtime": {
+        "type": "systemd",
+        "service": "pure-ftpd",
+        "port": 21,
+        "url": "ftp://{host}:21",
+        "usage": "Serveur FTP Pure-FTPd sur le port 21. Identifiants définis à l'installation. Répertoire : /srv/ftp/<identifiant>/files. Ports passifs : 40100-40200/tcp."
+    }
+}

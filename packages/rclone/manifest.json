@@ -8,5 +8,9 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "binary",
+        "usage": "Synchronisation cloud (Google Drive, S3…)."
     }
 }

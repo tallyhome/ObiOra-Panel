@@ -8,5 +8,10 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "systemd",
+        "service": "csf",
+        "usage": "ConfigServer Security & Firewall."
     }
 }

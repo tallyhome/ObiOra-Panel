@@ -1,12 +1,19 @@
 {
     "slug": "lounge",
     "name": "Subsonic Lounge",
-    "description": "Interface web pour Subsonic\/Airsonic.",
+    "description": "Interface web pour Subsonic/Airsonic.",
     "version": "1.0.0",
     "category": "media",
     "source": "swizzin-catalog",
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-lounge",
+        "port": 4041,
+        "url": "http://{host}:4041",
+        "usage": "Interface web pour Subsonic/Airsonic."
     }
 }

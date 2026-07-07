@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-jfago",
+        "port": 8056,
+        "url": "http://{host}:8056",
+        "usage": "Gestion des utilisateurs Jellyfin."
     }
 }

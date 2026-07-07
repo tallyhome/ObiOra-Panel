@@ -1,12 +1,19 @@
 {
     "slug": "quassel",
     "name": "Quassel",
-    "description": "Client\/serveur IRC.",
+    "description": "Client/serveur IRC.",
     "version": "1.0.0",
     "category": "tools",
     "source": "swizzin-catalog",
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-quassel",
+        "port": 4242,
+        "url": "http://{host}:4242",
+        "usage": "Client/serveur IRC."
     }
 }

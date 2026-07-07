@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-subsonic",
+        "port": 4040,
+        "url": "http://{host}:4040",
+        "usage": "Serveur de streaming musical."
     }
 }

@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-nzbget",
+        "port": 6789,
+        "url": "http://{host}:6789",
+        "usage": "Client Usenet léger."
     }
 }

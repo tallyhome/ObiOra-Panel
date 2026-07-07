@@ -1,12 +1,19 @@
 {
     "slug": "autobrr",
     "name": "Autobrr",
-    "description": "Automatisation IRC\/RSS pour torrents.",
+    "description": "Automatisation IRC/RSS pour torrents.",
     "version": "1.0.0",
     "category": "download",
     "source": "swizzin-catalog",
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-autobrr",
+        "port": 7474,
+        "url": "http://{host}:7474",
+        "usage": "Automatisation IRC/RSS pour torrents."
     }
 }

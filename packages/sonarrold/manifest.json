@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-sonarrold",
+        "port": 8989,
+        "url": "http://{host}:8989",
+        "usage": "Ancienne version Sonarr v2 (legacy)."
     }
 }

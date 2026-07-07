@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-headphones",
+        "port": 8181,
+        "url": "http://{host}:8181",
+        "usage": "Gestionnaire de musique automatique (legacy)."
     }
 }

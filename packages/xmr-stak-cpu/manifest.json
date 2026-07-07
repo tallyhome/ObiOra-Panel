@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-xmr-stak-cpu",
+        "port": 8082,
+        "url": "http://{host}:8082",
+        "usage": "Mineur CPU (legacy) — usage à vos risques."
     }
 }

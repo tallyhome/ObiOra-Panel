@@ -6,9 +6,10 @@ if [[ "${EUID}" -ne 0 ]]; then
 fi
 
 if [[ -f /etc/webmin/miniserv.conf ]]; then
+    systemctl enable --now webmin 2>/dev/null || systemctl restart webmin 2>/dev/null || true
     version="$(webmin --version 2>/dev/null | awk '{print $2}' || true)"
     [[ -z "${version}" && -f /usr/share/webmin/version ]] && version="$(tr -d ' \n\r' < /usr/share/webmin/version)"
-    echo "OK:webmin (déjà installé${version:+ version ${version}})"
+    echo "OK:webmin (déjà installé${version:+ version ${version}}) (port 10000)"
     exit 0
 fi
 

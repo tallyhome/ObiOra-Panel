@@ -79,6 +79,7 @@ return [
     ['slug' => 'quota', 'name' => 'Quotas disque', 'category' => 'system', 'description' => 'Quotas utilisateurs sur le système de fichiers.', 'type' => 'apt', 'package' => 'quota'],
     ['slug' => 'shellinabox', 'name' => 'Shell In A Box', 'category' => 'system', 'description' => 'Terminal web via HTTPS.', 'type' => 'apt', 'package' => 'shellinabox'],
     ['slug' => 'vsftpd', 'name' => 'vsftpd', 'category' => 'system', 'description' => 'Serveur FTP sécurisé.', 'type' => 'apt', 'package' => 'vsftpd'],
+    ['slug' => 'pure-ftpd', 'name' => 'Pure-FTPd', 'category' => 'system', 'description' => 'Serveur FTP léger avec utilisateurs virtuels.', 'type' => 'native'],
     ['slug' => 'webmin', 'name' => 'Webmin', 'category' => 'system', 'description' => 'Administration système via navigateur.', 'type' => 'script', 'service' => 'webmin'],
     ['slug' => 'wireguard', 'name' => 'WireGuard', 'category' => 'network', 'description' => 'VPN moderne et performant.', 'type' => 'docker', 'image' => 'lscr.io/linuxserver/wireguard:latest', 'port' => 51820],
     ['slug' => 'x2go', 'name' => 'X2Go', 'category' => 'system', 'description' => 'Bureau à distance Linux.', 'type' => 'apt', 'package' => 'x2goserver'],
