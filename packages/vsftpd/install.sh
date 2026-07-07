@@ -43,7 +43,14 @@ chown root:root "${ftp_root}"
 chmod 755 "${ftp_root}"
 chown -R "${ftp_user}:${ftp_user}" "${ftp_root}/files"
 
-cat > /etc/vsftpd/vsftpd.conf <<'EOF'
+if [[ -f /etc/vsftpd.conf ]]; then
+    vsftpd_conf="/etc/vsftpd.conf"
+else
+    mkdir -p /etc/vsftpd
+    vsftpd_conf="/etc/vsftpd/vsftpd.conf"
+fi
+
+cat > "${vsftpd_conf}" <<'EOF'
 listen=YES
 listen_ipv6=NO
 anonymous_enable=NO

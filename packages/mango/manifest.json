@@ -1,7 +1,7 @@
 {
     "slug": "mango",
-    "name": "Mango",
-    "description": "Lecteur de mangas self-hosted.",
+    "name": "Komga",
+    "description": "Serveur de bandes dessinées et mangas (image gotson/komga).",
     "version": "1.0.0",
     "category": "cloud",
     "source": "swizzin-catalog",
@@ -14,6 +14,6 @@
         "container": "obiora-mango",
         "port": 25600,
         "url": "http://{host}:25600",
-        "usage": "Lecteur de mangas self-hosted."
+        "usage": "Komga (gotson/komga) sur le port 25600. Interface web de lecture BD/manga."
     }
 }

@@ -331,18 +331,22 @@
                                         </div>
                                     @elseif ($hasFailed)
                                         <div class="d-flex gap-1">
-                                            <button
-                                                wire:click="install('{{ $package->slug }}')"
-                                                class="btn btn-primary btn-sm"
-                                                wire:loading.attr="disabled"
-                                                @if($installRunning) disabled @endif
-                                            >Réessayer</button>
+                                            @if ($package->isInstallable())
+                                                <button
+                                                    wire:click="install('{{ $package->slug }}')"
+                                                    class="btn btn-primary btn-sm"
+                                                    wire:loading.attr="disabled"
+                                                    @if($installRunning) disabled @endif
+                                                >Réessayer</button>
+                                            @endif
                                             <button
                                                 type="button"
                                                 class="btn btn-outline-danger btn-sm py-0"
                                                 wire:click="showInstallLogModal('{{ $package->slug }}')"
                                             >Logs</button>
                                         </div>
+                                    @elseif (! $package->isInstallable())
+                                        <span class="badge text-bg-secondary" title="{{ $package->installNotice() }}">Indisponible</span>
                                     @else
                                         <button
                                             wire:click="install('{{ $package->slug }}')"

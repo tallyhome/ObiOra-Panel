@@ -9,8 +9,10 @@
         "uninstall": "uninstall.sh"
     },
     "runtime": {
-        "type": "docker",
-        "container": "obiora-netdata",
-        "usage": "Monitoring système en temps réel."
+        "type": "systemd",
+        "service": "netdata",
+        "port": 19999,
+        "url": "http://{host}:19999",
+        "usage": "Monitoring système en temps réel sur le port 19999. Service systemd netdata (kickstart officiel)."
     }
 }

@@ -10,8 +10,7 @@
         "uninstall": "uninstall.sh"
     },
     "runtime": {
-        "type": "systemd",
-        "service": "quota",
-        "usage": "Quotas utilisateurs sur le système de fichiers."
+        "type": "binary",
+        "usage": "Quotas disque activés sur le système de fichiers. Pas de daemon dédié — utilisez quotacheck/quotaon selon votre FS."
     }
 }

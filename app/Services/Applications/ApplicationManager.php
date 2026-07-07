@@ -148,6 +148,12 @@ final class ApplicationManager
             throw new InvalidArgumentException("Application « {$slug} » introuvable dans le catalogue.");
         }
 
+        if (! $package->isInstallable()) {
+            throw new InvalidArgumentException($package->installNotice() !== ''
+                ? $package->installNotice()
+                : "« {$package->name()} » n'est pas installable depuis le marketplace.");
+        }
+
         if ($this->isInstalled($slug, $server)) {
             throw new InvalidArgumentException("« {$package->name()} » est déjà installé sur ce serveur.");
         }

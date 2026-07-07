@@ -38,4 +38,18 @@ final class ApplicationPackageRuntimeTest extends TestCase
         $this->assertSame('docker', $package->effectiveRuntimeType());
         $this->assertSame('obiora-radarr', $package->effectiveContainerName());
     }
+
+    public function test_respects_installable_flag(): void
+    {
+        $manifest = json_decode(
+            (string) file_get_contents(base_path('packages/letsencrypt/manifest.json')),
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
+
+        $package = new ApplicationPackage('letsencrypt', base_path('packages/letsencrypt'), $manifest);
+
+        $this->assertFalse($package->isInstallable());
+    }
 }

@@ -5,6 +5,7 @@
     "version": "1.0.0",
     "category": "system",
     "source": "swizzin-catalog",
+    "installable": false,
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"

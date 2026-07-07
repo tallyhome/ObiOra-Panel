@@ -61,6 +61,16 @@ final readonly class ApplicationPackage
         return isset($this->manifest['runtime']['type']);
     }
 
+    public function isInstallable(): bool
+    {
+        return ($this->manifest['installable'] ?? true) !== false;
+    }
+
+    public function installNotice(): string
+    {
+        return (string) ($this->manifest['install_notice'] ?? $this->usageNotes());
+    }
+
     public function effectiveRuntimeType(): string
     {
         if ($this->hasExplicitRuntime()) {

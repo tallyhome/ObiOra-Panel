@@ -13,7 +13,6 @@
         "type": "docker",
         "container": "obiora-wireguard",
         "port": 51820,
-        "url": "http://{host}:51820",
-        "usage": "VPN moderne et performant."
+        "usage": "VPN WireGuard (UDP 51820). Configuration et clés dans /var/lib/obiora/wireguard/config."
     }
 }
