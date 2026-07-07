@@ -6,12 +6,14 @@ namespace App\Services\System;
 
 use App\Models\Server;
 use App\Services\Core\ServerManager;
+use App\Support\NetworkMetrics;
 use Illuminate\Support\Facades\Http;
 
 final class MetricsCollector
 {
     public function __construct(
         private readonly ServerManager $serverManager,
+        private readonly NetworkMetrics $networkMetrics,
     ) {}
 
     /**
@@ -70,6 +72,7 @@ final class MetricsCollector
                 'free' => $diskFree,
                 'percent' => $disk > 0 ? round((($disk - $diskFree) / $disk) * 100, 1) : 0,
             ],
+            'network' => $this->networkMetrics->snapshot($this->serverManager->getCurrentServer()),
             'uptime' => $this->getUptime(),
             'hostname' => gethostname() ?: 'localhost',
             'os' => php_uname('s').' '.php_uname('r'),
@@ -176,6 +179,7 @@ final class MetricsCollector
             'memory' => ['total' => 8_589_934_592, 'used' => 4_294_967_296, 'free' => 4_294_967_296, 'percent' => 50.0],
             'swap' => ['total' => 2_147_483_648, 'used' => 0, 'percent' => 0],
             'disk' => ['total' => 256_060_514_304, 'used' => 128_030_257_152, 'free' => 128_030_257_152, 'percent' => 50.0],
+            'network' => $this->networkMetrics->snapshot(),
             'uptime' => '0j 2h 15m',
             'hostname' => gethostname() ?: 'dev',
             'os' => PHP_OS_FAMILY.' (dev)',
@@ -192,6 +196,7 @@ final class MetricsCollector
             'memory' => ['total' => 0, 'used' => 0, 'free' => 0, 'percent' => 0],
             'swap' => ['total' => 0, 'used' => 0, 'percent' => 0],
             'disk' => ['total' => 0, 'used' => 0, 'free' => 0, 'percent' => 0],
+            'network' => $this->networkMetrics->emptySnapshot(),
             'uptime' => 'N/A',
             'hostname' => 'offline',
             'os' => 'N/A',

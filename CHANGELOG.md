@@ -42,6 +42,13 @@ Corrige la detection des mises a jour (VERSION, git, GitHub API) et affiche un b
 
 Phase 10: page Licence et MAJ, integration AdminLicence, correctifs installateur (404, permissions, SELinux).
 
+## [1.9.8] - 2026-07-07
+
+### Amélioré
+
+- **Dashboard** : graphique bande passante temps réel (poll 3s) au-dessus de la charge CPU
+- **Layout Swizzin** : colonne droite avec En un coup d'œil, RAM, Disque, puis Network Info (Interface, Span, historique journalier)
+
 ## [1.9.7] - 2026-07-07
 
 ### Corrigé

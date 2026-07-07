@@ -8,6 +8,7 @@ use App\Services\Core\ServerManager;
 use App\Services\System\MetricsCollector;
 use App\Services\System\ServiceManager;
 use App\Support\DashboardHealth;
+use App\Support\NetworkMetrics;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
@@ -27,6 +28,9 @@ final class DashboardIndex extends Component
 
     /** @var array<string, mixed> */
     public array $glance = [];
+
+    /** @var array<string, mixed> */
+    public array $network = [];
 
     public function mount(
         MetricsCollector $collector,
@@ -53,6 +57,16 @@ final class DashboardIndex extends Component
         $this->loadData($collector, $serverManager, $serviceManager);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function networkRates(NetworkMetrics $networkMetrics, ServerManager $serverManager): array
+    {
+        $this->network = $networkMetrics->snapshot($serverManager->getCurrentServer());
+
+        return $this->network;
+    }
+
     private function loadData(
         MetricsCollector $collector,
         ServerManager $serverManager,
@@ -62,6 +76,7 @@ final class DashboardIndex extends Component
         $this->serverName = $server?->name ?? 'Aucun serveur';
         $this->metrics = $collector->collect($server);
         $this->glance = DashboardHealth::glance($this->metrics);
+        $this->network = $this->metrics['network'] ?? [];
         $this->services = $this->filterDashboardServices($serviceManager->list($server));
     }
 

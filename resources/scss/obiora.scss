@@ -176,6 +176,51 @@ body {
     color: var(--obiora-text-muted);
 }
 
+// Network (Swizzin / QuickBox)
+.obiora-net-border {
+    border-color: var(--obiora-border) !important;
+}
+
+.obiora-net-down {
+    color: #3b82f6 !important;
+}
+
+.obiora-net-up {
+    color: var(--obiora-success) !important;
+}
+
+.obiora-net-legend {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-right: 4px;
+    vertical-align: middle;
+
+    &.down { background: #3b82f6; }
+    &.up { background: var(--obiora-success); }
+}
+
+.obiora-net-table {
+    font-size: 0.8rem;
+
+    th {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        letter-spacing: 0.04em;
+        color: var(--obiora-text-muted);
+        border: none !important;
+        padding-bottom: 0.35rem;
+    }
+
+    td {
+        border-color: var(--obiora-border) !important;
+        padding: 0.35rem 0;
+        vertical-align: middle;
+    }
+}
+
 // Tables on dark
 .obiora-table {
     color: var(--obiora-text);
