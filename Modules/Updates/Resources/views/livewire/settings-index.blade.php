@@ -79,6 +79,8 @@
                     <dl class="row small mb-3">
                         <dt class="col-sm-5">Version installée</dt>
                         <dd class="col-sm-7">v{{ $updateInfo['current'] ?? config('obiora.version') }}</dd>
+                        <dt class="col-sm-5">Canal</dt>
+                        <dd class="col-sm-7"><span class="badge bg-secondary">stable</span></dd>
                         <dt class="col-sm-5">Dernière release</dt>
                         <dd class="col-sm-7">
                             @if($updateInfo['latest'] ?? null)
