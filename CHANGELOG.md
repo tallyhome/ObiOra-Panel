@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.9.3 - 2026-07-07
+
+Dashboard refonte style Swizzin/QuickBox: theme sombre, widgets systeme, barres de progression, services cles, auto-refresh 30s.
+
 ## v1.9.2 - 2026-07-07
 
 Corrige la detection des mises a jour (VERSION, git, GitHub API) et affiche un bandeau + badge sidebar.
@@ -211,11 +215,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 
 
 
+
 ```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
+
 
 
 
@@ -261,11 +267,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 
 
 
+
 ```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
+
 
 
 
