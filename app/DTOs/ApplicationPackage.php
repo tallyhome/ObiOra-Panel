@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\DTOs;
 
+use App\Support\ApplicationIcon;
+
 final readonly class ApplicationPackage
 {
     /**
@@ -129,5 +131,15 @@ final readonly class ApplicationPackage
         }
 
         return $values;
+    }
+
+    public function iconUrl(): string
+    {
+        return app(ApplicationIcon::class)->url($this);
+    }
+
+    public function iconFallbackDataUri(): string
+    {
+        return app(ApplicationIcon::class)->fallbackDataUri($this);
     }
 }

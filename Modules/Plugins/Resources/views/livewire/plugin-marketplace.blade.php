@@ -67,8 +67,16 @@
                                     <span class="obiora-status-dot {{ $dotClass }}" title="{{ $runtime }}"></span>
                                 </td>
                                 <td>
-                                    <strong>{{ $row['name'] }}</strong>
-                                    <div class="small text-muted">v{{ $row['version'] }}</div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        @php $installedPackage = $catalog->find($app->slug); @endphp
+                                        @if ($installedPackage)
+                                            @include('plugins::components.marketplace-app-icon', ['package' => $installedPackage, 'size' => 32, 'class' => 'obiora-marketplace-icon-sm'])
+                                        @endif
+                                        <div>
+                                            <strong>{{ $row['name'] }}</strong>
+                                            <div class="small text-muted">v{{ $row['version'] }}</div>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td class="small">
                                     {{ $row['runtime_type'] ?? 'docker' }}
@@ -161,7 +169,10 @@
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content obiora-card border-secondary">
                     <div class="modal-header border-secondary">
-                        <h2 class="modal-title h5 mb-0">Paramètres d'installation — {{ $setupPackage->name() }}</h2>
+                        <div class="d-flex align-items-center gap-3">
+                            @include('plugins::components.marketplace-app-icon', ['package' => $setupPackage, 'size' => 40])
+                            <h2 class="modal-title h5 mb-0">Paramètres d'installation — {{ $setupPackage->name() }}</h2>
+                        </div>
                         <button type="button" class="btn-close btn-close-white" wire:click="cancelInstallSetup"></button>
                     </div>
                     <form wire:submit.prevent="confirmInstallSetup">
@@ -190,13 +201,31 @@
                                             @endif
                                         </label>
                                         @if ($isPassword)
-                                            <input
-                                                id="setup-{{ $name }}"
-                                                type="password"
-                                                class="form-control obiora-input"
-                                                wire:model="setupPasswords.{{ $setupPasswordIndex }}"
-                                                autocomplete="new-password"
-                                            >
+                                            @if ($setupPasswordIndex === 0)
+                                                <input
+                                                    id="setup-{{ $name }}"
+                                                    type="password"
+                                                    class="form-control obiora-input"
+                                                    wire:model="setupPassword0"
+                                                    autocomplete="new-password"
+                                                >
+                                            @elseif ($setupPasswordIndex === 1)
+                                                <input
+                                                    id="setup-{{ $name }}"
+                                                    type="password"
+                                                    class="form-control obiora-input"
+                                                    wire:model="setupPassword1"
+                                                    autocomplete="new-password"
+                                                >
+                                            @else
+                                                <input
+                                                    id="setup-{{ $name }}"
+                                                    type="password"
+                                                    class="form-control obiora-input"
+                                                    wire:model="setupPassword2"
+                                                    autocomplete="new-password"
+                                                >
+                                            @endif
                                         @else
                                             <input
                                                 id="setup-{{ $name }}"
@@ -248,30 +277,27 @@
                 </div>
             </div>
 
-            <div class="table-responsive">
-                <table class="table table-sm obiora-table mb-0">
-                    <thead>
-                        <tr>
-                            <th>Nom</th>
-                            <th>Description</th>
-                            <th>Catégorie</th>
-                            <th class="text-end">Disponibilité</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse ($filtered as $package)
-                            @php
-                                $isInstalled = in_array($package->slug, $installedSlugs, true);
-                                $isInstalling = $installRunning && $installingSlug === $package->slug;
-                            @endphp
-                            <tr>
-                                <td>
-                                    <strong>{{ $package->name() }}</strong>
-                                    <div class="small text-muted">v{{ $package->version() }}</div>
-                                </td>
-                                <td class="small text-muted">{{ \Illuminate\Support\Str::limit($package->description(), 80) }}</td>
-                                <td><span class="badge text-bg-light">{{ $categories[$package->category()] ?? $package->category() }}</span></td>
-                                <td class="text-end">
+            <div class="obiora-marketplace-grid">
+                <div class="row g-3">
+                    @forelse ($filtered as $package)
+                        @php
+                            $isInstalled = in_array($package->slug, $installedSlugs, true);
+                            $isInstalling = $installRunning && $installingSlug === $package->slug;
+                        @endphp
+                        <div class="col-md-6 col-xl-4" wire:key="marketplace-card-{{ $package->slug }}">
+                            <article class="obiora-marketplace-card h-100">
+                                <div class="obiora-marketplace-card-body">
+                                    @include('plugins::components.marketplace-app-icon', ['package' => $package])
+                                    <div class="min-w-0">
+                                        <h3 class="obiora-marketplace-title">{{ $package->name() }}</h3>
+                                        <p class="obiora-marketplace-desc">{{ $package->description() }}</p>
+                                    </div>
+                                </div>
+                                <div class="obiora-marketplace-footer">
+                                    <div class="d-flex flex-wrap align-items-center gap-2">
+                                        <span class="badge text-bg-light">{{ $categories[$package->category()] ?? $package->category() }}</span>
+                                        <span class="small text-muted">v{{ $package->version() }}</span>
+                                    </div>
                                     @if ($isInstalled)
                                         <span class="badge text-bg-success">Installé</span>
                                     @elseif ($isInstalling)
@@ -287,15 +313,15 @@
                                             Installer
                                         </button>
                                     @endif
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="4" class="text-center text-muted py-4">Aucune application dans le catalogue.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                                </div>
+                            </article>
+                        </div>
+                    @empty
+                        <div class="col-12">
+                            <p class="text-center text-muted py-4 mb-0">Aucune application dans le catalogue.</p>
+                        </div>
+                    @endforelse
+                </div>
             </div>
         </div>
     </div>
