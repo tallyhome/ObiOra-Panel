@@ -8,11 +8,38 @@
     "install": "install.sh",
     "uninstall": "uninstall.sh"
   },
+  "install": {
+    "options": [
+      {
+        "name": "label",
+        "label": "Nom affiché dans le panel",
+        "type": "text",
+        "default": "qBittorrent",
+        "help": "Libellé visible dans le centre de contrôle."
+      },
+      {
+        "name": "username",
+        "label": "Identifiant WebUI",
+        "type": "text",
+        "default": "admin",
+        "required": true,
+        "min": 3
+      },
+      {
+        "name": "pass",
+        "label": "Mot de passe WebUI",
+        "type": "password",
+        "required": true,
+        "min": 8,
+        "help": "Minimum 8 caractères. Sera appliqué à l'installation (pas de mot de passe temporaire dans les logs)."
+      }
+    ]
+  },
   "runtime": {
     "type": "docker",
     "container": "obiora-qbittorrent",
     "port": 8080,
     "url": "http://{host}:8080",
-    "usage": "Interface web sur le port 8080. Identifiants : admin / adminadmin (définis à l'installation). Port P2P : 6881. Si vous avez installé avant v1.9.45, consultez les logs Docker pour le mot de passe temporaire ou réinstallez."
+    "usage": "Interface web sur le port 8080. Identifiants définis lors de l'installation. Port P2P : 6881."
   }
 }

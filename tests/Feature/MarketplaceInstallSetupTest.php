@@ -27,7 +27,7 @@ final class MarketplaceInstallSetupTest extends TestCase
                 'slug' => 'filebrowser',
                 'label' => 'Mon File Browser',
                 'username' => 'admin',
-                'pass' => 'motdepasse123',
+                'pass' => 'motdepasse1234',
             ]);
 
         $response->assertRedirect(route('plugins.index'));

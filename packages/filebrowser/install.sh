@@ -37,6 +37,13 @@ docker run --rm \
     -v "${data_dir}/config:/config" \
     --entrypoint filebrowser \
     "${image}" \
+    -d /database/filebrowser.db config set --minimumPasswordLength 12
+
+docker run --rm \
+    -v "${data_dir}/database:/database" \
+    -v "${data_dir}/config:/config" \
+    --entrypoint filebrowser \
+    "${image}" \
     -d /database/filebrowser.db users add "${fb_user}" "${fb_pass}" --perm.admin
 
 if [[ ! -f "${db_file}" ]]; then

@@ -5,6 +5,7 @@
     $fallback = $package->iconFallbackDataUri();
 @endphp
 <img
+    wire:ignore
     src="{{ $iconUrl }}"
     alt=""
     width="{{ $size }}"

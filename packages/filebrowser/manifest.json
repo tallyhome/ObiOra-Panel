@@ -31,8 +31,8 @@
                 "label": "Mot de passe administrateur",
                 "type": "password",
                 "required": true,
-                "min": 4,
-                "help": "Saisissez un mot de passe d'au moins 4 caractères."
+                "min": 12,
+                "help": "Minimum 12 caractères (exigence File Browser 2.x)."
             }
         ]
     },
