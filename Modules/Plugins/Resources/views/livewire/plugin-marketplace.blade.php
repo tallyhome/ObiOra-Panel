@@ -164,36 +164,49 @@
                         <h2 class="modal-title h5 mb-0">Paramètres d'installation — {{ $setupPackage->name() }}</h2>
                         <button type="button" class="btn-close btn-close-white" wire:click="cancelInstallSetup"></button>
                     </div>
-                    <form wire:submit="confirmInstallSetup">
+                    <form wire:submit.prevent="confirmInstallSetup">
                         <div class="modal-body">
                             <p class="small text-muted mb-4">
                                 Configurez l'application avant l'installation. Les identifiants saisis seront utilisés pour créer le compte administrateur.
                             </p>
 
                             <div class="row g-3">
+                                @php $setupPasswordIndex = -1; @endphp
                                 @foreach ($setupPackage->installOptions() as $field)
                                     @php
                                         $name = $field['name'] ?? '';
                                         $type = $field['type'] ?? 'text';
                                         $inputType = $type === 'password' ? 'password' : 'text';
-                                        $wireModel = $type === 'password' ? "setupPasswords.{$name}" : "setupValues.{$name}";
+                                        $isPassword = $type === 'password';
+                                        if ($isPassword) {
+                                            $setupPasswordIndex++;
+                                        }
                                     @endphp
-                                    <div class="col-12">
+                                    <div class="col-12" wire:key="setup-field-{{ $setupSlug }}-{{ $name }}">
                                         <label class="form-label small mb-1" for="setup-{{ $name }}">
                                             {{ $field['label'] ?? $name }}
                                             @if ($field['required'] ?? false)
                                                 <span class="text-danger">*</span>
                                             @endif
                                         </label>
-                                        <input
-                                            id="setup-{{ $name }}"
-                                            type="{{ $inputType }}"
-                                            class="form-control obiora-input"
-                                            wire:model="{{ $wireModel }}"
-                                            wire:key="setup-field-{{ $setupSlug }}-{{ $name }}"
-                                            autocomplete="{{ $type === 'password' ? 'new-password' : 'off' }}"
-                                            @if(!empty($field['default']) && $type !== 'password') placeholder="{{ $field['default'] }}" @endif
-                                        >
+                                        @if ($isPassword)
+                                            <input
+                                                id="setup-{{ $name }}"
+                                                type="password"
+                                                class="form-control obiora-input"
+                                                wire:model="setupPasswords.{{ $setupPasswordIndex }}"
+                                                autocomplete="new-password"
+                                            >
+                                        @else
+                                            <input
+                                                id="setup-{{ $name }}"
+                                                type="text"
+                                                class="form-control obiora-input"
+                                                wire:model="setupValues.{{ $name }}"
+                                                autocomplete="off"
+                                                @if(!empty($field['default'])) placeholder="{{ $field['default'] }}" @endif
+                                            >
+                                        @endif
                                         @if (!empty($field['help']))
                                             <div class="form-text">{{ $field['help'] }}</div>
                                         @endif
