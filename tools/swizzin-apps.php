@@ -47,7 +47,7 @@ return [
     ['slug' => 'qui', 'name' => 'qui', 'category' => 'download', 'description' => 'Interface web pour qBittorrent.', 'type' => 'docker', 'image' => 'ghcr.io/autobrr/qui:latest', 'port' => 7476],
     ['slug' => 'rapidleech', 'name' => 'RapidLeech', 'category' => 'download', 'description' => 'Gestionnaire de liens premium (legacy).', 'type' => 'docker', 'image' => 'ghcr.io/rl-community/rapidleech', 'port' => 8087],
     ['slug' => 'rtorrent', 'name' => 'rTorrent', 'category' => 'download', 'description' => 'Client BitTorrent en ligne de commande.', 'type' => 'docker', 'image' => 'linuxserver/rutorrent', 'port' => 80],
-    ['slug' => 'rutorrent', 'name' => 'ruTorrent', 'category' => 'download', 'description' => 'Interface web pour rTorrent.', 'type' => 'docker', 'image' => 'linuxserver/rutorrent', 'port' => 80],
+    ['slug' => 'rutorrent', 'name' => 'ruTorrent', 'category' => 'download', 'description' => 'Interface web pour rTorrent.', 'type' => 'docker', 'image' => 'linuxserver/rutorrent', 'port' => 8084],
     ['slug' => 'sabnzbd', 'name' => 'SABnzbd', 'category' => 'download', 'description' => 'Client Usenet avec interface web.', 'type' => 'docker', 'image' => 'lscr.io/linuxserver/sabnzbd:latest', 'port' => 8085],
     ['slug' => 'syncthing', 'name' => 'Syncthing', 'category' => 'download', 'description' => 'Synchronisation de fichiers décentralisée.', 'type' => 'docker', 'image' => 'lscr.io/linuxserver/syncthing:latest', 'port' => 8384],
     ['slug' => 'transmission', 'name' => 'Transmission', 'category' => 'download', 'description' => 'Client BitTorrent léger.', 'type' => 'docker', 'image' => 'lscr.io/linuxserver/transmission:latest', 'port' => 9091],

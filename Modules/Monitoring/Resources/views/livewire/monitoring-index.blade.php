@@ -1,9 +1,10 @@
-<div>
+<div wire:poll.30s="loadServers">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-1">Monitoring Obiora</h1>
-            <p class="text-muted mb-0">Diagnostics centralises depuis les agents Obiora Doctor.</p>
+            <p class="text-muted mb-0">Diagnostics centralisés depuis les agents Obiora Doctor.</p>
         </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm" wire:click="loadServers">Actualiser</button>
     </div>
 
     <div class="card obiora-card">
@@ -48,7 +49,7 @@
                     @empty
                         <tr>
                             <td colspan="6" class="text-center text-muted py-4">
-                                Aucun serveur. Installez l'agent Obiora sur vos VPS pour recevoir les diagnostics.
+                                Aucun serveur. Installez l'agent Obiora Doctor sur vos VPS pour recevoir les diagnostics.
                             </td>
                         </tr>
                     @endforelse
@@ -59,10 +60,11 @@
 
     <div class="card obiora-card mt-4">
         <div class="card-body">
-            <h2 class="h6">Installation agent sur un VPS</h2>
-            <pre class="small bg-dark text-light p-3 rounded mb-0"><code>OBIORA_PANEL_URL=https://panel.example.com \
-OBIORA_SERVER_ID=2 \
-OBIORA_AGENT_TOKEN=token_du_serveur \
+            <h2 class="h6">Installation agent Obiora Doctor</h2>
+            <p class="small text-muted">Copiez la commande depuis la fiche serveur (token dédié) ou adaptez les variables ci-dessous.</p>
+            <pre class="small bg-dark text-light p-3 rounded mb-0"><code>OBIORA_PANEL_URL={{ $panelUrl }} \
+OBIORA_SERVER_ID=&lt;id_serveur&gt; \
+OBIORA_AGENT_TOKEN=&lt;token_du_serveur&gt; \
 bash ObiOra-Doctor/install/install-agent.sh</code></pre>
         </div>
     </div>

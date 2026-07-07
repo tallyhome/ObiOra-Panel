@@ -20,7 +20,9 @@ final class DiagnosticReportManager
 
         $report = DiagnosticReport::query()->create([
             'server_id' => $server->id,
-            'external_id' => $payload['generated_at'] ?? null,
+            'external_id' => isset($payload['id'])
+                ? (string) $payload['id']
+                : (isset($payload['report_id']) ? (string) $payload['report_id'] : null),
             'schema_version' => (string) ($payload['host']['schema_version'] ?? '1.0'),
             'doctor_version' => (string) ($payload['version'] ?? ''),
             'score' => (int) ($payload['score'] ?? 0),
@@ -31,6 +33,7 @@ final class DiagnosticReportManager
                 : now(),
             'report_json' => $payload,
             'critical_findings' => $critical,
+            'support_mode' => (bool) ($payload['support_mode'] ?? $payload['host']['support_mode'] ?? false),
             'signature' => is_array($payload['signature'] ?? null)
                 ? (string) ($payload['signature']['value'] ?? '')
                 : null,

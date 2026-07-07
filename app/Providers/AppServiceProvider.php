@@ -8,6 +8,7 @@ use App\Contracts\LicenseValidatorInterface;
 use App\Contracts\SystemExecutorInterface;
 use App\Services\Core\LicenseManager;
 use App\Services\Core\ServerManager;
+use App\Services\Core\ModuleManager;
 use App\Services\Core\UpdateManager;
 use App\Support\InstalledVersion;
 use App\Services\System\LocalExecutor;
@@ -35,6 +36,10 @@ class AppServiceProvider extends ServiceProvider
 
             $view->with('updateAvailable', $updateAvailable);
             $view->with('panelVersion', $this->app->make(InstalledVersion::class)->current());
+            $view->with(
+                'monitoringEnabled',
+                auth()->check() && $this->app->make(ModuleManager::class)->isEnabled('monitoring'),
+            );
         });
     }
 }

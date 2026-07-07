@@ -87,6 +87,27 @@
         <div class="col-12">
             <div class="card obiora-card">
                 <div class="card-body">
+                    <h2 class="h6 mb-3">Agent Obiora Doctor</h2>
+                    @if ($server->agent_token)
+                        <dl class="row small mb-3">
+                            <dt class="col-sm-3">Token agent</dt>
+                            <dd class="col-sm-9"><code>{{ $server->agent_token }}</code></dd>
+                        </dl>
+                        <p class="small text-muted mb-2">Commande d'installation (ObiOra-Doctor doit être présent sur le VPS) :</p>
+                        <pre class="small bg-dark text-light p-3 rounded"><code>OBIORA_PANEL_URL={{ rtrim(config('app.url'), '/') }} \
+OBIORA_SERVER_ID={{ $server->id }} \
+OBIORA_AGENT_TOKEN={{ $server->agent_token }} \
+bash ObiOra-Doctor/install/install-agent.sh</code></pre>
+                    @else
+                        <p class="text-muted small mb-0">Aucun token agent — régénérez-le depuis la gestion des serveurs si nécessaire.</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card obiora-card">
+                <div class="card-body">
                     <h2 class="h6 mb-3">Diagnostics Obiora Doctor</h2>
                     @if ($server->latestDiagnosticReport)
                         <p class="mb-2">

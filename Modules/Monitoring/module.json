@@ -10,6 +10,6 @@
   "routes": true,
   "slug": "monitoring",
   "name": "Monitoring",
-  "default_enabled": false,
+  "default_enabled": true,
   "version": "1.0.0"
 }

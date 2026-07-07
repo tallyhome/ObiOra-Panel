@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Modules\Monitoring\Livewire;
 
-use App\Models\DiagnosticReport;
 use App\Models\Server;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -14,10 +13,18 @@ use Livewire\Component;
 #[Title('Monitoring Obiora')]
 final class MonitoringIndex extends Component
 {
-  /** @var list<array<string, mixed>> */
+    /** @var list<array<string, mixed>> */
     public array $servers = [];
 
+    public string $panelUrl;
+
     public function mount(): void
+    {
+        $this->panelUrl = rtrim((string) config('app.url'), '/');
+        $this->loadServers();
+    }
+
+    public function loadServers(): void
     {
         $this->servers = Server::query()
             ->with('latestDiagnosticReport')
@@ -33,6 +40,7 @@ final class MonitoringIndex extends Component
                 'doctor_status' => $server->latestDiagnosticReport?->status,
                 'critical' => count($server->latestDiagnosticReport?->critical_findings ?? []),
                 'report_at' => $server->latestDiagnosticReport?->generated_at?->format('d/m/Y H:i'),
+                'agent_token' => $server->agent_token,
             ])
             ->all();
     }

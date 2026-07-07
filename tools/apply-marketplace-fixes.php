@@ -14,10 +14,12 @@ $apps = require $root.'/tools/swizzin-apps.php';
 /** @var list<string> */
 $protectedInstall = [
     'qbittorrent', 'filebrowser', 'nextcloud', 'webmin', 'vsftpd', 'pure-ftpd', 'wireguard', 'netdata',
+    'plex', 'calibreweb',
 ];
 
 /** @var array<string, int> host_port overrides (évite conflits) */
 $portOverrides = [
+    'rutorrent' => 8084,
     'organizr' => 8086,
     'rapidleech' => 8087,
     'librespeed' => 8088,

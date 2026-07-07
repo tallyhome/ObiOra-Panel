@@ -8,11 +8,28 @@
         "install": "install.sh",
         "uninstall": "uninstall.sh"
     },
+    "install": {
+        "options": [
+            {
+                "name": "label",
+                "label": "Nom affiché dans le panel",
+                "type": "text",
+                "default": "Plex"
+            },
+            {
+                "name": "plex_claim",
+                "label": "Token Plex Claim (optionnel)",
+                "type": "text",
+                "required": false,
+                "help": "Obtenez un token sur https://plex.tv/claim (valide ~4 min) pour lier automatiquement le serveur."
+            }
+        ]
+    },
     "runtime": {
         "type": "docker",
         "container": "obiora-plex",
         "port": 32400,
         "url": "http://{host}:32400/web",
-        "usage": "Ouvrez l'URL et suivez l'assistant Plex pour lier votre compte et configurer vos bibliothèques."
+        "usage": "Plex en mode host (port 32400). Optionnel : token claim plex.tv pour lier le serveur sans ouverture manuelle."
     }
 }

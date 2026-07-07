@@ -274,13 +274,35 @@ final class ApplicationManager
             return;
         }
 
+        $metadata = $this->buildMetadata($package, $server, $result['output'], $installOptions);
+
         $record->update([
             'status' => ApplicationStatus::Installed,
             'installed_at' => now(),
-            'metadata' => $this->buildMetadata($package, $server, $result['output'], $installOptions),
+            'metadata' => $metadata,
         ]);
 
-        $this->finishProgress($serverId, $slug, true, "« {$package->name()} » installé avec succès.");
+        $this->syncRuntimeMetadata($record, $package);
+        $record->refresh();
+
+        $runtimeStatus = $this->appRuntimeStatus($record);
+        $runtimeType = $package->effectiveRuntimeType();
+        $finishMessage = "« {$package->name()} » installé avec succès.";
+
+        if (
+            in_array($runtimeStatus, ['stopped', 'not_found', 'unknown'], true)
+            && in_array($runtimeType, ['docker', 'systemd'], true)
+        ) {
+            $record->update([
+                'metadata' => array_merge($record->metadata ?? [], [
+                    'runtime_warning' => 'Service ou conteneur inactif après installation. Utilisez Démarrer ou consultez les logs.',
+                    'runtime_status_at_install' => $runtimeStatus,
+                ]),
+            ]);
+            $finishMessage = "« {$package->name()} » installé — statut runtime : {$runtimeStatus}.";
+        }
+
+        $this->finishProgress($serverId, $slug, true, $finishMessage);
     }
 
     public function runUninstallJob(int $applicationId): void
