@@ -24,8 +24,16 @@ progress() {
 }
 
 if [[ "${EUID}" -ne 0 ]]; then
-    echo "ERREUR: ce script doit être exécuté en root (via sudo)." >&2
+    echo "ERREUR: ce script doit être exécuté en root (via sudo ou obiora-panel-update)." >&2
     exit 1
+fi
+
+if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/common.sh" ]] && [[ -f "${OBIORA_INSTALL_DIR}/install/lib/panel-update-helper.sh" ]]; then
+    # shellcheck source=/dev/null
+    source "${OBIORA_INSTALL_DIR}/install/lib/common.sh"
+    # shellcheck source=/dev/null
+    source "${OBIORA_INSTALL_DIR}/install/lib/panel-update-helper.sh"
+    setup_panel_update_helper
 fi
 
 cd "${OBIORA_INSTALL_DIR}"

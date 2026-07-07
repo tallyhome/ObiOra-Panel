@@ -50,6 +50,39 @@ final class DockerManager
     }
 
     /**
+     * @return array{success: bool, message: string}
+     */
+    public function installDocker(?Server $server = null): array
+    {
+        $server ??= $this->serverManager->getCurrentServer();
+
+        if ($server === null) {
+            return ['success' => false, 'message' => 'Aucun serveur sélectionné.'];
+        }
+
+        if (! $this->isLocal($server)) {
+            return ['success' => false, 'message' => 'Installation Docker disponible uniquement sur le serveur local.'];
+        }
+
+        if (PHP_OS_FAMILY !== 'Linux') {
+            return ['success' => false, 'message' => 'Installation Docker non supportée sur cet environnement.'];
+        }
+
+        $result = $this->scripts->run(base_path('agent/scripts/docker-install.sh'), [], 900);
+
+        $output = trim($result->output.$result->errorOutput);
+        $success = $result->successful && str_contains($output, 'OK:');
+
+        if ($success) {
+            $message = trim(str_replace('OK:', '', strstr($output, 'OK:') ?: 'Docker installé'));
+
+            return ['success' => true, 'message' => $message !== '' ? $message : 'Docker installé'];
+        }
+
+        return ['success' => false, 'message' => $output !== '' ? $output : 'Échec installation Docker'];
+    }
+
+    /**
      * @return list<array{id: string, name: string, image: string, status: string, ports: string}>
      */
     public function containers(?Server $server = null): array

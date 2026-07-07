@@ -16,7 +16,7 @@ OBIORA_BRANCH="main"
 OBIORA_TAG=""
 OBIORA_DOMAIN=""
 OBIORA_SSL_EMAIL=""
-INSTALL_DOCKER="false"
+INSTALL_DOCKER="true"
 INSTALL_FTP="false"
 
 # --- Bootstrap one-liner (bash <(curl ...>) ou curl | bash) ---
@@ -181,6 +181,9 @@ main() {
     setup_ssl
     setup_systemd
     setup_sudoers
+    # shellcheck source=lib/panel-update-helper.sh
+    source "${SCRIPT_DIR}/lib/panel-update-helper.sh"
+    setup_panel_update_helper
     setup_firewall
 
     # Désactiver le trap rollback après succès

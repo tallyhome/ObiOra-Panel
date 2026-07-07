@@ -403,16 +403,35 @@ body {
 
 .form-control,
 .form-select {
-    background: var(--obiora-bg-elevated);
+    background-color: var(--obiora-bg-elevated) !important;
     border-color: var(--obiora-border);
-    color: var(--obiora-text);
+    color: var(--obiora-text) !important;
+    caret-color: var(--obiora-primary);
+
+    &::placeholder {
+        color: var(--obiora-text-muted);
+        opacity: 0.9;
+    }
 
     &:focus {
-        background: var(--obiora-bg-elevated);
+        background-color: var(--obiora-bg-elevated) !important;
         border-color: var(--obiora-primary);
-        color: var(--obiora-text);
+        color: var(--obiora-text) !important;
         box-shadow: 0 0 0 0.2rem rgba(61, 214, 140, 0.15);
     }
+
+    &:-webkit-autofill,
+    &:-webkit-autofill:hover,
+    &:-webkit-autofill:focus {
+        -webkit-text-fill-color: var(--obiora-text) !important;
+        box-shadow: 0 0 0 1000px var(--obiora-bg-elevated) inset !important;
+        caret-color: var(--obiora-primary);
+    }
+}
+
+.form-select option {
+    background-color: var(--obiora-bg-card);
+    color: var(--obiora-text);
 }
 
 .table {

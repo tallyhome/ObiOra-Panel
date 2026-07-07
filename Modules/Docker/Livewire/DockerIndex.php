@@ -40,6 +40,8 @@ final class DockerIndex extends Component
 
     public string $logOutput = '';
 
+    public bool $installingDocker = false;
+
     public function mount(DockerManager $dockerManager, ServerManager $serverManager): void
     {
         $this->loadData($dockerManager, $serverManager);
@@ -56,6 +58,22 @@ final class DockerIndex extends Component
     public function refresh(DockerManager $dockerManager, ServerManager $serverManager): void
     {
         $this->loadData($dockerManager, $serverManager);
+    }
+
+    public function installDocker(DockerManager $dockerManager, ServerManager $serverManager): void
+    {
+        if ($this->installingDocker) {
+            return;
+        }
+
+        $this->installingDocker = true;
+
+        $result = $dockerManager->installDocker($serverManager->getCurrentServer());
+
+        $this->installingDocker = false;
+        $this->loadData($dockerManager, $serverManager);
+
+        $this->dispatch('notify', type: $result['success'] ? 'success' : 'danger', message: $result['message']);
     }
 
     public function runContainer(DockerManager $dockerManager, ServerManager $serverManager): void

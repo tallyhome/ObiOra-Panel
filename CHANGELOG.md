@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.9.18 - 2026-07-07
+
+Correction définitive des mises à jour panel : binaire setuid `/usr/local/bin/obiora-panel-update` (plus de dépendance sudoers). Bouton « Installer Docker » dans le panel. Champs formulaire serveurs lisibles (texte visible sur fond sombre). Docker installé par défaut à l'installation.
+
 ## v1.9.17 - 2026-07-07
 
 Corrige sauvegardes (`tar` + PATH sudo), sites web sur AlmaLinux/RHEL (`conf.d` au lieu de `sites-available`), marketplace install/désinstall via `marketplace-exec.sh`, et filtre les services panel (masque auditd et services système non gérables).

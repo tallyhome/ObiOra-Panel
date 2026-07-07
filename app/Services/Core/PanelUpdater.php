@@ -107,14 +107,21 @@ final class PanelUpdater
 
         $panelRoot = base_path();
         $updateScript = $panelRoot.'/install/update-panel.sh';
+        $helper = '/usr/local/bin/obiora-panel-update';
 
         try {
-            // ID passé en argument (pas via `env`) pour correspondre à la règle sudoers
-            // NOPASSWD sur le chemin exact du script.
-            $result = $this->executor->run(
-                'sudo -n '.escapeshellarg($updateScript).' '.escapeshellarg((string) $historyId),
-                ['timeout' => 1500],
-            );
+            if (is_executable($helper)) {
+                // Helper setuid root — ne dépend pas de sudoers (fiable pour obiora-queue)
+                $result = $this->executor->run(
+                    escapeshellarg($helper).' '.escapeshellarg((string) $historyId),
+                    ['timeout' => 1500],
+                );
+            } else {
+                $result = $this->executor->run(
+                    'sudo -n '.escapeshellarg($updateScript).' '.escapeshellarg((string) $historyId),
+                    ['timeout' => 1500],
+                );
+            }
 
             $output = trim($result->output."\n".$result->errorOutput);
 

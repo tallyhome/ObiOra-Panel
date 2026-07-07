@@ -43,11 +43,17 @@
             </div>
         </div>
     @else
-        <div class="alert alert-warning">
-            Docker n'est pas installé ou inaccessible sur ce serveur.
-            @if (!empty($dockerInfo['error']))
-                <div class="small mt-1">{{ $dockerInfo['error'] }}</div>
-            @endif
+        <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                Docker n'est pas installé ou inaccessible sur ce serveur.
+                @if (!empty($dockerInfo['error']))
+                    <div class="small mt-1">{{ $dockerInfo['error'] }}</div>
+                @endif
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" wire:click="installDocker" wire:loading.attr="disabled" @if($installingDocker) disabled @endif>
+                <span wire:loading.remove wire:target="installDocker">Installer Docker</span>
+                <span wire:loading wire:target="installDocker">Installation en cours…</span>
+            </button>
         </div>
     @endif
 
