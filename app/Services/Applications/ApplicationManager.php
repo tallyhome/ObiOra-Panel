@@ -447,14 +447,19 @@ final class ApplicationManager
         $metadata = $application->metadata ?? [];
         $host = $this->accessHost->resolve($application->server);
 
+        $runtimeType = $package?->runtimeType() ?? $metadata['runtime_type'] ?? 'docker';
+        $runtimeTarget = $runtimeType === 'docker'
+            ? ($metadata['container'] ?? $package?->containerName())
+            : ($metadata['service'] ?? $package?->systemdService() ?? $application->slug);
+
         return [
             'name' => $application->name,
             'slug' => $application->slug,
             'version' => $application->version,
             'status' => $application->status->value,
             'runtime_status' => $this->appRuntimeStatus($application),
-            'runtime_type' => $metadata['runtime_type'] ?? $package?->runtimeType() ?? 'docker',
-            'container' => $metadata['container'] ?? $package?->containerName(),
+            'runtime_type' => $runtimeType,
+            'container' => $runtimeTarget,
             'port' => $metadata['port'] ?? $package?->port(),
             'url' => $package?->accessUrl($host) ?? $metadata['url'] ?? null,
             'usage' => $metadata['usage'] ?? $package?->usageNotes() ?? '',
@@ -554,7 +559,7 @@ final class ApplicationManager
 
         $metadata = [
             'runtime_type' => $package->runtimeType(),
-            'container' => $package->containerName(),
+            'container' => $package->runtimeType() === 'docker' ? $package->containerName() : null,
             'service' => $package->systemdService(),
             'port' => $port,
             'url' => $url,

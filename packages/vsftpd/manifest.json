@@ -8,5 +8,40 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "install": {
+        "options": [
+            {
+                "name": "label",
+                "label": "Nom affiché dans le panel",
+                "type": "text",
+                "default": "vsftpd",
+                "help": "Libellé visible dans le centre de contrôle."
+            },
+            {
+                "name": "username",
+                "label": "Identifiant FTP",
+                "type": "text",
+                "default": "obioraftp",
+                "required": true,
+                "min": 3,
+                "help": "Utilisateur système dédié créé pour FTP."
+            },
+            {
+                "name": "pass",
+                "label": "Mot de passe FTP",
+                "type": "password",
+                "required": true,
+                "min": 1,
+                "help": "Mot de passe de connexion FTP."
+            }
+        ]
+    },
+    "runtime": {
+        "type": "systemd",
+        "service": "vsftpd",
+        "port": 21,
+        "url": "ftp://{host}:21",
+        "usage": "Serveur FTP sur le port 21. Utilisez l'identifiant et le mot de passe choisis à l'installation. Le répertoire accessible est /srv/ftp/<identifiant>/files. Ports passifs : 40000-40100/tcp."
     }
 }
