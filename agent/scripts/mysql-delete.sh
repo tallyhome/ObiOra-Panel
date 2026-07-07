@@ -29,6 +29,8 @@ mysql_root_exec -e "DROP DATABASE IF EXISTS \`${DB_NAME}\`;"
 
 if [[ -n "${DB_USER}" ]]; then
     mysql_root_exec -e "DROP USER IF EXISTS '${DB_USER}'@'localhost';"
+    mysql_root_exec -e "DROP USER IF EXISTS '${DB_USER}'@'127.0.0.1';"
+    mysql_root_exec -e "DROP USER IF EXISTS '${DB_USER}'@'172.%';"
 fi
 
 mysql_root_exec -e "FLUSH PRIVILEGES;"

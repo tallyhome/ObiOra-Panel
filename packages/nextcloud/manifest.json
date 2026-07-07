@@ -8,5 +8,12 @@
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-nextcloud",
+        "port": 8443,
+        "url": "https://{host}:8443",
+        "usage": "Créez d'abord une base MySQL dans le menu Bases de données. Lors de l'assistant Nextcloud, utilisez host.docker.internal (ou l'IP Docker indiquée sur la fiche de la base) comme hôte — jamais localhost. Identifiants : ceux affichés sur la fiche de la base créée."
     }
 }

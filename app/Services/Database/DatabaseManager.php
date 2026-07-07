@@ -68,7 +68,7 @@ final class DatabaseManager
             'name' => $name,
             'username' => '',
             'password' => 'pending',
-            'host' => (string) config('obiora.databases.default_host', 'localhost'),
+            'host' => '127.0.0.1',
             'charset' => (string) config('obiora.databases.default_charset', 'utf8mb4'),
             'collation' => (string) config('obiora.databases.default_collation', 'utf8mb4_unicode_ci'),
             'status' => DatabaseStatus::Pending,
@@ -100,9 +100,36 @@ final class DatabaseManager
             'username' => $result['username'],
             'password' => $result['password'],
             'status' => DatabaseStatus::Active,
+            'metadata' => [
+                'docker_host' => $result['docker_host'] ?: '172.17.0.1',
+                'docker_host_alias' => 'host.docker.internal',
+            ],
         ]);
 
         return $record->fresh() ?? $record;
+    }
+
+    public function grantDockerAccess(ManagedDatabase $database): ManagedDatabase
+    {
+        $result = $this->provisioner->grantDockerAccess(
+            $database->server,
+            $database->username,
+            $database->password_plain,
+            $database->name,
+        );
+
+        if (! $result['success']) {
+            throw new InvalidArgumentException('Échec autorisation Docker : '.trim($result['output']));
+        }
+
+        $metadata = $database->metadata ?? [];
+        $metadata['docker_host'] = $result['docker_host'];
+        $metadata['docker_host_alias'] = 'host.docker.internal';
+        $metadata['docker_granted_at'] = now()->toIso8601String();
+
+        $database->update(['metadata' => $metadata]);
+
+        return $database->fresh() ?? $database;
     }
 
     public function delete(ManagedDatabase $database): void

@@ -11,8 +11,22 @@
                 <div class="card-header py-2 fw-medium">Connexion</div>
                 <div class="card-body">
                     <dl class="row mb-0 small">
-                        <dt class="col-sm-4">Hôte</dt>
+                        <dt class="col-sm-4">Hôte (applications sur le serveur)</dt>
                         <dd class="col-sm-8 font-monospace">{{ $database->host }}</dd>
+
+                        <dt class="col-sm-4">Hôte (conteneurs Docker)</dt>
+                        <dd class="col-sm-8">
+                            <code class="user-select-all">{{ $database->metadata['docker_host'] ?? '172.17.0.1' }}</code>
+                            <span class="text-muted small ms-1">ou <code>host.docker.internal</code></span>
+                            <div class="form-text text-warning mt-1">
+                                N'utilisez pas <code>localhost</code> depuis un conteneur Docker — cela provoque l'erreur SQLSTATE[2002].
+                            </div>
+                            @if (empty($database->metadata['docker_granted_at']))
+                                <button type="button" wire:click="grantDockerAccess" class="btn btn-outline-warning btn-sm mt-2" wire:loading.attr="disabled">
+                                    Activer l'accès Docker pour cette base
+                                </button>
+                            @endif
+                        </dd>
 
                         <dt class="col-sm-4">Base</dt>
                         <dd class="col-sm-8 font-monospace">{{ $database->name }}</dd>
@@ -59,7 +73,10 @@ DB_HOST={{ $database->host }}
 DB_PORT=3306
 DB_DATABASE={{ $database->name }}
 DB_USERNAME={{ $database->username }}
-DB_PASSWORD={{ $showPassword ? $database->password_plain : '********' }}</pre>
+DB_PASSWORD={{ $showPassword ? $database->password_plain : '********' }}
+
+# Applications Docker (Nextcloud, etc.)
+DB_HOST={{ $database->metadata['docker_host'] ?? '172.17.0.1' }}</pre>
                 </div>
             </div>
         </div>

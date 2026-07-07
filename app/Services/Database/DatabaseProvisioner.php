@@ -43,7 +43,7 @@ final class DatabaseProvisioner
     }
 
     /**
-     * @return array{success: bool, username: string, password: string, output: string}
+     * @return array{success: bool, username: string, password: string, docker_host: string, output: string}
      */
     public function create(Server $server, string $name, ?string $username = null, ?string $password = null): array
     {
@@ -58,6 +58,7 @@ final class DatabaseProvisioner
                     'success' => true,
                     'username' => $username,
                     'password' => $pass,
+                    'docker_host' => '172.17.0.1',
                     'output' => "OK:{$name}:{$username}:{$pass} (dev stub)",
                 ];
             }
@@ -74,6 +75,37 @@ final class DatabaseProvisioner
         }
 
         return $this->remoteCreate($server, $name, $username, $password);
+    }
+
+    /**
+     * @return array{success: bool, docker_host: string, output: string}
+     */
+    public function grantDockerAccess(Server $server, string $username, string $password, string $database): array
+    {
+        if ($this->isLocal($server)) {
+            if (PHP_OS_FAMILY !== 'Linux') {
+                return ['success' => true, 'docker_host' => '172.17.0.1', 'output' => 'OK (dev stub)'];
+            }
+
+            $script = base_path('agent/scripts/mysql-grant-docker.sh');
+            $result = $this->scripts->run($script, [$username, $password, $database]);
+
+            if ($result->successful && preg_match('/OK:[^:]+:(.++)/', trim($result->output), $m)) {
+                return [
+                    'success' => true,
+                    'docker_host' => trim($m[1]),
+                    'output' => trim($result->output),
+                ];
+            }
+
+            return [
+                'success' => false,
+                'docker_host' => '172.17.0.1',
+                'output' => trim($result->output.$result->errorOutput),
+            ];
+        }
+
+        return ['success' => false, 'docker_host' => '', 'output' => 'Non supporté sur serveur distant.'];
     }
 
     /**
@@ -155,15 +187,16 @@ final class DatabaseProvisioner
     }
 
     /**
-     * @return array{success: bool, username: string, password: string, output: string}
+     * @return array{success: bool, username: string, password: string, docker_host: string, output: string}
      */
     private function parseCreateOutput(bool $success, string $output): array
     {
-        if ($success && preg_match('/OK:([^:]+):([^:]+):(.+)/', $output, $m)) {
+        if ($success && preg_match('/OK:([^:]+):([^:]+):([^:]+)(?::(.+))?/', $output, $m)) {
             return [
                 'success' => true,
                 'username' => trim($m[2]),
                 'password' => trim($m[3]),
+                'docker_host' => trim($m[4] ?? '172.17.0.1'),
                 'output' => $output,
             ];
         }
@@ -172,6 +205,7 @@ final class DatabaseProvisioner
             'success' => false,
             'username' => '',
             'password' => '',
+            'docker_host' => '',
             'output' => $output,
         ];
     }

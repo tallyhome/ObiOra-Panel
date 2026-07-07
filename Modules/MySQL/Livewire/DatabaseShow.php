@@ -28,6 +28,16 @@ final class DatabaseShow extends Component
         $this->showPassword = ! $this->showPassword;
     }
 
+    public function grantDockerAccess(DatabaseManager $databaseManager): void
+    {
+        try {
+            $this->database = $databaseManager->grantDockerAccess($this->database);
+            $this->dispatch('notify', type: 'success', message: 'Accès Docker activé pour cette base.');
+        } catch (\InvalidArgumentException $e) {
+            $this->dispatch('notify', type: 'danger', message: $e->getMessage());
+        }
+    }
+
     public function delete(DatabaseManager $databaseManager): void
     {
         $name = $this->database->name;
