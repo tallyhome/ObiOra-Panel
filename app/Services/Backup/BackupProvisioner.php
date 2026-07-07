@@ -7,6 +7,7 @@ namespace App\Services\Backup;
 use App\Enums\BackupType;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
+use App\Services\System\PrivilegedScriptRunner;
 use Illuminate\Support\Facades\Http;
 use InvalidArgumentException;
 
@@ -14,6 +15,7 @@ final class BackupProvisioner
 {
     public function __construct(
         private readonly ServerManager $serverManager,
+        private readonly PrivilegedScriptRunner $scripts,
     ) {}
 
     /**
@@ -133,17 +135,7 @@ final class BackupProvisioner
      */
     private function runScript(Server $server, string $script, array $args = [], int $timeout = 120): array
     {
-        $escapedArgs = implode(' ', array_map('escapeshellarg', $args));
-        $command = 'bash '.escapeshellarg($script);
-        if ($escapedArgs !== '') {
-            $command .= ' '.$escapedArgs;
-        }
-
-        if (PHP_OS_FAMILY === 'Linux' && (! function_exists('posix_geteuid') || posix_geteuid() !== 0)) {
-            $command = 'sudo -n '.$command;
-        }
-
-        $result = $this->serverManager->executorFor($server)->run($command, ['timeout' => $timeout]);
+        $result = $this->scripts->run($script, $args, $timeout);
 
         return [
             'success' => $result->successful,

@@ -6,6 +6,7 @@ namespace App\Services\System;
 
 use App\Models\Server;
 use App\Services\Core\ServerManager;
+use App\Services\System\PrivilegedScriptRunner;
 use Illuminate\Support\Facades\Http;
 
 final class ServiceManager
@@ -14,6 +15,7 @@ final class ServiceManager
 
     public function __construct(
         private readonly ServerManager $serverManager,
+        private readonly PrivilegedScriptRunner $scripts,
     ) {}
 
     /**
@@ -28,10 +30,12 @@ final class ServiceManager
         }
 
         if ($this->isLocal($server)) {
-            return $this->parseLocalList(
-                $this->serverManager->executorFor($server)->run(
-                    'systemctl list-units --type=service --all --no-pager --no-legend'
-                )->output
+            return $this->filterManageableServices(
+                $this->parseLocalList(
+                    $this->serverManager->executorFor($server)->run(
+                        'systemctl list-units --type=service --all --no-pager --no-legend'
+                    )->output
+                )
             );
         }
 
@@ -56,11 +60,13 @@ final class ServiceManager
         $serviceName = $this->sanitizeServiceName($serviceName);
 
         if ($this->isLocal($server)) {
-            $result = $this->serverManager->executorFor($server)->run(
-                "systemctl {$action} ".escapeshellarg($serviceName)
-            );
+            $script = base_path('agent/scripts/systemctl-action.sh');
+            $result = $this->scripts->run($script, [$action, $serviceName], 60);
 
-            return ['success' => $result->successful, 'output' => $result->output.$result->errorOutput];
+            return [
+                'success' => $result->successful,
+                'output' => trim($result->output.$result->errorOutput),
+            ];
         }
 
         return $this->remoteAction($server, $serviceName, $action);
@@ -78,11 +84,10 @@ final class ServiceManager
         $lines = max(10, min($lines, 500));
 
         if ($this->isLocal($server)) {
-            $result = $this->serverManager->executorFor($server)->run(
-                'journalctl -u '.escapeshellarg($serviceName)." -n {$lines} --no-pager"
-            );
+            $script = base_path('agent/scripts/systemctl-logs.sh');
+            $result = $this->scripts->run($script, [$serviceName, (string) $lines], 30);
 
-            return $result->output.$result->errorOutput;
+            return trim($result->output.$result->errorOutput);
         }
 
         return $this->remoteLogs($server, $serviceName, $lines);
@@ -123,6 +128,21 @@ final class ServiceManager
         }
 
         return $services;
+    }
+
+    /**
+     * Masque les services systemd internes non gérables depuis le panel.
+     *
+     * @param  list<array{name: string, load: string, active: string, sub: string, description: string}>  $services
+     * @return list<array{name: string, load: string, active: string, sub: string, description: string}>
+     */
+    private function filterManageableServices(array $services): array
+    {
+        return array_values(array_filter($services, function (array $svc): bool {
+            $name = $svc['name'];
+
+            return ! preg_match('/^(systemd-|dbus-|dev-|sys-|dracut-|kmod-|user@|session-)/', $name);
+        }));
     }
 
     /**

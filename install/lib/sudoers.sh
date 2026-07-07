@@ -7,6 +7,17 @@ setup_sudoers() {
     mkdir -p /etc/obiora
     chmod 755 /etc/obiora
 
+    # Scripts exécutables (requis pour sudo NOPASSWD sur le chemin .sh direct)
+    if [[ -d "${OBIORA_INSTALL_DIR}/agent/scripts" ]]; then
+        chmod +x "${OBIORA_INSTALL_DIR}"/agent/scripts/*.sh 2>/dev/null || true
+    fi
+    if [[ -d "${OBIORA_INSTALL_DIR}/packages" ]]; then
+        find "${OBIORA_INSTALL_DIR}/packages" -name 'install.sh' -o -name 'uninstall.sh' 2>/dev/null \
+            | while read -r pkg_script; do
+                chmod +x "${pkg_script}" 2>/dev/null || true
+            done
+    fi
+
     local sudoers_file="/etc/sudoers.d/obiora-agent"
     local update_script="${OBIORA_INSTALL_DIR}/install/update-panel.sh"
     chmod +x "${update_script}" 2>/dev/null || true

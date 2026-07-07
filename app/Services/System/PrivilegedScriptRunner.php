@@ -18,7 +18,9 @@ final class PrivilegedScriptRunner
      */
     public function run(string $script, array $args = [], int $timeout = 120): ProcessResult
     {
-        $command = 'bash '.escapeshellarg($script);
+        // Exécuter le script directement (pas via `bash`) pour correspondre aux
+        // règles sudoers : NOPASSWD: .../agent/scripts/*.sh
+        $command = escapeshellarg($script);
 
         if ($args !== []) {
             $command .= ' '.implode(' ', array_map('escapeshellarg', $args));

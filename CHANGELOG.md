@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.9.15 - 2026-07-07
+
+Corrige `sudo: a password is required` pour sauvegardes, sites web, bases MySQL, Docker et services : les scripts agent sont exécutés directement (plus via `bash`) pour correspondre aux règles sudoers. Ajout de scripts `systemctl-action.sh` et `systemctl-logs.sh` pour start/stop et journaux. Masquage des services systemd internes dans la liste.
+
 ## v1.9.14 - 2026-07-07
 
 Corrige l'échec `vite build` sur les serveurs déjà installés : `npm ci`/`npm install` est désormais toujours exécuté avant `npm run build` (dépendance `sweetalert2` manquante dans node_modules).

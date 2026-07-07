@@ -161,7 +161,7 @@ final class ApplicationManager
 
     private function buildCommand(string $script): string
     {
-        $command = 'bash '.escapeshellarg($script);
+        $command = escapeshellarg($script);
 
         if (PHP_OS_FAMILY === 'Linux' && (! function_exists('posix_geteuid') || posix_geteuid() !== 0)) {
             $command = 'sudo -n '.$command;
