@@ -43,9 +43,11 @@ final class PluginMarketplace extends Component
     /** @var array<string, string> */
     public array $setupValues = [];
 
-    /** Indices numériques pour éviter les conflits Livewire (ex. user_pass / user_pass_confirm). */
-    /** @var list<string> */
-    public array $setupPasswords = [];
+    public string $setupPassword0 = '';
+
+    public string $setupPassword1 = '';
+
+    public string $setupPassword2 = '';
 
     public function mount(ApplicationManager $manager, ServerManager $serverManager): void
     {
@@ -88,7 +90,6 @@ final class PluginMarketplace extends Component
 
         $this->setupSlug = $slug;
         $values = [];
-        $passwordCount = 0;
         foreach ($package->installOptions() as $field) {
             $name = (string) ($field['name'] ?? '');
             if ($name === '') {
@@ -96,20 +97,27 @@ final class PluginMarketplace extends Component
             }
 
             if (($field['type'] ?? '') === 'password') {
-                $passwordCount++;
-            } else {
-                $values[$name] = (string) ($field['default'] ?? '');
+                continue;
             }
+
+            $values[$name] = (string) ($field['default'] ?? '');
         }
         $this->setupValues = $values;
-        $this->setupPasswords = array_fill(0, $passwordCount, '');
+        $this->resetSetupPasswords();
+    }
+
+    private function resetSetupPasswords(): void
+    {
+        $this->setupPassword0 = '';
+        $this->setupPassword1 = '';
+        $this->setupPassword2 = '';
     }
 
     public function cancelInstallSetup(): void
     {
         $this->setupSlug = null;
         $this->setupValues = [];
-        $this->setupPasswords = [];
+        $this->resetSetupPasswords();
     }
 
     public function confirmInstallSetup(ApplicationManager $manager, ServerManager $serverManager, ApplicationCatalog $catalog): void
@@ -294,6 +302,7 @@ final class PluginMarketplace extends Component
             'installedSlugs' => $installedSlugs,
             'categories' => $categories,
             'setupPackage' => $this->setupSlug ? $catalog->find($this->setupSlug) : null,
+            'catalog' => $catalog,
         ]);
     }
 
@@ -337,10 +346,20 @@ final class PluginMarketplace extends Component
                 continue;
             }
 
-            $options[$name] = trim((string) ($this->setupPasswords[$passwordIndex] ?? ''));
+            $options[$name] = trim($this->setupPasswordValue($passwordIndex));
             $passwordIndex++;
         }
 
         return $options;
+    }
+
+    private function setupPasswordValue(int $index): string
+    {
+        return match ($index) {
+            0 => $this->setupPassword0,
+            1 => $this->setupPassword1,
+            2 => $this->setupPassword2,
+            default => '',
+        };
     }
 }

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\ApplicationIconController;
 use App\Livewire\Auth\Login;
 use App\Livewire\Setup\CreateAdmin;
 use Illuminate\Support\Facades\Auth;
@@ -57,6 +58,7 @@ Route::middleware(['setup', 'auth', 'server'])->group(function () {
     });
 
     Route::get('/plugins', \Modules\Plugins\Livewire\PluginMarketplace::class)->name('plugins.index');
+    Route::get('/plugins/icons/{slug}', ApplicationIconController::class)->name('plugins.icon');
 
     Route::get('/settings', \Modules\Updates\Livewire\SettingsIndex::class)->name('settings.index');
 });
