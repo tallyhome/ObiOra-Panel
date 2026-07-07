@@ -41,6 +41,24 @@ final class DashboardHealth
         return round($bytes / (1024 ** $pow), $precision).' '.$units[$pow];
     }
 
+    /** Format français compact : 500 Mo, 2,5 Go */
+    public static function formatBytesFr(int|float $bytes, int $precision = 1): string
+    {
+        if ($bytes <= 0) {
+            return '0 o';
+        }
+
+        $units = ['o', 'Ko', 'Mo', 'Go', 'To'];
+        $pow = min((int) floor(log($bytes, 1024)), count($units) - 1);
+        $value = round($bytes / (1024 ** $pow), $precision);
+
+        $formatted = $pow === 0
+            ? (string) (int) $value
+            : str_replace('.', ',', rtrim(rtrim(number_format($value, $precision, '.', ''), '0'), '.'));
+
+        return $formatted.' '.$units[$pow];
+    }
+
     private static function statusFromPercent(float $pct, float $warn, float $danger): string
     {
         if ($pct >= $danger) {

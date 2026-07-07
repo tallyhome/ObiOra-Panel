@@ -15,7 +15,7 @@
                         <span class="badge text-bg-success d-inline-flex align-items-center gap-2 py-2 px-3">
                             {{ $app->name }}
                             <button type="button" wire:loading.attr="disabled"
-                                onclick="obioraConfirm(() => $wire.uninstall({{ $app->id }}), 'Désinstaller', @js('Désinstaller '.$app->name.' ?'))"
+                                onclick="obioraConfirmWire(this, 'uninstall', 'Désinstaller', @js('Désinstaller '.$app->name.' ?'), {{ $app->id }})"
                                 class="btn-close btn-close-white btn-sm" style="font-size: .6rem;"></button>
                         </span>
                     @endforeach

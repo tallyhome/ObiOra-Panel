@@ -45,7 +45,7 @@
                             <td class="text-end text-nowrap">
                                 <a href="{{ route('backups.show', $backup) }}" class="btn btn-outline-primary btn-sm">Détails</a>
                                 <button type="button" wire:loading.attr="disabled"
-                                    onclick="obioraConfirm(() => $wire.delete({{ $backup->id }}), 'Supprimer la sauvegarde', 'Supprimer cette sauvegarde ?')"
+                                    onclick="obioraConfirmWire(this, 'delete', 'Supprimer la sauvegarde', 'Supprimer cette sauvegarde ?', {{ $backup->id }})"
                                     class="btn btn-outline-danger btn-sm">Supprimer</button>
                             </td>
                         </tr>

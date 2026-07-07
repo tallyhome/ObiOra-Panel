@@ -5,32 +5,32 @@
 
     <nav class="nav flex-column gap-1 flex-grow-1">
         <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-            Dashboard
+            <span class="obiora-nav-icon" aria-hidden="true">▣</span> Dashboard
         </a>
         <a href="{{ route('plugins.index') }}" class="nav-link {{ request()->routeIs('plugins.*') ? 'active' : '' }}">
-            Marketplace
+            <span class="obiora-nav-icon" aria-hidden="true">◫</span> Marketplace
         </a>
         <a href="{{ route('services.index') }}" class="nav-link {{ request()->routeIs('services.*') ? 'active' : '' }}">
-            Services
+            <span class="obiora-nav-icon" aria-hidden="true">⚙</span> Services
         </a>
         <a href="{{ route('servers.index') }}" class="nav-link {{ request()->routeIs('servers.*') ? 'active' : '' }}">
-            Serveurs
+            <span class="obiora-nav-icon" aria-hidden="true">⬢</span> Serveurs
         </a>
         <a href="{{ route('websites.index') }}" class="nav-link {{ request()->routeIs('websites.*') ? 'active' : '' }}">
-            Sites web
+            <span class="obiora-nav-icon" aria-hidden="true">◎</span> Sites web
         </a>
         <a href="{{ route('databases.index') }}" class="nav-link {{ request()->routeIs('databases.*') ? 'active' : '' }}">
-            Bases de données
+            <span class="obiora-nav-icon" aria-hidden="true">▤</span> Bases de données
         </a>
         <a href="{{ route('docker.index') }}" class="nav-link {{ request()->routeIs('docker.*') ? 'active' : '' }}">
-            Docker
+            <span class="obiora-nav-icon" aria-hidden="true">⬡</span> Docker
         </a>
         <a href="{{ route('backups.index') }}" class="nav-link {{ request()->routeIs('backups.*') ? 'active' : '' }}">
-            Sauvegardes
+            <span class="obiora-nav-icon" aria-hidden="true">⬚</span> Sauvegardes
         </a>
         <hr class="border-secondary opacity-25 my-2">
         <a href="{{ route('settings.index') }}" class="nav-link {{ request()->routeIs('settings.*') ? 'active' : '' }}">
-            Licence & MAJ
+            <span class="obiora-nav-icon" aria-hidden="true">◈</span> Licence & MAJ
             @if(!empty($updateAvailable))
                 <span class="badge bg-warning text-dark ms-1">!</span>
             @endif

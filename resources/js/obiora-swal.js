@@ -35,3 +35,23 @@ export function obioraConfirm(callback, title = 'Confirmer', text = 'Cette actio
         }
     });
 }
+
+/**
+ * Confirmation SweetAlert2 reliée à une méthode Livewire.
+ * Fonctionne depuis onclick="" (contrairement à $wire qui n'existe que dans Alpine).
+ */
+export function obioraConfirmWire(button, method, title, text, ...params) {
+    obioraConfirm(() => {
+        const root = button?.closest?.('[wire\\:id]');
+
+        if (! root || ! window.Livewire) {
+            return;
+        }
+
+        const component = window.Livewire.find(root.getAttribute('wire:id'));
+
+        if (component) {
+            component.call(method, ...params);
+        }
+    }, title, text);
+}

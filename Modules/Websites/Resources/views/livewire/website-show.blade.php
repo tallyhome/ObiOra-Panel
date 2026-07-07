@@ -74,7 +74,7 @@
                     <h2 class="h6 text-danger">Zone dangereuse</h2>
                     <p class="small text-muted mb-2">Supprime le vhost Nginx, les fichiers et l'entrée en base.</p>
                     <button type="button" wire:loading.attr="disabled"
-                        onclick="obioraConfirm(() => $wire.delete(), 'Supprimer le site', 'Supprimer définitivement ce site ?')"
+                        onclick="obioraConfirmWire(this, 'delete', 'Supprimer le site', 'Supprimer définitivement ce site ?')"
                         class="btn btn-outline-danger btn-sm">Supprimer le site</button>
                 </div>
             </div>

@@ -124,7 +124,7 @@
                                     <button wire:click="containerAction('{{ $container['name'] }}', 'restart')" class="btn btn-outline-primary btn-sm py-0">Restart</button>
                                     <button wire:click="showLogs('{{ $container['name'] }}')" class="btn btn-outline-secondary btn-sm py-0">Logs</button>
                                     <button type="button" wire:loading.attr="disabled"
-                                        onclick="obioraConfirm(() => $wire.containerAction(@js($container['name']), 'remove'), 'Supprimer le conteneur', 'Supprimer ce conteneur Docker ?')"
+                                        onclick="obioraConfirmWire(this, 'containerAction', 'Supprimer le conteneur', 'Supprimer ce conteneur Docker ?', @js($container['name']), 'remove')"
                                         class="btn btn-outline-danger btn-sm py-0">Remove</button>
                                 </td>
                             </tr>
@@ -157,7 +157,7 @@
                                 <td class="small text-muted">{{ $image['size'] }}</td>
                                 <td class="text-end">
                                     <button type="button" wire:loading.attr="disabled"
-                                        onclick="obioraConfirm(() => $wire.removeImage(@js($image['id'])), 'Supprimer l\'image', 'Supprimer cette image Docker ?')"
+                                        onclick="obioraConfirmWire(this, 'removeImage', 'Supprimer l\'image', 'Supprimer cette image Docker ?', @js($image['id']))"
                                         class="btn btn-outline-danger btn-sm py-0">Supprimer</button>
                                 </td>
                             </tr>

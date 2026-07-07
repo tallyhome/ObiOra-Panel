@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.9.13 - 2026-07-07
+
+Logo SVG intégré directement dans le HTML (plus de fichier externe — fonctionne sur tous les serveurs). Widgets RAM et disque refaits style QuickBox avec icônes et libellés « utilisé / libre / total ». Correction du bouton « Mettre à jour » (SweetAlert + Livewire) et barre de progression avec % pendant l'installation depuis GitHub.
+
 ## v1.9.12 - 2026-07-07
 
 Corrige le logo qui ne s'affichait pas après MAJ (SELinux bloquait silencieusement les nouveaux fichiers non relabellisés : `restorecon` ajouté à update-panel.sh). Le worker de file d'attente (`obiora-queue`) est désormais démarré automatiquement par le panel si besoin — plus aucune commande SSH à taper côté client.

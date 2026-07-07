@@ -153,20 +153,45 @@
 
             {{-- RAM --}}
             <div class="card obiora-card mb-3">
-                <div class="card-header">Mémoire RAM</div>
+                <div class="card-header d-flex align-items-center gap-2">
+                    <svg class="obiora-metric-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <rect x="3" y="6" width="18" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M7 10h2M11 10h2M15 10h2M7 14h2M11 14h2M15 14h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    Mémoire RAM
+                </div>
                 <div class="card-body">
-                    <div class="d-flex justify-content-between small text-muted mb-1">
-                        <span>Used · Free · Total</span>
+                    <div class="obiora-metric-widget">
+                        <div class="obiora-metric-visual" aria-hidden="true">
+                            <svg viewBox="0 0 64 64" fill="none">
+                                <rect x="8" y="18" width="48" height="28" rx="4" stroke="#3dd68c" stroke-width="2"/>
+                                <rect x="14" y="24" width="8" height="16" rx="1" fill="#3dd68c" opacity="0.85"/>
+                                <rect x="26" y="24" width="8" height="16" rx="1" fill="#3dd68c" opacity="0.55"/>
+                                <rect x="38" y="24" width="8" height="16" rx="1" fill="#3dd68c" opacity="0.35"/>
+                                <rect x="50" y="24" width="2" height="16" rx="1" fill="#6366f1" opacity="0.6"/>
+                            </svg>
+                        </div>
+                        <div class="obiora-metric-data flex-grow-1">
+                            <div class="obiora-metric-row">
+                                <div class="obiora-metric-cell">
+                                    <span class="value">{{ DashboardHealth::formatBytesFr($mem['used'] ?? 0) }}</span>
+                                    <span class="label">utilisé</span>
+                                </div>
+                                <div class="obiora-metric-cell">
+                                    <span class="value">{{ DashboardHealth::formatBytesFr($mem['free'] ?? 0) }}</span>
+                                    <span class="label">libre</span>
+                                </div>
+                                <div class="obiora-metric-cell">
+                                    <span class="value">{{ DashboardHealth::formatBytesFr($mem['total'] ?? 0) }}</span>
+                                    <span class="label">total</span>
+                                </div>
+                            </div>
+                            <div class="obiora-progress {{ $glance['memory'] ?? 'ok' }} mb-2">
+                                <div class="bar" style="width: {{ min(100, $mem['percent'] ?? 0) }}%"></div>
+                            </div>
+                            <div class="small text-muted">RAM utilisée à {{ $mem['percent'] ?? 0 }}%</div>
+                        </div>
                     </div>
-                    <div class="d-flex justify-content-between small mb-2">
-                        <span>{{ DashboardHealth::formatBytes($mem['used'] ?? 0) }}</span>
-                        <span>{{ DashboardHealth::formatBytes($mem['free'] ?? 0) }}</span>
-                        <span>{{ DashboardHealth::formatBytes($mem['total'] ?? 0) }}</span>
-                    </div>
-                    <div class="obiora-progress {{ $glance['memory'] ?? 'ok' }} mb-2">
-                        <div class="bar" style="width: {{ min(100, $mem['percent'] ?? 0) }}%"></div>
-                    </div>
-                    <div class="small text-muted">RAM utilisée à {{ $mem['percent'] ?? 0 }}%</div>
                     @if (($swap['total'] ?? 0) > 0)
                         <hr class="border-secondary my-2 opacity-25">
                         <div class="d-flex justify-content-between small mb-1">
@@ -182,17 +207,45 @@
 
             {{-- Disque --}}
             <div class="card obiora-card mb-3">
-                <div class="card-header">Quota disque</div>
+                <div class="card-header d-flex align-items-center gap-2">
+                    <svg class="obiora-metric-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <ellipse cx="12" cy="6" rx="8" ry="3" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                    Quota disque
+                </div>
                 <div class="card-body">
-                    <div class="d-flex justify-content-between small mb-2">
-                        <span>{{ DashboardHealth::formatBytes($disk['used'] ?? 0) }} <span class="text-muted">used</span></span>
-                        <span>{{ DashboardHealth::formatBytes($disk['free'] ?? 0) }} <span class="text-muted">free</span></span>
-                        <span>{{ DashboardHealth::formatBytes($disk['total'] ?? 0) }} <span class="text-muted">total</span></span>
+                    <div class="obiora-metric-widget">
+                        <div class="obiora-metric-visual" aria-hidden="true">
+                            <svg viewBox="0 0 64 64" fill="none">
+                                <ellipse cx="32" cy="16" rx="22" ry="8" stroke="#3dd68c" stroke-width="2"/>
+                                <path d="M10 16v28c0 4.4 9.85 8 22 8s22-3.6 22-8V16" stroke="#3dd68c" stroke-width="2"/>
+                                <path d="M10 30c0 4.4 9.85 8 22 8s22-3.6 22-8" stroke="#6366f1" stroke-width="1.5" opacity="0.7"/>
+                                <circle cx="32" cy="30" r="6" fill="#3dd68c" opacity="0.25"/>
+                            </svg>
+                        </div>
+                        <div class="obiora-metric-data flex-grow-1">
+                            <div class="obiora-metric-row">
+                                <div class="obiora-metric-cell">
+                                    <span class="value">{{ DashboardHealth::formatBytesFr($disk['used'] ?? 0) }}</span>
+                                    <span class="label">utilisé</span>
+                                </div>
+                                <div class="obiora-metric-cell">
+                                    <span class="value">{{ DashboardHealth::formatBytesFr($disk['free'] ?? 0) }}</span>
+                                    <span class="label">libre</span>
+                                </div>
+                                <div class="obiora-metric-cell">
+                                    <span class="value">{{ DashboardHealth::formatBytesFr($disk['total'] ?? 0) }}</span>
+                                    <span class="label">total</span>
+                                </div>
+                            </div>
+                            <div class="obiora-progress {{ $glance['disk'] ?? 'ok' }} mb-2">
+                                <div class="bar" style="width: {{ min(100, $disk['percent'] ?? 0) }}%"></div>
+                            </div>
+                            <div class="small text-muted">Espace utilisé à {{ $disk['percent'] ?? 0 }}% (<code>/</code>)</div>
+                        </div>
                     </div>
-                    <div class="obiora-progress {{ $glance['disk'] ?? 'ok' }} mb-2">
-                        <div class="bar" style="width: {{ min(100, $disk['percent'] ?? 0) }}%"></div>
-                    </div>
-                    <div class="small text-muted">Vous avez utilisé {{ $disk['percent'] ?? 0 }}% de l'espace disque (<code>/</code>).</div>
                 </div>
             </div>
 

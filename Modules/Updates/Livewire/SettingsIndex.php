@@ -41,6 +41,10 @@ final class SettingsIndex extends Component
 
     public bool $updateRunning = false;
 
+    public int $updateProgress = 0;
+
+    public string $updateProgressMessage = '';
+
     public function mount(LicenseService $licenseService, UpdateManager $updateManager): void
     {
         $this->loadLicense($licenseService);
@@ -97,6 +101,8 @@ final class SettingsIndex extends Component
         $this->updateMessage = $result['message'];
         $this->pendingHistoryId = $result['history_id'];
         $this->updateRunning = $result['success'] && $result['history_id'] !== null;
+        $this->updateProgress = $this->updateRunning ? 2 : 0;
+        $this->updateProgressMessage = $this->updateRunning ? 'Mise en file d\'attente…' : '';
 
         $this->dispatch('notify', type: $result['success'] ? 'info' : 'danger', message: $result['message']);
     }
@@ -142,9 +148,13 @@ final class SettingsIndex extends Component
         }
 
         // Toujours 'queued' ou 'running' : on continue de sonder.
-        $this->updateMessage = $history->status === 'running'
-            ? 'Mise à jour en cours d\'exécution (composer, migrations, build)…'
-            : 'Mise à jour en file d\'attente, démarrage imminent…';
+        $this->updateProgress = (int) ($history->progress ?? 0);
+        $this->updateProgressMessage = (string) ($history->progress_message ?? '');
+        $this->updateMessage = $this->updateProgressMessage !== ''
+            ? $this->updateProgressMessage
+            : ($history->status === 'running'
+                ? 'Mise à jour en cours d\'exécution (composer, migrations, build)…'
+                : 'Mise à jour en file d\'attente, démarrage imminent…');
         $this->updateSuccess = true;
     }
 
@@ -162,9 +172,13 @@ final class SettingsIndex extends Component
         $this->pendingHistoryId = $pending->id;
         $this->updateRunning = true;
         $this->updateSuccess = true;
-        $this->updateMessage = $pending->status === 'running'
-            ? 'Mise à jour en cours d\'exécution (composer, migrations, build)…'
-            : 'Mise à jour en file d\'attente, démarrage imminent…';
+        $this->updateProgress = (int) ($pending->progress ?? 0);
+        $this->updateProgressMessage = (string) ($pending->progress_message ?? '');
+        $this->updateMessage = $this->updateProgressMessage !== ''
+            ? $this->updateProgressMessage
+            : ($pending->status === 'running'
+                ? 'Mise à jour en cours d\'exécution (composer, migrations, build)…'
+                : 'Mise à jour en file d\'attente, démarrage imminent…');
     }
 
     private function setUpdateFeedback(): void

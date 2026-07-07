@@ -53,7 +53,7 @@
                             <td class="text-end text-nowrap">
                                 <a href="{{ route('websites.show', $website) }}" class="btn btn-outline-primary btn-sm">Gérer</a>
                                 <button type="button" wire:loading.attr="disabled"
-                                    onclick="obioraConfirm(() => $wire.delete({{ $website->id }}), 'Supprimer le site', 'Supprimer ce site et sa configuration Nginx ?')"
+                                    onclick="obioraConfirmWire(this, 'delete', 'Supprimer le site', 'Supprimer ce site et sa configuration Nginx ?', {{ $website->id }})"
                                     class="btn btn-outline-danger btn-sm">Supprimer</button>
                             </td>
                         </tr>

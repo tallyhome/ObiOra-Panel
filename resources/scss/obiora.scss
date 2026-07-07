@@ -59,6 +59,19 @@ body {
         padding: 0.55rem 0.85rem;
         font-size: 0.9rem;
         transition: background 0.15s, color 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+
+        .obiora-nav-icon {
+            width: 1.1rem;
+            text-align: center;
+            color: var(--obiora-primary);
+            opacity: 0.85;
+            flex-shrink: 0;
+            font-size: 0.95rem;
+            line-height: 1;
+        }
 
         &:hover {
             color: #fff !important;
@@ -166,6 +179,67 @@ body {
 
     &.danger .bar {
         background: linear-gradient(90deg, #dc2626, var(--obiora-danger));
+    }
+
+    &.info .bar {
+        background: linear-gradient(90deg, #2563eb, #38bdf8);
+    }
+}
+
+.obiora-metric-icon {
+    width: 1rem;
+    height: 1rem;
+    color: var(--obiora-primary);
+    flex-shrink: 0;
+}
+
+.obiora-metric-widget {
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-start;
+}
+
+.obiora-metric-visual {
+    flex-shrink: 0;
+    width: 52px;
+    opacity: 0.9;
+
+    svg {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+}
+
+.obiora-metric-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.65rem;
+}
+
+.obiora-metric-cell {
+    text-align: center;
+    flex: 1;
+    min-width: 0;
+
+    .value {
+        display: block;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--obiora-text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .label {
+        display: block;
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--obiora-text-muted);
+        margin-top: 0.1rem;
     }
 }
 

@@ -4,6 +4,19 @@ set -euo pipefail
 
 OBIORA_INSTALL_DIR="${OBIORA_INSTALL_DIR:-/opt/obiora-panel}"
 OBIORA_USER="${OBIORA_USER:-obiora}"
+OBIORA_UPDATE_HISTORY_ID="${OBIORA_UPDATE_HISTORY_ID:-}"
+
+progress() {
+    local pct="$1"
+    local msg="$2"
+
+    echo "[${pct}%] ${msg}"
+
+    if [[ -n "${OBIORA_UPDATE_HISTORY_ID}" ]] && [[ -f "${OBIORA_INSTALL_DIR}/artisan" ]]; then
+        sudo -u "${OBIORA_USER}" php "${OBIORA_INSTALL_DIR}/artisan" obiora:update-progress \
+            "${OBIORA_UPDATE_HISTORY_ID}" "${pct}" "${msg}" >/dev/null 2>&1 || true
+    fi
+}
 
 if [[ "${EUID}" -ne 0 ]]; then
     echo "ERREUR: ce script doit être exécuté en root (via sudo)." >&2
@@ -14,20 +27,30 @@ cd "${OBIORA_INSTALL_DIR}"
 
 git config --global --add safe.directory "${OBIORA_INSTALL_DIR}" 2>/dev/null || true
 
-echo "[1/7] git fetch..."
+progress 8 "Préparation de la mise à jour…"
+
+echo "[1/8] git fetch..."
+progress 12 "Téléchargement depuis GitHub…"
 git fetch origin main --tags
 
-echo "[2/7] git sync..."
+echo "[2/8] git sync..."
+progress 28 "Synchronisation du code source…"
 if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
     echo "WARN: modifications locales détectées — alignement forcé sur origin/main"
 fi
 git reset --hard origin/main
 
-echo "[3/7] composer..."
+echo "[2b/8] migrations préliminaires..."
+progress 32 "Application des migrations…"
+sudo -u "${OBIORA_USER}" php artisan migrate --force 2>/dev/null || true
+
+echo "[3/8] composer..."
+progress 42 "Installation des dépendances PHP (composer)…"
 sudo -u "${OBIORA_USER}" env PATH=/usr/local/bin:/usr/bin:/bin \
     composer install --no-dev --optimize-autoloader --no-interaction
 
-echo "[4/7] assets frontend..."
+echo "[4/8] assets frontend..."
+progress 55 "Compilation des assets frontend…"
 if command -v npm &>/dev/null && [[ -f package.json ]]; then
     if [[ ! -f public/build/manifest.json ]]; then
         sudo -u "${OBIORA_USER}" npm ci --omit=dev 2>/dev/null || sudo -u "${OBIORA_USER}" npm install
@@ -40,14 +63,17 @@ if command -v npm &>/dev/null && [[ -f package.json ]]; then
     fi
 fi
 
-echo "[5/7] artisan migrate..."
+echo "[5/8] artisan migrate..."
+progress 72 "Migrations de base de données…"
 sudo -u "${OBIORA_USER}" php artisan migrate --force
 sudo -u "${OBIORA_USER}" php artisan config:clear
 
-echo "[6/7] artisan optimize..."
+echo "[6/8] artisan optimize..."
+progress 82 "Optimisation du panel…"
 sudo -u "${OBIORA_USER}" php artisan optimize
 
 echo "[7/8] sudoers agent + répertoire web..."
+progress 88 "Configuration des permissions et sudoers…"
 if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/common.sh" ]] && [[ -f "${OBIORA_INSTALL_DIR}/install/lib/sudoers.sh" ]]; then
     # shellcheck source=/dev/null
     source "${OBIORA_INSTALL_DIR}/install/lib/common.sh"
@@ -78,6 +104,7 @@ if command -v getenforce &>/dev/null && [[ "$(getenforce)" != "Disabled" ]] && c
 fi
 
 echo "[8/8] rechargement des services..."
+progress 94 "Rechargement des services (PHP-FPM, Nginx, file d'attente)…"
 systemctl reload-or-restart php8.3-fpm 2>/dev/null || systemctl reload-or-restart php-fpm 2>/dev/null || true
 systemctl reload nginx 2>/dev/null || true
 
@@ -89,4 +116,5 @@ if systemctl list-unit-files 2>/dev/null | grep -q '^obiora-queue\.service'; the
     disown 2>/dev/null || true
 fi
 
+progress 100 "Mise à jour terminée avec succès"
 echo "OK: panel mis à jour."

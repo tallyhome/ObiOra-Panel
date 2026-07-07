@@ -17,6 +17,8 @@ class UpdateHistory extends Model
         'from_version',
         'to_version',
         'status',
+        'progress',
+        'progress_message',
         'changelog_url',
         'backup_path',
         'output',

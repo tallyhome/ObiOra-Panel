@@ -46,7 +46,7 @@
                                 <button wire:click="ping({{ $server->id }})" class="btn btn-outline-secondary btn-sm">Ping</button>
                                 @unless ($server->is_master)
                                     <button type="button" wire:loading.attr="disabled"
-                                        onclick="obioraConfirm(() => $wire.delete({{ $server->id }}), 'Supprimer le serveur', 'Supprimer ce serveur du panel ?')"
+                                        onclick="obioraConfirmWire(this, 'delete', 'Supprimer le serveur', 'Supprimer ce serveur du panel ?', {{ $server->id }})"
                                         class="btn btn-outline-danger btn-sm">Supprimer</button>
                                 @endunless
                             </td>

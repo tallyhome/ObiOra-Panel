@@ -55,6 +55,8 @@ final class PanelUpdater
             'from_version' => $fromVersion,
             'to_version' => $toVersion,
             'status' => 'queued',
+            'progress' => 2,
+            'progress_message' => 'Mise en file d\'attente…',
             'changelog_url' => $check['changelog_url'] ?? null,
         ]);
 
@@ -97,14 +99,19 @@ final class PanelUpdater
             return;
         }
 
-        $history->update(['status' => 'running']);
+        $history->update([
+            'status' => 'running',
+            'progress' => 5,
+            'progress_message' => 'Démarrage de la mise à jour…',
+        ]);
 
         $panelRoot = base_path();
         $updateScript = $panelRoot.'/install/update-panel.sh';
 
         try {
             $result = $this->executor->run(
-                'sudo -n '.escapeshellarg($updateScript),
+                'sudo -n env OBIORA_UPDATE_HISTORY_ID='.escapeshellarg((string) $historyId).' '
+                .escapeshellarg($updateScript),
                 ['timeout' => 1500],
             );
 
@@ -113,6 +120,8 @@ final class PanelUpdater
             if (! $result->successful) {
                 $history->update([
                     'status' => 'failed',
+                    'progress' => 100,
+                    'progress_message' => 'Échec de la mise à jour',
                     'output' => $output,
                     'completed_at' => now(),
                 ]);
@@ -124,6 +133,8 @@ final class PanelUpdater
 
             $history->update([
                 'status' => 'completed',
+                'progress' => 100,
+                'progress_message' => 'Mise à jour terminée',
                 'output' => $output,
                 'completed_at' => now(),
             ]);
@@ -132,6 +143,8 @@ final class PanelUpdater
 
             $history->update([
                 'status' => 'failed',
+                'progress' => 100,
+                'progress_message' => 'Erreur interne',
                 'output' => $exception->getMessage(),
                 'completed_at' => now(),
             ]);

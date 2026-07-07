@@ -11,14 +11,21 @@
     @endif
 
     @if($updateRunning)
-        <div class="alert alert-info d-flex align-items-center gap-2 mb-1">
-            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            <span>{{ $updateMessage ?? 'Mise à jour en cours…' }}</span>
+        <div class="card obiora-card mb-4 border-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong class="small text-uppercase">Mise à jour en cours</strong>
+                    <span class="badge bg-info">{{ $updateProgress }}%</span>
+                </div>
+                <div class="obiora-progress info mb-2" style="height: 12px;">
+                    <div class="bar" style="width: {{ max(2, $updateProgress) }}%"></div>
+                </div>
+                <p class="mb-0 small text-muted d-flex align-items-center gap-2">
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    {{ $updateProgressMessage ?: ($updateMessage ?? 'Mise à jour en cours…') }}
+                </p>
+            </div>
         </div>
-        <p class="text-muted small mb-4">
-            Cela peut prendre plusieurs minutes (composer, build, migrations). Si le statut reste bloqué sur
-            « en file d'attente » plus d'une minute, vérifiez sur le serveur : <code>systemctl status obiora-queue</code>.
-        </p>
     @elseif($updateMessage)
         <div class="alert alert-{{ $updateSuccess ? 'success' : 'warning' }}">{{ $updateMessage }}</div>
     @endif
@@ -113,7 +120,7 @@
                                 </button>
                             @elseif($updateInfo['available'] ?? false)
                                 <button type="button" wire:loading.attr="disabled"
-                                    onclick="obioraConfirm(() => $wire.applyUpdate(), 'Mettre à jour', 'Appliquer la mise à jour maintenant ? Le panel sera indisponible quelques instants.')"
+                                    onclick="obioraConfirmWire(this, 'applyUpdate', 'Mettre à jour', 'Appliquer la mise à jour maintenant ? Le panel sera indisponible quelques instants.')"
                                     class="btn btn-primary btn-sm">
                                     Mettre à jour
                                 </button>
