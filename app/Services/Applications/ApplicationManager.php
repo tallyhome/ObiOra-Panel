@@ -559,7 +559,7 @@ final class ApplicationManager
         $env = [];
 
         foreach ($installOptions as $key => $value) {
-            if ($value === '' || str_ends_with($key, '_confirm')) {
+            if ($value === '' || str_ends_with($key, '_confirm') || str_ends_with($key, 'pass_confirm')) {
                 continue;
             }
 

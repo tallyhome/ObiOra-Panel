@@ -187,7 +187,9 @@
                                         id="setup-{{ $name }}"
                                         type="{{ $inputType }}"
                                         class="form-control obiora-input"
-                                        wire:model="setupValues.{{ $name }}"
+                                        wire:model.live="setupValues.{{ $name }}"
+                                        wire:key="setup-field-{{ $setupSlug }}-{{ $name }}"
+                                        autocomplete="off"
                                         @if(!empty($field['default']) && $type !== 'password') placeholder="{{ $field['default'] }}" @endif
                                     >
                                     @if (!empty($field['help']))

@@ -83,7 +83,14 @@ final class PluginMarketplace extends Component
         }
 
         $this->setupSlug = $slug;
-        $this->setupValues = $package->defaultInstallOptionValues();
+        $values = [];
+        foreach ($package->installOptions() as $field) {
+            $name = (string) ($field['name'] ?? '');
+            if ($name !== '') {
+                $values[$name] = (string) ($field['default'] ?? '');
+            }
+        }
+        $this->setupValues = $values;
     }
 
     public function cancelInstallSetup(): void
