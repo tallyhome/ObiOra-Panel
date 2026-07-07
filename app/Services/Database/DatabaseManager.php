@@ -114,6 +114,12 @@ final class DatabaseManager
         );
 
         if (! $result['success']) {
+            if (in_array($database->status, [DatabaseStatus::Error, DatabaseStatus::Pending], true)) {
+                $database->delete();
+
+                return;
+            }
+
             throw new InvalidArgumentException('Échec suppression : '.trim($result['output']));
         }
 

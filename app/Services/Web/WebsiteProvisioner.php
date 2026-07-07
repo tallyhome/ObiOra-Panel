@@ -6,6 +6,7 @@ namespace App\Services\Web;
 
 use App\Models\Server;
 use App\Services\Core\ServerManager;
+use App\Services\System\PrivilegedScriptRunner;
 use Illuminate\Support\Facades\Http;
 use InvalidArgumentException;
 
@@ -13,6 +14,7 @@ final class WebsiteProvisioner
 {
     public function __construct(
         private readonly ServerManager $serverManager,
+        private readonly PrivilegedScriptRunner $scripts,
     ) {}
 
     /**
@@ -31,10 +33,7 @@ final class WebsiteProvisioner
                 return $this->devStubCreate($domain, $phpVersion, $webRoot);
             }
 
-            $result = $this->serverManager->executorFor($server)->runScript(
-                $script,
-                [$domain, $phpVersion, $webRoot]
-            );
+            $result = $this->scripts->run($script, [$domain, $phpVersion, $webRoot]);
 
             return $this->parseCreateOutput($result->successful, $result->output.$result->errorOutput);
         }
@@ -56,7 +55,7 @@ final class WebsiteProvisioner
             }
 
             $script = base_path('agent/scripts/website-delete.sh');
-            $result = $this->serverManager->executorFor($server)->runScript($script, [$domain, $webRoot]);
+            $result = $this->scripts->run($script, [$domain, $webRoot]);
 
             return [
                 'success' => $result->successful,
@@ -86,11 +85,7 @@ final class WebsiteProvisioner
             }
 
             $script = base_path('agent/scripts/website-ssl.sh');
-            $args = implode(' ', array_map('escapeshellarg', [$domain, $email, $webRoot]));
-            $result = $this->serverManager->executorFor($server)->run(
-                "bash ".escapeshellarg($script)." {$args}",
-                ['timeout' => 300]
-            );
+            $result = $this->scripts->run($script, [$domain, $email, $webRoot], 300);
 
             return $this->parseSslOutput($result->successful, $result->output.$result->errorOutput);
         }
@@ -180,7 +175,7 @@ final class WebsiteProvisioner
         return [
             'success' => true,
             'document_root' => "{$webRoot}/{$domain}/public",
-            'nginx_config_path' => "/etc/nginx/sites-available/obiora-".str_replace('.', '-', $domain),
+            'nginx_config_path' => '/etc/nginx/sites-available/obiora-'.str_replace('.', '-', $domain),
             'output' => "OK:{$webRoot}/{$domain}/public:/etc/nginx/sites-available/obiora-{$domain} (dev stub PHP {$phpVersion})",
         ];
     }

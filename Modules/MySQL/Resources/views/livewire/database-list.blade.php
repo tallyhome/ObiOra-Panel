@@ -56,7 +56,9 @@
                             </td>
                             <td class="text-end text-nowrap">
                                 <a href="{{ route('databases.show', $database) }}" class="btn btn-outline-primary btn-sm">Détails</a>
-                                <button wire:click="delete({{ $database->id }})" wire:confirm="Supprimer cette base et l'utilisateur MySQL ?" class="btn btn-outline-danger btn-sm">Supprimer</button>
+                                <button type="button" wire:loading.attr="disabled"
+                                    onclick="obioraConfirm(() => $wire.delete({{ $database->id }}), 'Supprimer la base', 'Supprimer cette base et l\'utilisateur MySQL ?')"
+                                    class="btn btn-outline-danger btn-sm">Supprimer</button>
                             </td>
                         </tr>
                     @empty

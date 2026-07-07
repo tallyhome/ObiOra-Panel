@@ -69,7 +69,9 @@ DB_PASSWORD={{ $showPassword ? $database->password_plain : '********' }}</pre>
                 <div class="card-body">
                     <h2 class="h6 text-danger">Zone dangereuse</h2>
                     <p class="small text-muted mb-2">Supprime la base MySQL, l'utilisateur et l'entrée ObiOra.</p>
-                    <button wire:click="delete" wire:confirm="Supprimer définitivement cette base ?" class="btn btn-outline-danger btn-sm">Supprimer</button>
+                    <button type="button" wire:loading.attr="disabled"
+                        onclick="obioraConfirm(() => $wire.delete(), 'Supprimer la base', 'Supprimer définitivement cette base ?')"
+                        class="btn btn-outline-danger btn-sm">Supprimer</button>
                 </div>
             </div>
         </div>

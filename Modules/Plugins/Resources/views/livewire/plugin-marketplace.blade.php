@@ -14,7 +14,9 @@
                     @foreach ($installed as $app)
                         <span class="badge text-bg-success d-inline-flex align-items-center gap-2 py-2 px-3">
                             {{ $app->name }}
-                            <button wire:click="uninstall({{ $app->id }})" wire:confirm="Désinstaller {{ $app->name }} ?" class="btn-close btn-close-white btn-sm" style="font-size: .6rem;"></button>
+                            <button type="button" wire:loading.attr="disabled"
+                                onclick="obioraConfirm(() => $wire.uninstall({{ $app->id }}), 'Désinstaller', @js('Désinstaller '.$app->name.' ?'))"
+                                class="btn-close btn-close-white btn-sm" style="font-size: .6rem;"></button>
                         </span>
                     @endforeach
                 </div>

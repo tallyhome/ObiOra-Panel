@@ -18,14 +18,22 @@ ${OBIORA_USER} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/packages/*/install.sh
 ${OBIORA_USER} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/packages/*/uninstall.sh
 SUDOERS
 
-    # PHP-FPM (apache/nginx/www-data) peut lancer la mise à jour panel via sudo
+    # PHP-FPM peut exécuter les scripts agent et la mise à jour panel via sudo
     for web_user in apache nginx www-data; do
         if id "${web_user}" &>/dev/null; then
             cat >> "${sudoers_file}" <<SUDOERS
+${web_user} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/agent/scripts/*.sh
 ${web_user} ALL=(root) NOPASSWD: ${update_script}
 SUDOERS
         fi
     done
+
+    # Répertoire web pour les sites clients
+    local web_root
+    web_root="$(grep '^OBIORA_WEB_ROOT=' "${OBIORA_INSTALL_DIR}/.env" 2>/dev/null | cut -d= -f2-)"
+    web_root="${web_root:-/var/www}"
+    mkdir -p "${web_root}"
+    chmod 755 "${web_root}"
 
     chmod 440 "${sudoers_file}"
     visudo -cf "${sudoers_file}" || die "Configuration sudoers invalide"

@@ -123,7 +123,9 @@
                                     <button wire:click="containerAction('{{ $container['name'] }}', 'stop')" class="btn btn-outline-warning btn-sm py-0">Stop</button>
                                     <button wire:click="containerAction('{{ $container['name'] }}', 'restart')" class="btn btn-outline-primary btn-sm py-0">Restart</button>
                                     <button wire:click="showLogs('{{ $container['name'] }}')" class="btn btn-outline-secondary btn-sm py-0">Logs</button>
-                                    <button wire:click="containerAction('{{ $container['name'] }}', 'remove')" wire:confirm="Supprimer ce conteneur ?" class="btn btn-outline-danger btn-sm py-0">Remove</button>
+                                    <button type="button" wire:loading.attr="disabled"
+                                        onclick="obioraConfirm(() => $wire.containerAction(@js($container['name']), 'remove'), 'Supprimer le conteneur', 'Supprimer ce conteneur Docker ?')"
+                                        class="btn btn-outline-danger btn-sm py-0">Remove</button>
                                 </td>
                             </tr>
                         @empty
@@ -154,7 +156,9 @@
                                 <td><span class="badge text-bg-light text-dark">{{ $image['tag'] }}</span></td>
                                 <td class="small text-muted">{{ $image['size'] }}</td>
                                 <td class="text-end">
-                                    <button wire:click="removeImage('{{ $image['id'] }}')" wire:confirm="Supprimer cette image ?" class="btn btn-outline-danger btn-sm py-0">Supprimer</button>
+                                    <button type="button" wire:loading.attr="disabled"
+                                        onclick="obioraConfirm(() => $wire.removeImage(@js($image['id'])), 'Supprimer l\'image', 'Supprimer cette image Docker ?')"
+                                        class="btn btn-outline-danger btn-sm py-0">Supprimer</button>
                                 </td>
                             </tr>
                         @empty

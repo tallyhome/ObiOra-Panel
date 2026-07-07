@@ -20,6 +20,20 @@ Corrige la detection des mises a jour (VERSION, git, GitHub API) et affiche un b
 
 Phase 10: page Licence et MAJ, integration AdminLicence, correctifs installateur (404, permissions, SELinux).
 
+## [1.9.5] - 2026-07-07
+
+### Corrigé
+
+- **Sites web / Bases / Docker** : scripts agent exécutés via `sudo -n` (PHP-FPM `apache` sans mot de passe)
+- **Sudoers** : `apache`/`nginx` autorisés sur `agent/scripts/*.sh` + création `/var/www` à l'install/MAJ
+- **Suppression** : entrées en erreur ou en attente retirables même si le déprovisionnement serveur échoue
+- **Provisionnement** : `website-create.sh` corrigé (permissions, socket PHP Remi/RHEL)
+
+### Amélioré
+
+- **Notifications** : SweetAlert2 (toasts + confirmations) à la place des `alert` / `wire:confirm` natifs
+- **MAJ panel** : `update-panel.sh` réapplique la configuration sudoers automatiquement
+
 ## [1.9.4] - 2026-07-07
 
 ### Corrigé
