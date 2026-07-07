@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Models\Server;
 use App\Services\Monitoring\MonitoringAlertService;
 use App\Services\Monitoring\ServerPingService;
+use App\Services\Realtime\RealtimeBroadcaster;
 use Illuminate\Console\Command;
 
 final class MonitorServersPingCommand extends Command
@@ -15,7 +16,7 @@ final class MonitorServersPingCommand extends Command
 
     protected $description = 'Probe ICMP/TCP de tous les serveurs et enregistre la latence';
 
-    public function handle(ServerPingService $pinger, MonitoringAlertService $alerts): int
+    public function handle(ServerPingService $pinger, MonitoringAlertService $alerts, RealtimeBroadcaster $realtime): int
     {
         $query = Server::query()->orderBy('id');
         if ($this->option('server')) {
@@ -33,6 +34,8 @@ final class MonitorServersPingCommand extends Command
                 $alerts->recordServerOffline($server);
             }
         }
+
+        $realtime->monitoringFleet();
 
         return self::SUCCESS;
     }

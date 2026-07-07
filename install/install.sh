@@ -95,6 +95,8 @@ source "${SCRIPT_DIR}/lib/nginx.sh"
 source "${SCRIPT_DIR}/lib/ssl.sh"
 # shellcheck source=lib/systemd.sh
 source "${SCRIPT_DIR}/lib/systemd.sh"
+# shellcheck source=lib/reverb.sh
+source "${SCRIPT_DIR}/lib/reverb.sh"
 # shellcheck source=lib/sudoers.sh
 source "${SCRIPT_DIR}/lib/sudoers.sh"
 # shellcheck source=lib/firewall.sh
@@ -188,6 +190,8 @@ main() {
     setup_nginx
     setup_ssl
     setup_systemd
+    setup_reverb
+    append_reverb_nginx
     setup_sudoers
     # shellcheck source=lib/panel-update-helper.sh
     source "${SCRIPT_DIR}/lib/panel-update-helper.sh"

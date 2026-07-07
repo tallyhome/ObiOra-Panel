@@ -19,6 +19,9 @@
         @if(!empty($monitoringEnabled))
         <a href="{{ route('monitoring.index') }}" class="nav-link {{ request()->routeIs('monitoring.*') ? 'active' : '' }}">
             <span class="obiora-nav-icon" aria-hidden="true">◉</span> Monitoring
+            @if(!empty($realtimeEnabled))
+                <span class="badge bg-primary ms-1" style="font-size:0.6rem;">WS</span>
+            @endif
         </a>
         @endif
         <a href="{{ route('websites.index') }}" class="nav-link {{ request()->routeIs('websites.*') ? 'active' : '' }}">
@@ -33,6 +36,15 @@
         <a href="{{ route('backups.index') }}" class="nav-link {{ request()->routeIs('backups.*') ? 'active' : '' }}">
             <span class="obiora-nav-icon" aria-hidden="true">⬚</span> Sauvegardes
         </a>
+        @if(!empty($stubModules))
+        <hr class="border-secondary opacity-25 my-2">
+        <div class="small text-muted px-2 mb-1">Infrastructure</div>
+        @foreach($stubModules as $slug => $stub)
+        <a href="{{ route('modules.stub', $slug) }}" class="nav-link small py-1 {{ request()->routeIs('modules.stub') && request()->route('slug') === $slug ? 'active' : '' }}">
+            <span class="me-1">{{ $stub['icon'] ?? '◫' }}</span>{{ $stub['name'] ?? $slug }}
+        </a>
+        @endforeach
+        @endif
         <hr class="border-secondary opacity-25 my-2">
         <a href="{{ route('settings.index') }}" class="nav-link {{ request()->routeIs('settings.*') ? 'active' : '' }}">
             <span class="obiora-nav-icon" aria-hidden="true">◈</span> Licence & MAJ

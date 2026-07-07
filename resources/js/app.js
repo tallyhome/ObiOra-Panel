@@ -1,4 +1,6 @@
 import './bootstrap';
+import './echo';
+import './realtime';
 import ApexCharts from 'apexcharts';
 import { obioraConfirm, obioraConfirmWire, obioraSubmitInstallSetup, obioraToast } from './obiora-swal';
 

@@ -193,5 +193,9 @@ if systemctl list-unit-files 2>/dev/null | grep -q '^obiora-queue\.service'; the
     disown 2>/dev/null || true
 fi
 
+if systemctl list-unit-files 2>/dev/null | grep -q '^obiora-reverb\.service'; then
+    systemctl restart obiora-reverb >/dev/null 2>&1 || true
+fi
+
 progress 100 "Mise à jour terminée avec succès"
 echo "OK: panel mis à jour."

@@ -69,6 +69,10 @@ TIMER
         systemctl_enable_start obiora-agent
     fi
 
+    if [[ -f /etc/systemd/system/obiora-reverb.service ]]; then
+        systemctl_enable_start obiora-reverb 2>/dev/null || warn "Reverb non demarre"
+    fi
+
     systemctl_enable_start redis 2>/dev/null || systemctl_enable_start redis-server 2>/dev/null || true
     systemctl enable supervisor 2>/dev/null && systemctl start supervisor 2>/dev/null || warn "Supervisor non démarré (optionnel)"
 

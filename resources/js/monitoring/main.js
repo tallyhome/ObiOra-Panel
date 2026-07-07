@@ -1,3 +1,4 @@
+import '../echo.js';
 import { createApp } from 'vue';
 import MonitoringDashboard from './MonitoringDashboard.vue';
 
@@ -12,5 +13,6 @@ if (root) {
         compareBase: root.dataset.compareBaseUrl,
         alertsReadBase: root.dataset.alertsReadUrl,
         panelUrl: root.dataset.panelUrl,
+        realtimeEnabled: root.dataset.realtimeEnabled === '1',
     }).mount(root);
 }

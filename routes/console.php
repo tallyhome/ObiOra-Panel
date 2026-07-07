@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Console\Commands\BroadcastDashboardMetricsCommand;
 use App\Console\Commands\MonitorServersPingCommand;
 use App\Console\Commands\SendMonitoringAlertsCommand;
 use Illuminate\Foundation\Inspiring;
@@ -22,4 +23,13 @@ if ($pingInterval <= 30) {
 
 if (config('obiora.diagnostics.alerts_email', true)) {
     Schedule::command(SendMonitoringAlertsCommand::class)->everyFiveMinutes();
+}
+
+if ((bool) config('obiora.realtime.enabled', false)) {
+    $metricsInterval = max(3, (int) config('obiora.realtime.metrics_interval_seconds', 5));
+    if ($metricsInterval <= 5) {
+        Schedule::command(BroadcastDashboardMetricsCommand::class)->everyFiveSeconds();
+    } else {
+        Schedule::command(BroadcastDashboardMetricsCommand::class)->everyTenSeconds();
+    }
 }

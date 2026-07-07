@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\System;
 
+use App\Events\ServiceStateChanged;
 use App\Jobs\ServiceActionJob;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
+use App\Support\Realtime;
 use Illuminate\Support\Facades\Http;
 
 final class ServiceManager
@@ -102,14 +104,33 @@ final class ServiceManager
             $result = $this->scripts->run($script, [$action, $serviceName], 120);
 
             $output = trim($result->output.$result->errorOutput);
-
-            return [
+            $response = [
                 'success' => $result->successful || str_contains($output, 'OK:'),
                 'output' => $output,
             ];
+            $this->broadcastServiceState($server, $serviceName, $action, $response['success'], $response['output']);
+
+            return $response;
         }
 
-        return $this->remoteAction($server, $serviceName, $action);
+        $response = $this->remoteAction($server, $serviceName, $action);
+        $this->broadcastServiceState($server, $serviceName, $action, $response['success'], $response['output']);
+
+        return $response;
+    }
+
+    private function broadcastServiceState(
+        Server $server,
+        string $serviceName,
+        string $action,
+        bool $success,
+        string $output,
+    ): void {
+        if (! Realtime::enabled()) {
+            return;
+        }
+
+        event(new ServiceStateChanged($server->id, $serviceName, $action, $success, $output));
     }
 
     public function logs(string $serviceName, int $lines = 100, ?Server $server = null): string

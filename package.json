@@ -9,6 +9,8 @@
     "dependencies": {
         "apexcharts": "^4.7.0",
         "bootstrap": "^5.3.6",
+        "laravel-echo": "^2.3.7",
+        "pusher-js": "^8.5.0",
         "sweetalert2": "^11.22.2",
         "vue": "^3.5.17"
     },

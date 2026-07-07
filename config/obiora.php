@@ -72,4 +72,10 @@ return [
         'stream_interval_seconds' => (int) env('OBIORA_MONITOR_STREAM_INTERVAL', 5),
     ],
 
+    'realtime' => [
+        'enabled' => (bool) env('OBIORA_REALTIME_ENABLED', false),
+        'metrics_interval_seconds' => (int) env('OBIORA_REALTIME_METRICS_INTERVAL', 5),
+        'fallback_poll_seconds' => (int) env('OBIORA_REALTIME_FALLBACK_POLL', 10),
+    ],
+
 ];

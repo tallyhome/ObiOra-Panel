@@ -9,6 +9,7 @@ use App\Services\System\MetricsCollector;
 use App\Services\System\ServiceManager;
 use App\Support\DashboardHealth;
 use App\Support\NetworkMetrics;
+use App\Support\Realtime;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
@@ -35,12 +36,22 @@ final class DashboardIndex extends Component
   /** Intervalle de rafraîchissement auto (secondes). 0 = désactivé. */
     public int $pollInterval = 10;
 
+    public bool $realtimeEnabled = false;
+
     public function mount(
         MetricsCollector $collector,
         ServerManager $serverManager,
         ServiceManager $serviceManager,
     ): void {
-        $this->pollInterval = (int) session('dashboard_poll_interval', 10);
+        $this->realtimeEnabled = Realtime::enabled();
+        $defaultPoll = (int) session('dashboard_poll_interval', $this->realtimeEnabled
+            ? (int) config('obiora.realtime.fallback_poll_seconds', 10)
+            : 10);
+        $this->pollInterval = $defaultPoll;
+        if ($this->realtimeEnabled && $this->pollInterval === 0) {
+            $this->pollInterval = (int) config('obiora.realtime.fallback_poll_seconds', 10);
+        }
+        session(['dashboard_poll_interval' => $this->pollInterval]);
         $this->loadData($collector, $serverManager, $serviceManager);
     }
 
@@ -55,6 +66,34 @@ final class DashboardIndex extends Component
 
     #[On('server-changed')]
     public function refreshMetrics(
+        MetricsCollector $collector,
+        ServerManager $serverManager,
+        ServiceManager $serviceManager,
+    ): void {
+        $this->loadData($collector, $serverManager, $serviceManager);
+    }
+
+    /**
+     * @param  array<string, mixed>  $metrics
+     * @param  list<array<string, mixed>>  $services
+     */
+    #[On('realtime-dashboard-metrics')]
+    public function onRealtimeMetrics(array $metrics = [], array $services = []): void
+    {
+        if ($metrics !== []) {
+            $this->metrics = $metrics;
+            $this->glance = DashboardHealth::glance($this->metrics);
+            $this->network = $this->metrics['network'] ?? [];
+            $this->dispatch('dashboard-refreshed', metrics: $this->metrics);
+        }
+
+        if ($services !== []) {
+            $this->services = $this->filterDashboardServices($services);
+        }
+    }
+
+    #[On('realtime-service-state')]
+    public function onRealtimeServiceState(
         MetricsCollector $collector,
         ServerManager $serverManager,
         ServiceManager $serviceManager,

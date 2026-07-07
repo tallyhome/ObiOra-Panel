@@ -1,17 +1,17 @@
 # ObiOra Panel
 
-Plateforme moderne de gestion de serveurs Linux — Laravel 12, Livewire 3, Bootstrap 5.3.
+Plateforme moderne de gestion de serveurs Linux (seedbox) — Laravel 12, Livewire 3, Bootstrap 5.3.
 
-**Version actuelle : v1.9.4**
+**Version actuelle : v2.0.0**
 
 ## Stack
 
 - Laravel 12 + PHP 8.3+
-- Livewire 3
+- Livewire 3 + Vue 3 (monitoring)
 - Bootstrap 5.3 + ApexCharts
+- Laravel Reverb (temps réel, opt-in)
 - MySQL/MariaDB + Redis
-- API REST (Sanctum)
-- RBAC (Spatie Permission)
+- API REST (Sanctum) + agent slave + ObiOra Doctor
 
 ## OS supportés (installation)
 
@@ -22,7 +22,7 @@ Plateforme moderne de gestion de serveurs Linux — Laravel 12, Livewire 3, Boot
 | AlmaLinux | 8, 9, 10 |
 | Rocky Linux | 8, 9, 10 |
 
-## Installation (Phase 2)
+## Installation
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/install/install.sh)
@@ -31,6 +31,16 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 Options : `--domain`, `--email`, `--docker`, `--ftp`, `--tag`, `--dir`
 
 Voir [docs/architecture/PHASE-2.md](docs/architecture/PHASE-2.md)
+
+## Mise à jour serveur
+
+```bash
+cd /opt/obiora-panel
+git fetch --tags && git checkout -f v2.0.0
+bash install/update-panel.sh 0 2.0.0
+php artisan migrate --force
+npm ci && npm run build
+```
 
 ## Développement local
 
@@ -41,6 +51,7 @@ php artisan key:generate
 php artisan migrate --seed
 npm install && npm run build
 php artisan serve
+# Optionnel Reverb : php artisan reverb:start
 ```
 
 ## Plan de versions
@@ -55,9 +66,10 @@ php artisan serve
 | 6 | v1.5.0 | Bases de données MySQL/MariaDB |
 | 7 | v1.6.0 | Docker |
 | 8 | v1.7.0 | Sauvegardes |
-| 9 | v1.8.0 | Plugins / Marketplace |
-| 10 | **v1.9.0** | **AdminLicence & Mises à jour** |
-| 11 | v2.0.0 | Assistant IA |
+| 9 | v1.8.0+ | Plugins / Marketplace |
+| 10 | v1.9.0 | AdminLicence & Mises à jour |
+| **11** | **v2.0.0** | **Reverb temps réel + modules stub UI + polish monitoring** |
+| 12 | v2.0.0 | Assistant IA (planifié) |
 
 ## Documentation
 
@@ -71,6 +83,8 @@ php artisan serve
 - [Sauvegardes Phase 8](docs/architecture/PHASE-8.md)
 - [Marketplace Phase 9](docs/architecture/PHASE-9.md)
 - [AdminLicence Phase 10](docs/architecture/PHASE-10.md)
+- [Reverb temps réel Phase 11](docs/architecture/PHASE-11.md)
+- [Assistant IA Phase 12](docs/architecture/PHASE-12.md)
 
 ## Licence
 

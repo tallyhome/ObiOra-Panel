@@ -6,7 +6,8 @@
          data-score-history-url="{{ url('/api/monitoring/servers') }}"
          data-compare-base-url="{{ url('/api/monitoring/servers') }}"
          data-alerts-read-url="{{ url('/api/monitoring/alerts') }}"
-         data-panel-url="{{ $panelUrl }}">
+         data-panel-url="{{ $panelUrl }}"
+         data-realtime-enabled="{{ $realtimeEnabled ? '1' : '0' }}">
     </div>
 
     @vite(['resources/js/monitoring/main.js'])

@@ -6,11 +6,13 @@ namespace App\Services\Applications;
 
 use App\DTOs\ApplicationPackage;
 use App\Enums\ApplicationStatus;
+use App\Events\ProgressUpdated;
 use App\Jobs\ApplicationInstallJob;
 use App\Models\InstalledApplication;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
 use App\Services\Database\DatabaseProvisioner;
+use App\Support\Realtime;
 use App\Support\ServerAccessHost;
 use App\Services\System\PrivilegedScriptRunner;
 use Illuminate\Support\Collection;
@@ -200,14 +202,14 @@ final class ApplicationManager
             ],
         );
 
-        Cache::put($this->progressCacheKey($server->id, $slug), [
+        $this->storeProgress($server->id, $slug, [
             'progress' => 3,
             'message' => 'Mise en file d\'attente…',
             'running' => true,
             'success' => null,
             'slug' => $slug,
             'updated_at' => now()->toIso8601String(),
-        ], 3600);
+        ]);
 
         ApplicationInstallJob::dispatch($record->id, $slug, $server->id, 'install');
 
@@ -222,7 +224,7 @@ final class ApplicationManager
 
         $application->update(['status' => ApplicationStatus::Removing]);
 
-        Cache::put($this->progressCacheKey($application->server_id, $application->slug), [
+        $this->storeProgress($application->server_id, $application->slug, [
             'progress' => 3,
             'message' => 'Désinstallation en file d\'attente…',
             'running' => true,
@@ -230,7 +232,7 @@ final class ApplicationManager
             'slug' => $application->slug,
             'action' => 'uninstall',
             'updated_at' => now()->toIso8601String(),
-        ], 3600);
+        ]);
 
         ApplicationInstallJob::dispatch($application->id, $application->slug, $application->server_id, 'uninstall');
     }
@@ -690,7 +692,7 @@ final class ApplicationManager
 
     private function finishProgress(int $serverId, string $slug, bool $success, string $message, string $log = ''): void
     {
-        Cache::put($this->progressCacheKey($serverId, $slug), [
+        $this->storeProgress($serverId, $slug, [
             'progress' => 100,
             'message' => $message,
             'log' => $log !== '' ? $log : $message,
@@ -698,7 +700,19 @@ final class ApplicationManager
             'success' => $success,
             'slug' => $slug,
             'updated_at' => now()->toIso8601String(),
-        ], 3600);
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function storeProgress(int $serverId, string $slug, array $payload): void
+    {
+        Cache::put($this->progressCacheKey($serverId, $slug), $payload, 3600);
+
+        if (Realtime::enabled()) {
+            event(new ProgressUpdated($serverId, 'marketplace', $slug, $payload));
+        }
     }
 
     /**

@@ -8,11 +8,11 @@
         </p>
       </div>
       <div class="d-flex align-items-center gap-2">
-        <span class="badge" :class="streamConnected ? 'text-bg-success' : 'text-bg-secondary'">
-          {{ streamConnected ? 'Live' : 'Hors ligne' }}
+        <span class="badge" :class="reverbConnected ? 'text-bg-primary' : (streamConnected ? 'text-bg-success' : 'text-bg-secondary')">
+          {{ reverbConnected ? 'Reverb' : (streamConnected ? 'SSE Live' : 'Hors ligne') }}
         </span>
-        <button type="button" class="btn btn-outline-secondary btn-sm" @click="fetchFleet">
-          Actualiser
+        <button type="button" class="btn btn-outline-secondary btn-sm" @click="fetchFleet" :disabled="loading">
+          {{ loading ? '…' : 'Actualiser' }}
         </button>
       </div>
     </div>
@@ -186,12 +186,15 @@ const props = defineProps({
   scoreHistoryBase: { type: String, required: true },
   compareBase: { type: String, default: '' },
   alertsReadBase: { type: String, default: '' },
+  realtimeEnabled: { type: Boolean, default: false },
   panelUrl: { type: String, default: '' },
 });
 
 const servers = ref([]);
 const alerts = ref([]);
 const streamConnected = ref(false);
+const reverbConnected = ref(false);
+const loading = ref(true);
 const selectedServer = ref(null);
 const scoreReports = ref([]);
 const compareLeft = ref('');
@@ -232,21 +235,45 @@ function scoreClass(score) {
 }
 
 async function fetchFleet() {
-  const response = await fetch(props.fleetUrl, { headers: { Accept: 'application/json' } });
-  if (!response.ok) return;
-  const data = await response.json();
+  loading.value = true;
+  try {
+    const response = await fetch(props.fleetUrl, { headers: { Accept: 'application/json' } });
+    if (!response.ok) return;
+    const data = await response.json();
+    servers.value = data.servers || [];
+    alerts.value = data.alerts || [];
+  } finally {
+    loading.value = false;
+  }
+}
+
+function applyFleetPayload(data) {
+  if (!data) return;
   servers.value = data.servers || [];
   alerts.value = data.alerts || [];
 }
 
+function connectReverb() {
+  if (!props.realtimeEnabled || !window.ObioraEcho) return;
+  window.ObioraEcho.private('obiora.monitoring')
+    .listen('.monitoring.fleet', (payload) => {
+      applyFleetPayload(payload);
+      reverbConnected.value = true;
+    });
+  reverbConnected.value = true;
+}
+
 function connectStream() {
+  if (props.realtimeEnabled && window.ObioraEcho) {
+    connectReverb();
+    return;
+  }
   if (eventSource) eventSource.close();
   eventSource = new EventSource(props.streamUrl);
   eventSource.addEventListener('fleet', (event) => {
     try {
       const data = JSON.parse(event.data);
-      servers.value = data.servers || [];
-      alerts.value = data.alerts || [];
+      applyFleetPayload(data);
       streamConnected.value = true;
     } catch {
       streamConnected.value = false;

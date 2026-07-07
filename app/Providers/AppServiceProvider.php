@@ -12,7 +12,10 @@ use App\Services\Core\ModuleManager;
 use App\Services\Core\UpdateManager;
 use App\Support\InstalledVersion;
 use App\Services\System\LocalExecutor;
+use App\Livewire\Modules\ModuleStubIndex;
+use App\Support\ModuleStubRegistry;
 use Illuminate\Support\Facades\View;
+use Livewire\Livewire;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -26,6 +29,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Livewire::component('modules.stub-index', ModuleStubIndex::class);
+
         View::composer('partials.sidebar', function ($view): void {
             $updateAvailable = false;
 
@@ -40,6 +45,8 @@ class AppServiceProvider extends ServiceProvider
                 'monitoringEnabled',
                 auth()->check() && $this->app->make(ModuleManager::class)->isEnabled('monitoring'),
             );
+            $view->with('stubModules', ModuleStubRegistry::all());
+            $view->with('realtimeEnabled', \App\Support\Realtime::enabled());
         });
     }
 }

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Livewire\Modules\ModuleStubIndex;
+use App\Support\ModuleStubRegistry;
 use App\Http\Controllers\Api\DiagnosticReportController;
 use App\Http\Controllers\ApplicationIconController;
 use App\Http\Controllers\MarketplaceInstallSetupController;
@@ -75,6 +77,11 @@ Route::middleware(['setup', 'auth', 'server'])->group(function () {
         Route::get('/servers/{server}/diagnostics/latest', [DiagnosticReportController::class, 'latest'])->name('diagnostics.latest');
         Route::get('/servers/{server}/diagnostics', [DiagnosticReportController::class, 'index'])->name('diagnostics.index');
     });
+
+    $stubModules = implode('|', array_keys(ModuleStubRegistry::all()));
+    Route::get('/modules/{slug}', ModuleStubIndex::class)
+        ->where('slug', $stubModules)
+        ->name('modules.stub');
 
     Route::get('/settings', \Modules\Updates\Livewire\SettingsIndex::class)->name('settings.index');
 });

@@ -14,9 +14,12 @@ final class MonitoringIndex extends Component
 {
     public string $panelUrl = '';
 
+    public bool $realtimeEnabled = false;
+
     public function mount(): void
     {
         $this->panelUrl = rtrim((string) config('app.url'), '/');
+        $this->realtimeEnabled = \App\Support\Realtime::enabled();
     }
 
     public function render()

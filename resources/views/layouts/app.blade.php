@@ -3,9 +3,16 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('obiora.name') }}</title>
     @vite(['resources/scss/obiora.scss', 'resources/js/app.js'])
     @livewireStyles
+    <script>
+        window.obioraRealtime = @json(array_merge(
+            \App\Support\Realtime::clientConfig(),
+            ['serverId' => app(\App\Services\Core\ServerManager::class)->getCurrentServer()?->id]
+        ));
+    </script>
 </head>
 <body class="obiora-app">
     <div class="d-flex" style="min-height: 100vh;">

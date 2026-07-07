@@ -44,4 +44,4 @@ OBIORA_LICENSE_GRACE_DAYS=7
 
 ## Prochaine phase
 
-**Phase 11** — Temps réel natif (Laravel Reverb / WebSockets). Voir `PHASE-11.md`.
+**Phase 12 (v2.0.0)** — Assistant IA intégré au panel. Voir `PHASE-12.md`.
