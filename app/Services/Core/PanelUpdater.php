@@ -110,21 +110,28 @@ final class PanelUpdater
         $helper = '/usr/local/bin/obiora-panel-update';
 
         try {
+            // IMPORTANT : on fusionne stdout+stderr avec "2>&1" au niveau shell
+            // (et non en concaténant $result->output puis $result->errorOutput
+            // après coup), pour conserver l'ordre chronologique réel des lignes.
+            // Sans ça, l'affichage "fin du log" peut montrer un warning npm/vite
+            // anodin (écrit sur stderr en fin d'exécution) alors que la vraie
+            // erreur (ex. commande artisan en échec) est en réalité plus tôt
+            // dans le flux stdout et se retrouve masquée.
             if ($this->setuidHelperAvailable($helper)) {
                 // Binaire ELF setuid root — ne dépend pas de sudoers
                 $result = $this->executor->run(
-                    escapeshellarg($helper).' '.escapeshellarg((string) $historyId),
+                    escapeshellarg($helper).' '.escapeshellarg((string) $historyId).' 2>&1',
                     ['timeout' => 1500],
                 );
             } else {
                 // Fallback sudo (obiora-queue tourne sous l'utilisateur obiora)
                 $result = $this->executor->run(
-                    'sudo -n '.escapeshellarg($updateScript).' '.escapeshellarg((string) $historyId),
+                    'sudo -n '.escapeshellarg($updateScript).' '.escapeshellarg((string) $historyId).' 2>&1',
                     ['timeout' => 1500],
                 );
             }
 
-            $output = trim($result->output."\n".$result->errorOutput);
+            $output = trim($result->output !== '' ? $result->output : $result->errorOutput);
 
             if (! $result->successful) {
                 $history->update([

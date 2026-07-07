@@ -14,6 +14,6 @@
         "container": "obiora-filebrowser",
         "port": 8080,
         "url": "http://{host}:8080",
-        "usage": "Gestionnaire de fichiers web sur le port 8080. Identifiants par défaut : admin / admin."
+        "usage": "Gestionnaire de fichiers web sur le port 8080. Identifiants par défaut : admin / admin (changez le mot de passe après la première connexion). Accès à l'ensemble du serveur (/) — réservez cet accès aux administrateurs de confiance."
     }
 }
