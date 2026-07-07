@@ -1,11 +1,18 @@
 {
-  "slug": "jellyfin",
-  "name": "Jellyfin",
-  "description": "Serveur média open source (films, séries, musique).",
-  "version": "1.0.0",
-  "category": "media",
-  "scripts": {
-    "install": "install.sh",
-    "uninstall": "uninstall.sh"
-  }
+    "slug": "jellyfin",
+    "name": "Jellyfin",
+    "description": "Serveur média open source (films, séries, musique).",
+    "version": "1.0.0",
+    "category": "media",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-jellyfin",
+        "port": 8096,
+        "url": "http://{host}:8096",
+        "usage": "Créez le compte administrateur au premier lancement via l'interface web."
+    }
 }

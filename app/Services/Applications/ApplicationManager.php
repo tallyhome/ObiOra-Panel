@@ -10,6 +10,7 @@ use App\Jobs\ApplicationInstallJob;
 use App\Models\InstalledApplication;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
+use App\Services\Database\DatabaseProvisioner;
 use App\Support\ServerAccessHost;
 use App\Services\System\PrivilegedScriptRunner;
 use Illuminate\Support\Collection;
@@ -27,6 +28,7 @@ final class ApplicationManager
         private readonly ApplicationCatalog $catalog,
         private readonly PrivilegedScriptRunner $scripts,
         private readonly ServerAccessHost $accessHost,
+        private readonly DatabaseProvisioner $databaseProvisioner,
     ) {}
 
     /**
@@ -156,6 +158,13 @@ final class ApplicationManager
 
         if ($package->hasInstallOptions()) {
             $options = $this->validateInstallOptions($package, $options);
+        }
+
+        if ($package->databaseAutoProvision()) {
+            $options = $this->provisionDatabaseForPackage($package, $server, $options);
+        }
+
+        if ($package->hasInstallOptions() || $package->databaseAutoProvision()) {
             Cache::put($this->installOptionsCacheKey($server->id, $slug), $options, 3600);
         } else {
             Cache::forget($this->installOptionsCacheKey($server->id, $slug));
@@ -254,7 +263,7 @@ final class ApplicationManager
                 'output' => $result['output'],
             ]);
 
-            $this->finishProgress($serverId, $slug, false, 'Échec : '.trim($result['output']));
+            $this->finishProgress($serverId, $slug, false, 'Échec : '.trim($result['output']), trim($result['output']));
 
             return;
         }
@@ -284,7 +293,7 @@ final class ApplicationManager
                     'metadata' => array_merge($application->metadata ?? [], ['error' => $result['output']]),
                 ]);
 
-                $this->finishProgress($application->server_id, $application->slug, false, 'Échec désinstallation : '.trim($result['output']));
+                $this->finishProgress($application->server_id, $application->slug, false, 'Échec désinstallation : '.trim($result['output']), trim($result['output']));
 
                 return;
             }
@@ -549,6 +558,24 @@ final class ApplicationManager
             $metadata['credentials'] = ['username' => $username];
         }
 
+        $dbHost = trim((string) ($installOptions['db_host'] ?? ''));
+        if ($dbHost !== '') {
+            $metadata['database'] = [
+                'host' => $dbHost,
+                'name' => $installOptions['db_name'] ?? '',
+                'user' => $installOptions['db_user'] ?? '',
+                'password' => $installOptions['db_pass'] ?? '',
+            ];
+            $dbBlock = sprintf(
+                "\n\nBase de données (créée automatiquement) :\n• Hôte : %s\n• Base : %s\n• Utilisateur : %s\n• Mot de passe : %s",
+                $dbHost,
+                $installOptions['db_name'] ?? '—',
+                $installOptions['db_user'] ?? '—',
+                $installOptions['db_pass'] ?? '—',
+            );
+            $metadata['usage'] = trim(($metadata['usage'] ?? '').$dbBlock);
+        }
+
         return $metadata;
     }
 
@@ -561,7 +588,7 @@ final class ApplicationManager
         $env = [];
 
         foreach ($installOptions as $key => $value) {
-            if ($value === '' || str_ends_with($key, '_confirm') || str_ends_with($key, 'pass_confirm')) {
+            if ($value === '' || str_ends_with($key, '_confirm') || str_ends_with($key, 'pass_confirm') || $key === 'pass2') {
                 continue;
             }
 
@@ -572,16 +599,45 @@ final class ApplicationManager
         return $env;
     }
 
-    private function finishProgress(int $serverId, string $slug, bool $success, string $message): void
+    public function installProgressStatus(int $serverId, string $slug): ?array
+    {
+        $status = Cache::get($this->progressCacheKey($serverId, $slug));
+
+        return is_array($status) ? $status : null;
+    }
+
+    private function finishProgress(int $serverId, string $slug, bool $success, string $message, string $log = ''): void
     {
         Cache::put($this->progressCacheKey($serverId, $slug), [
             'progress' => 100,
             'message' => $message,
+            'log' => $log !== '' ? $log : $message,
             'running' => false,
             'success' => $success,
             'slug' => $slug,
             'updated_at' => now()->toIso8601String(),
         ], 3600);
+    }
+
+    /**
+     * @param  array<string, string>  $options
+     * @return array<string, string>
+     */
+    private function provisionDatabaseForPackage(ApplicationPackage $package, Server $server, array $options): array
+    {
+        $dbName = preg_replace('/[^a-z0-9_]/', '_', strtolower($package->databaseNamePrefix())) ?? $package->slug;
+        $result = $this->databaseProvisioner->create($server, $dbName);
+
+        if (! $result['success']) {
+            throw new InvalidArgumentException('Échec création base de données : '.trim($result['output']));
+        }
+
+        $options['db_name'] = $dbName;
+        $options['db_user'] = $result['username'];
+        $options['db_pass'] = $result['password'];
+        $options['db_host'] = $result['docker_host'];
+
+        return $options;
     }
 
     private function isLocal(Server $server): bool

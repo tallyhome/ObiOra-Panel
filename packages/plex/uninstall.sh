@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-if [[ "${EUID}" -ne 0 ]]; then
-    exec sudo -n bash "$0" "$@"
-fi
-
-docker stop obiora-plex 2>/dev/null || true
-docker rm obiora-plex 2>/dev/null || true
-
-echo "OK:plex removed"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../_lib/docker.sh
+source "${SCRIPT_DIR}/../_lib/docker.sh"
+obiora_docker_uninstall "plex"

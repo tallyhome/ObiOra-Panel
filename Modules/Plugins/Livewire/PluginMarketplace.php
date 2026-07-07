@@ -49,6 +49,14 @@ final class PluginMarketplace extends Component
 
     public string $setupPassword2 = '';
 
+    public ?string $installLogModalSlug = null;
+
+    public string $installLogModalOutput = '';
+
+    public ?string $failedInstallSlug = null;
+
+    public string $failedInstallLog = '';
+
     public function mount(ApplicationManager $manager, ServerManager $serverManager): void
     {
         $this->resumeInstall($manager, $serverManager);
@@ -72,6 +80,12 @@ final class PluginMarketplace extends Component
         $package = $catalog->find($slug);
 
         if ($package !== null && $package->hasInstallOptions()) {
+            $this->openInstallSetup($slug, $catalog);
+
+            return;
+        }
+
+        if ($package !== null && $package->databaseAutoProvision()) {
             $this->openInstallSetup($slug, $catalog);
 
             return;
@@ -120,11 +134,21 @@ final class PluginMarketplace extends Component
         $this->resetSetupPasswords();
     }
 
-    public function confirmInstallSetup(ApplicationManager $manager, ServerManager $serverManager, ApplicationCatalog $catalog): void
-    {
+    public function confirmInstallSetup(
+        ApplicationManager $manager,
+        ServerManager $serverManager,
+        ApplicationCatalog $catalog,
+        string $password0 = '',
+        string $password1 = '',
+        string $password2 = '',
+    ): void {
         if ($this->setupSlug === null || $this->installRunning) {
             return;
         }
+
+        $this->setupPassword0 = $password0;
+        $this->setupPassword1 = $password1;
+        $this->setupPassword2 = $password2;
 
         $package = $catalog->find($this->setupSlug);
 
@@ -163,6 +187,8 @@ final class PluginMarketplace extends Component
             }
 
             $manager->queueInstall($slug, $server, $options);
+            $this->failedInstallSlug = null;
+            $this->failedInstallLog = '';
             $this->installingSlug = $slug;
             $this->installRunning = true;
             $this->installProgress = 3;
@@ -222,8 +248,50 @@ final class PluginMarketplace extends Component
         if (! $this->installRunning && ($status['success'] ?? null) !== null) {
             $type = ($status['success'] ?? false) ? 'success' : 'danger';
             $this->dispatch('notify', type: $type, message: $this->installProgressMessage);
+            if (! ($status['success'] ?? false)) {
+                $this->failedInstallSlug = $this->installingSlug;
+                $this->failedInstallLog = (string) ($status['log'] ?? $this->installProgressMessage);
+            }
             $this->installingSlug = null;
         }
+    }
+
+    public function showInstallLogModal(string $slug, ApplicationManager $manager, ServerManager $serverManager): void
+    {
+        $server = $serverManager->getCurrentServer();
+
+        if ($server === null) {
+            return;
+        }
+
+        if ($slug === $this->failedInstallSlug && $this->failedInstallLog !== '') {
+            $this->installLogModalOutput = $this->failedInstallLog;
+            $this->installLogModalSlug = $slug;
+
+            return;
+        }
+
+        $status = $manager->installProgressStatus($server->id, $slug);
+        $this->installLogModalOutput = (string) ($status['log'] ?? $status['message'] ?? 'Aucun log disponible pour le moment.');
+        $this->installLogModalSlug = $slug;
+
+        $app = InstalledApplication::query()
+            ->where('server_id', $server->id)
+            ->where('slug', $slug)
+            ->first();
+
+        if ($app !== null && $app->status === \App\Enums\ApplicationStatus::Error) {
+            $error = (string) (($app->metadata['error'] ?? '') ?: ($app->metadata['install_output'] ?? ''));
+            if ($error !== '') {
+                $this->installLogModalOutput = $error;
+            }
+        }
+    }
+
+    public function closeInstallLogModal(): void
+    {
+        $this->installLogModalSlug = null;
+        $this->installLogModalOutput = '';
     }
 
     public function appAction(int $id, string $action, ApplicationManager $manager): void

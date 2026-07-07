@@ -133,6 +133,16 @@ final readonly class ApplicationPackage
         return $values;
     }
 
+    public function databaseAutoProvision(): bool
+    {
+        return (bool) ($this->manifest['database']['auto_provision'] ?? false);
+    }
+
+    public function databaseNamePrefix(): string
+    {
+        return (string) ($this->manifest['database']['name_prefix'] ?? $this->slug);
+    }
+
     public function iconUrl(): string
     {
         return app(ApplicationIcon::class)->url($this);

@@ -1,11 +1,18 @@
 {
-  "slug": "plex",
-  "name": "Plex",
-  "description": "Serveur média Plex (Docker).",
-  "version": "1.0.0",
-  "category": "media",
-  "scripts": {
-    "install": "install.sh",
-    "uninstall": "uninstall.sh"
-  }
+    "slug": "plex",
+    "name": "Plex",
+    "description": "Serveur média Plex (films, séries, musique).",
+    "version": "1.0.0",
+    "category": "media",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-plex",
+        "port": 32400,
+        "url": "http://{host}:32400/web",
+        "usage": "Ouvrez l'URL et suivez l'assistant Plex pour lier votre compte et configurer vos bibliothèques."
+    }
 }

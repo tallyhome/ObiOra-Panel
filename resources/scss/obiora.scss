@@ -559,65 +559,67 @@ label {
 .obiora-marketplace-grid {
     .obiora-marketplace-card {
         background: var(--obiora-bg-card);
-        border: 1px solid var(--obiora-border);
-        border-radius: 0.75rem;
-        padding: 1rem;
-        transition: background 0.15s ease, border-color 0.15s ease;
+        border: 1px solid rgba(61, 214, 140, 0.38);
+        border-radius: 0.65rem;
+        padding: 0.75rem;
+        transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
         display: flex;
         flex-direction: column;
+        box-shadow: 0 0 0 1px rgba(45, 45, 66, 0.5);
     }
 
     .obiora-marketplace-card:hover {
         background: var(--obiora-bg-card-hover);
-        border-color: rgba(61, 214, 140, 0.28);
+        border-color: var(--obiora-primary);
+        box-shadow: 0 0 0 1px rgba(61, 214, 140, 0.25);
     }
 
     .obiora-marketplace-card-body {
         display: flex;
-        gap: 0.875rem;
+        gap: 0.65rem;
         align-items: flex-start;
         flex: 1;
         min-width: 0;
     }
 
     .obiora-marketplace-title {
-        font-size: 1rem;
+        font-size: 0.9rem;
         font-weight: 600;
-        margin: 0 0 0.35rem;
-        line-height: 1.3;
+        margin: 0 0 0.25rem;
+        line-height: 1.25;
         color: var(--obiora-text);
     }
 
     .obiora-marketplace-desc {
-        font-size: 0.8125rem;
+        font-size: 0.75rem;
         color: var(--obiora-text-muted);
         margin: 0;
-        line-height: 1.45;
+        line-height: 1.4;
         display: -webkit-box;
-        -webkit-line-clamp: 3;
+        -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
 
     .obiora-marketplace-footer {
-        margin-top: 0.875rem;
-        padding-top: 0.75rem;
+        margin-top: 0.65rem;
+        padding-top: 0.55rem;
         border-top: 1px solid var(--obiora-border);
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 0.75rem;
+        gap: 0.5rem;
     }
 }
 
 .obiora-marketplace-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 12px;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
     object-fit: contain;
     flex-shrink: 0;
     background: #fff;
-    padding: 6px;
+    padding: 5px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 

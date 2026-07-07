@@ -175,7 +175,14 @@
                         </div>
                         <button type="button" class="btn-close btn-close-white" wire:click="cancelInstallSetup"></button>
                     </div>
-                    <form wire:submit.prevent="confirmInstallSetup">
+                    <form
+                        x-data
+                        @submit.prevent="$wire.confirmInstallSetup(
+                            document.querySelector('[data-setup-password=\'0\']')?.value ?? '',
+                            document.querySelector('[data-setup-password=\'1\']')?.value ?? '',
+                            document.querySelector('[data-setup-password=\'2\']')?.value ?? ''
+                        )"
+                    >
                         <div class="modal-body">
                             <p class="small text-muted mb-4">
                                 Configurez l'application avant l'installation. Les identifiants saisis seront utilisés pour créer le compte administrateur.
@@ -206,7 +213,7 @@
                                                     id="setup-{{ $name }}"
                                                     type="password"
                                                     class="form-control obiora-input"
-                                                    wire:model="setupPassword0"
+                                                    data-setup-password="0"
                                                     autocomplete="new-password"
                                                 >
                                             @elseif ($setupPasswordIndex === 1)
@@ -214,7 +221,7 @@
                                                     id="setup-{{ $name }}"
                                                     type="password"
                                                     class="form-control obiora-input"
-                                                    wire:model="setupPassword1"
+                                                    data-setup-password="1"
                                                     autocomplete="new-password"
                                                 >
                                             @else
@@ -222,7 +229,7 @@
                                                     id="setup-{{ $name }}"
                                                     type="password"
                                                     class="form-control obiora-input"
-                                                    wire:model="setupPassword2"
+                                                    data-setup-password="2"
                                                     autocomplete="new-password"
                                                 >
                                             @endif
@@ -260,6 +267,22 @@
         </div>
     @endif
 
+    @if ($installLogModalSlug)
+        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,.65);">
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content obiora-card border-secondary">
+                    <div class="modal-header border-secondary">
+                        <h2 class="modal-title h5 mb-0">Logs — {{ $installLogModalSlug }}</h2>
+                        <button type="button" class="btn-close btn-close-white" wire:click="closeInstallLogModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <pre class="small mb-0 p-3 rounded obiora-log-pre">{{ $installLogModalOutput }}</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="card obiora-card mb-3">
         <div class="card-header py-2">Catalogue — installer une application</div>
         <div class="card-body pb-2">
@@ -283,8 +306,9 @@
                         @php
                             $isInstalled = in_array($package->slug, $installedSlugs, true);
                             $isInstalling = $installRunning && $installingSlug === $package->slug;
+                            $hasFailed = $failedInstallSlug === $package->slug;
                         @endphp
-                        <div class="col-md-6 col-xl-4" wire:key="marketplace-card-{{ $package->slug }}">
+                        <div class="col-sm-6 col-lg-4 col-xl-3" wire:key="marketplace-card-{{ $package->slug }}">
                             <article class="obiora-marketplace-card h-100">
                                 <div class="obiora-marketplace-card-body">
                                     @include('plugins::components.marketplace-app-icon', ['package' => $package])
@@ -301,7 +325,28 @@
                                     @if ($isInstalled)
                                         <span class="badge text-bg-success">Installé</span>
                                     @elseif ($isInstalling)
-                                        <span class="badge text-bg-warning">En cours…</span>
+                                        <div class="d-flex gap-1">
+                                            <span class="badge text-bg-warning">En cours…</span>
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-secondary btn-sm py-0"
+                                                wire:click="showInstallLogModal('{{ $package->slug }}')"
+                                            >Logs</button>
+                                        </div>
+                                    @elseif ($hasFailed)
+                                        <div class="d-flex gap-1">
+                                            <button
+                                                wire:click="install('{{ $package->slug }}')"
+                                                class="btn btn-primary btn-sm"
+                                                wire:loading.attr="disabled"
+                                                @if($installRunning) disabled @endif
+                                            >Réessayer</button>
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-danger btn-sm py-0"
+                                                wire:click="showInstallLogModal('{{ $package->slug }}')"
+                                            >Logs</button>
+                                        </div>
                                     @else
                                         <button
                                             wire:click="install('{{ $package->slug }}')"
