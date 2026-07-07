@@ -38,6 +38,12 @@ Corrige la detection des mises a jour (VERSION, git, GitHub API) et affiche un b
 
 Phase 10: page Licence et MAJ, integration AdminLicence, correctifs installateur (404, permissions, SELinux).
 
+## [1.9.7] - 2026-07-07
+
+### Corrigé
+
+- **update-panel.sh** : `git reset --hard origin/main` si le dépôt a des modifications locales (évite l'échec du pull sur le serveur)
+
 ## [1.9.6] - 2026-07-07
 
 ### Corrigé

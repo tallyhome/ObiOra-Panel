@@ -14,18 +14,20 @@ cd "${OBIORA_INSTALL_DIR}"
 
 git config --global --add safe.directory "${OBIORA_INSTALL_DIR}" 2>/dev/null || true
 
-echo "[1/6] git fetch..."
+echo "[1/7] git fetch..."
 git fetch origin main --tags
 
-echo "[2/6] git pull..."
-git checkout -B main origin/main
-git pull --ff-only origin main
+echo "[2/7] git sync..."
+if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
+    echo "WARN: modifications locales détectées — alignement forcé sur origin/main"
+fi
+git reset --hard origin/main
 
-echo "[3/6] composer..."
+echo "[3/7] composer..."
 sudo -u "${OBIORA_USER}" env PATH=/usr/local/bin:/usr/bin:/bin \
     composer install --no-dev --optimize-autoloader --no-interaction
 
-echo "[4/6] assets frontend..."
+echo "[4/7] assets frontend..."
 if command -v npm &>/dev/null && [[ -f package.json ]]; then
     if [[ ! -f public/build/manifest.json ]]; then
         sudo -u "${OBIORA_USER}" npm ci --omit=dev 2>/dev/null || sudo -u "${OBIORA_USER}" npm install
@@ -38,7 +40,7 @@ if command -v npm &>/dev/null && [[ -f package.json ]]; then
     fi
 fi
 
-echo "[5/6] artisan migrate..."
+echo "[5/7] artisan migrate..."
 sudo -u "${OBIORA_USER}" php artisan migrate --force
 sudo -u "${OBIORA_USER}" php artisan config:clear
 
