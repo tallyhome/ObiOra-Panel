@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.9.20 - 2026-07-07
+
+Corrige l'échec d'installation du helper setuid (`OBIORA_GROUP: unbound variable`) qui bloquait toute mise à jour. Le git sync s'exécute désormais avant l'installation du helper pour débloquer les serveurs coincés.
+
 ## v1.9.19 - 2026-07-07
 
 Champs texte formulaires enfin lisibles (variables Bootstrap compilées avant import + classe obiora-input). Sauvegarde BDD corrigée (pipefail grep vide). Installation Docker avec barre de progression % et correction cache DNF corrompu.

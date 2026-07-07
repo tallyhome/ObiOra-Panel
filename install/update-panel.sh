@@ -4,6 +4,7 @@ set -euo pipefail
 
 OBIORA_INSTALL_DIR="${OBIORA_INSTALL_DIR:-/opt/obiora-panel}"
 OBIORA_USER="${OBIORA_USER:-obiora}"
+OBIORA_GROUP="${OBIORA_GROUP:-obiora}"
 OBIORA_UPDATE_HISTORY_ID="${OBIORA_UPDATE_HISTORY_ID:-}"
 
 # ID historique MAJ passé en 1er argument par PanelUpdater (via sudo)
@@ -28,14 +29,6 @@ if [[ "${EUID}" -ne 0 ]]; then
     exit 1
 fi
 
-if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/common.sh" ]] && [[ -f "${OBIORA_INSTALL_DIR}/install/lib/panel-update-helper.sh" ]]; then
-    # shellcheck source=/dev/null
-    source "${OBIORA_INSTALL_DIR}/install/lib/common.sh"
-    # shellcheck source=/dev/null
-    source "${OBIORA_INSTALL_DIR}/install/lib/panel-update-helper.sh"
-    setup_panel_update_helper
-fi
-
 cd "${OBIORA_INSTALL_DIR}"
 
 git config --global --add safe.directory "${OBIORA_INSTALL_DIR}" 2>/dev/null || true
@@ -52,6 +45,15 @@ if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
     echo "WARN: modifications locales détectées — alignement forcé sur origin/main"
 fi
 git reset --hard origin/main
+
+# Helper setuid APRÈS git sync (pour récupérer les correctifs avant installation)
+if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/common.sh" ]] && [[ -f "${OBIORA_INSTALL_DIR}/install/lib/panel-update-helper.sh" ]]; then
+    # shellcheck source=/dev/null
+    source "${OBIORA_INSTALL_DIR}/install/lib/common.sh"
+    # shellcheck source=/dev/null
+    source "${OBIORA_INSTALL_DIR}/install/lib/panel-update-helper.sh"
+    setup_panel_update_helper || echo "WARN: helper MAJ non installé — tentative sudo en fallback"
+fi
 
 echo "[2b/8] migrations préliminaires..."
 progress 32 "Application des migrations…"
