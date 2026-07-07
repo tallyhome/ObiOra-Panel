@@ -48,7 +48,11 @@ SUDOERS
 
     # Répertoire web pour les sites clients
     local web_root
-    web_root="$(grep '^OBIORA_WEB_ROOT=' "${OBIORA_INSTALL_DIR}/.env" 2>/dev/null | cut -d= -f2-)"
+    # ATTENTION : sous "set -e" + "pipefail" (hérités de common.sh), un grep
+    # qui ne trouve AUCUNE correspondance renvoie 1, ce qui ferait avorter tout
+    # le script de mise à jour ici-même si on ne neutralise pas ce cas avec
+    # "|| true" — OBIORA_WEB_ROOT est optionnel et absent du .env par défaut.
+    web_root="$(grep '^OBIORA_WEB_ROOT=' "${OBIORA_INSTALL_DIR}/.env" 2>/dev/null | cut -d= -f2- || true)"
     web_root="${web_root:-/var/www}"
     mkdir -p "${web_root}"
     chmod 755 "${web_root}"

@@ -21,7 +21,7 @@ setup_database() {
     # Réutiliser le mot de passe existant si une install précédente l'a déjà
     # défini, sinon MySQL et .env se désynchronisent (Access denied).
     if [[ -z "${OBIORA_DB_PASS}" && -f /root/.obiora_db_credentials ]]; then
-        OBIORA_DB_PASS="$(grep '^DB_PASSWORD=' /root/.obiora_db_credentials | cut -d= -f2-)"
+        OBIORA_DB_PASS="$(grep '^DB_PASSWORD=' /root/.obiora_db_credentials 2>/dev/null | cut -d= -f2- || true)"
     fi
 
     if [[ -z "${OBIORA_DB_PASS}" ]]; then

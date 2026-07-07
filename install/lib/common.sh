@@ -113,7 +113,7 @@ detect_php_fpm_socket() {
 
     for pool_conf in /etc/php-fpm.d/www.conf /etc/opt/remi/php*/php-fpm.d/www.conf; do
         [[ -f "${pool_conf}" ]] || continue
-        listen_val="$(grep -E '^listen\s*=' "${pool_conf}" | head -1 | sed -E 's/^listen\s*=\s*//;s/\s*;.*//;s/^[[:space:]]+//;s/[[:space:]]+$//')"
+        listen_val="$(grep -E '^listen\s*=' "${pool_conf}" 2>/dev/null | head -1 | sed -E 's/^listen\s*=\s*//;s/\s*;.*//;s/^[[:space:]]+//;s/[[:space:]]+$//' || true)"
         [[ -z "${listen_val}" ]] && continue
         if [[ "${listen_val}" == /* ]] && [[ -S "${listen_val}" ]]; then
             echo "${listen_val}"

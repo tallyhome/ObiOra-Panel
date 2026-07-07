@@ -145,9 +145,11 @@ sync_master_server() {
     ip="$(get_server_ip)"
     hostname="$(hostname -f 2>/dev/null || hostname)"
 
-    db_user="$(grep '^DB_USERNAME=' "${OBIORA_INSTALL_DIR}/.env" | cut -d= -f2-)"
-    db_pass="$(grep '^DB_PASSWORD=' "${OBIORA_INSTALL_DIR}/.env" | cut -d= -f2-)"
-    db_name="$(grep '^DB_DATABASE=' "${OBIORA_INSTALL_DIR}/.env" | cut -d= -f2-)"
+    # "|| true" évite qu'un grep sans correspondance (pipefail) ne tue tout
+    # le script de mise à jour à cause de "set -e" (voir sudoers.sh).
+    db_user="$(grep '^DB_USERNAME=' "${OBIORA_INSTALL_DIR}/.env" 2>/dev/null | cut -d= -f2- || true)"
+    db_pass="$(grep '^DB_PASSWORD=' "${OBIORA_INSTALL_DIR}/.env" 2>/dev/null | cut -d= -f2- || true)"
+    db_name="$(grep '^DB_DATABASE=' "${OBIORA_INSTALL_DIR}/.env" 2>/dev/null | cut -d= -f2- || true)"
 
     if [[ -z "${db_user}" || -z "${db_name}" ]]; then
         warn "Sync serveur maître ignoré (.env incomplet)"
