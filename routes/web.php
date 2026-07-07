@@ -67,6 +67,9 @@ Route::middleware(['setup', 'auth', 'server'])->group(function () {
 
     Route::get('/monitoring', \Modules\Monitoring\Livewire\MonitoringIndex::class)->name('monitoring.index');
 
+    Route::get('/ai', \Modules\AI\Livewire\AiAssistant::class)->name('ai.index');
+    Route::redirect('/modules/ai', '/ai');
+
     Route::prefix('api/monitoring')->name('monitoring.api.')->group(function () {
         Route::get('/fleet', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'fleet'])->name('fleet');
         Route::get('/stream', [\App\Http\Controllers\MonitoringStreamController::class, 'stream'])->name('stream');
@@ -78,7 +81,7 @@ Route::middleware(['setup', 'auth', 'server'])->group(function () {
         Route::get('/servers/{server}/diagnostics', [DiagnosticReportController::class, 'index'])->name('diagnostics.index');
     });
 
-    $stubModules = implode('|', array_keys(ModuleStubRegistry::all()));
+    $stubModules = implode('|', array_keys(ModuleStubRegistry::infrastructure()));
     Route::get('/modules/{slug}', ModuleStubIndex::class)
         ->where('slug', $stubModules)
         ->name('modules.stub');

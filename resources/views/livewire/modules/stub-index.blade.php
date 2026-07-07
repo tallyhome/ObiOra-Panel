@@ -17,12 +17,11 @@
         <div class="col-lg-8">
             <div class="card obiora-card">
                 <div class="card-body">
-                    <h2 class="h6">Apercu Phase 11</h2>
+                    <h2 class="h6">Aperçu module</h2>
                     <p class="mb-3">{{ $module['planned'] ?? 'Fonctionnalite planifiee.' }}</p>
-                    <div class="alert alert-info small mb-0">
-                        Ce module dispose desormais d'une page dediee dans le panel seedbox.
-                        L'implementation metier complete arrive dans les prochaines releases
-                        (Phase 12 pour l'assistant IA).
+                    <div class="alert alert-secondary small mb-0">
+                        Page dediee dans le panel seedbox. Les fonctionnalites metier avancees
+                        seront enrichies dans les prochaines releases.
                     </div>
                 </div>
             </div>

@@ -45,7 +45,7 @@ class AppServiceProvider extends ServiceProvider
                 'monitoringEnabled',
                 auth()->check() && $this->app->make(ModuleManager::class)->isEnabled('monitoring'),
             );
-            $view->with('stubModules', ModuleStubRegistry::all());
+            $view->with('stubModules', ModuleStubRegistry::infrastructure());
             $view->with('realtimeEnabled', \App\Support\Realtime::enabled());
         });
     }

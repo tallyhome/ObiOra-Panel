@@ -100,6 +100,19 @@ final class ModuleStubRegistry
     }
 
     /**
+     * Modules infrastructure (sans assistant IA).
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public static function infrastructure(): array
+    {
+        $all = self::all();
+        unset($all['ai']);
+
+        return $all;
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public static function get(string $slug): ?array

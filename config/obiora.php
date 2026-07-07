@@ -78,4 +78,13 @@ return [
         'fallback_poll_seconds' => (int) env('OBIORA_REALTIME_FALLBACK_POLL', 10),
     ],
 
+    'ai' => [
+        'enabled' => (bool) env('OBIORA_AI_ENABLED', false),
+        'provider' => env('OBIORA_AI_PROVIDER', 'openai'),
+        'api_key' => env('OBIORA_AI_API_KEY'),
+        'base_url' => env('OBIORA_AI_BASE_URL'),
+        'model' => env('OBIORA_AI_MODEL', 'gpt-4o-mini'),
+        'max_tokens' => (int) env('OBIORA_AI_MAX_TOKENS', 2048),
+    ],
+
 ];

@@ -1,50 +1,33 @@
-# ObiOra Panel — Phase 12 : Assistant IA intégré (v2.0.0)
+# ObiOra Panel — Phase 12 : Assistant IA intégré (v2.0.1)
 
-> Statut : **planifiée**. L'interface stub `/modules/ai` est disponible depuis la
-> Phase 11 ; l'assistant conversationnel arrive en v2.0.0.
+> Statut : **implémentée**. Route `/ai`, chat Livewire, contexte Doctor/monitoring.
 
-## Objectif
+## Fonctionnalités
 
-Fournir un **assistant IA contextuel** dans ObiOra Panel seedbox, capable de :
+- Chat contextuel (serveur actif, score Doctor, alertes)
+- Providers : OpenAI, Anthropic, Ollama (API compatible OpenAI)
+- Mode local sans clé API (réponses guidées + liens panel)
+- Restriction plan Pro/Enterprise si `OBIORA_LICENSE_ENABLED=true`
 
-- Interpréter les rapports **ObiOra Doctor** (score, findings, comparaisons)
-- Suggérer des actions marketplace (install, restart, logs)
-- Guider le dépannage services systemd / Docker
-- Résumer l'état fleet monitoring (ping, alertes SSL, signatures invalides)
-
-## Périmètre envisagé
-
-| Domaine | Description |
-|---|---|
-| Chat panel | Widget flottant ou page `/modules/ai` enrichie |
-| Contexte | Serveur actif, dernière install, dernier rapport Doctor |
-| Actions | Propositions cliquables (liens routes panel, pas exécution auto sans confirmation) |
-| Provider | API compatible OpenAI / Anthropic / local LLM (config `.env`) |
-| Licence | Fonction réservée plans Pro/Enterprise (AdminLicence) |
-
-## Dépendances
-
-- Phase 11 Reverb (notifications temps réel des réponses streamées)
-- Module Monitoring + API diagnostics (v1.9.56+)
-- Module AI (`Modules/AI/`) — stub UI Phase 11
-
-## Variables `.env` prévues
+## Configuration `.env`
 
 ```env
-OBIORA_AI_ENABLED=false
+OBIORA_AI_ENABLED=true
 OBIORA_AI_PROVIDER=openai
-OBIORA_AI_API_KEY=
+OBIORA_AI_API_KEY=sk-...
 OBIORA_AI_MODEL=gpt-4o-mini
 OBIORA_AI_MAX_TOKENS=2048
+# Optionnel : Ollama ou proxy
+OBIORA_AI_BASE_URL=http://127.0.0.1:11434/v1
 ```
 
-## Contraintes
+## Sidebar
 
-- Aucune clé API commitée ; chiffrement optionnel en base (`settings`)
-- Journalisation des prompts sans secrets
-- Mode hors-ligne : message explicite si provider indisponible
-- Pas d'exécution shell directe depuis le LLM (couche `SystemExecutor` inchangée)
+- **Assistant IA** : entrée principale (`/ai`)
+- **Infrastructure** : section repliable (état mémorisé dans le navigateur)
 
-## Prochaine étape
+## Tests
 
-Implémenter le service `AiAssistantManager`, le chat Livewire/Vue, et le streaming Reverb des tokens de réponse.
+```bash
+php artisan test --filter=AiAssistant
+```

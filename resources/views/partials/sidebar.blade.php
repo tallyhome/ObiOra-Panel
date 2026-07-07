@@ -24,6 +24,9 @@
             @endif
         </a>
         @endif
+        <a href="{{ route('ai.index') }}" class="nav-link {{ request()->routeIs('ai.*') ? 'active' : '' }}">
+            <span class="obiora-nav-icon" aria-hidden="true">🤖</span> Assistant IA
+        </a>
         <a href="{{ route('websites.index') }}" class="nav-link {{ request()->routeIs('websites.*') ? 'active' : '' }}">
             <span class="obiora-nav-icon" aria-hidden="true">◎</span> Sites web
         </a>
@@ -38,12 +41,22 @@
         </a>
         @if(!empty($stubModules))
         <hr class="border-secondary opacity-25 my-2">
-        <div class="small text-muted px-2 mb-1">Infrastructure</div>
-        @foreach($stubModules as $slug => $stub)
-        <a href="{{ route('modules.stub', $slug) }}" class="nav-link small py-1 {{ request()->routeIs('modules.stub') && request()->route('slug') === $slug ? 'active' : '' }}">
-            <span class="me-1">{{ $stub['icon'] ?? '◫' }}</span>{{ $stub['name'] ?? $slug }}
-        </a>
-        @endforeach
+        <button type="button"
+                id="infra-toggle"
+                class="nav-link w-100 text-start border-0 bg-transparent text-white d-flex align-items-center justify-content-between py-2 px-2 small"
+                aria-expanded="false"
+                aria-controls="infra-nav"
+                data-force-open="{{ request()->routeIs('modules.stub') ? '1' : '0' }}">
+            <span>Infrastructure</span>
+            <span class="infra-chevron opacity-75" aria-hidden="true">▸</span>
+        </button>
+        <div class="collapse {{ request()->routeIs('modules.stub') ? 'show' : '' }}" id="infra-nav">
+            @foreach($stubModules as $slug => $stub)
+            <a href="{{ route('modules.stub', $slug) }}" class="nav-link small py-1 ps-4 {{ request()->routeIs('modules.stub') && request()->route('slug') === $slug ? 'active' : '' }}">
+                <span class="me-1">{{ $stub['icon'] ?? '◫' }}</span>{{ $stub['name'] ?? $slug }}
+            </a>
+            @endforeach
+        </div>
         @endif
         <hr class="border-secondary opacity-25 my-2">
         <a href="{{ route('settings.index') }}" class="nav-link {{ request()->routeIs('settings.*') ? 'active' : '' }}">

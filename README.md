@@ -2,7 +2,7 @@
 
 Plateforme moderne de gestion de serveurs Linux (seedbox) — Laravel 12, Livewire 3, Bootstrap 5.3.
 
-**Version actuelle : v2.0.0**
+**Version actuelle : v2.0.1**
 
 ## Stack
 
@@ -69,7 +69,7 @@ php artisan serve
 | 9 | v1.8.0+ | Plugins / Marketplace |
 | 10 | v1.9.0 | AdminLicence & Mises à jour |
 | **11** | **v2.0.0** | **Reverb temps réel + modules stub UI + polish monitoring** |
-| 12 | v2.0.0 | Assistant IA (planifié) |
+| **12** | **v2.0.1** | **Assistant IA + sidebar Infrastructure repliable** |
 
 ## Documentation
 

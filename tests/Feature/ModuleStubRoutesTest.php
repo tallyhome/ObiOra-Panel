@@ -33,7 +33,7 @@ final class ModuleStubRoutesTest extends TestCase
         $user = User::factory()->create(['is_active' => true]);
         $user->assignRole('super-admin');
 
-        foreach (array_keys(ModuleStubRegistry::all()) as $slug) {
+        foreach (array_keys(ModuleStubRegistry::infrastructure()) as $slug) {
             $this->actingAs($user)
                 ->get(route('modules.stub', $slug))
                 ->assertOk()
