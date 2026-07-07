@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Binaire setuid root pour lancer update-panel.sh sans sudo (worker obiora-queue)
+# Compile un binaire setuid root pour lancer update-panel.sh (worker obiora-queue).
+# Le setuid sur un script bash est ignoré par le noyau Linux — seul un ELF fonctionne.
 
 setup_panel_update_helper() {
     local helper="/usr/local/bin/obiora-panel-update"
+    local src="${OBIORA_INSTALL_DIR}/install/lib/panel-update-helper.c"
     local update_script="${OBIORA_INSTALL_DIR}/install/update-panel.sh"
     local obiora_group="${OBIORA_GROUP:-obiora}"
     local install_dir="${OBIORA_INSTALL_DIR:-/opt/obiora-panel}"
@@ -12,36 +14,65 @@ setup_panel_update_helper() {
         return 0
     fi
 
-    info "Installation du helper de mise à jour panel (setuid)..."
+    if [[ ! -f "${src}" ]]; then
+        warn "panel-update-helper.c introuvable — sudo sera utilisé pour les MAJ"
+        _remove_legacy_bash_helper "${helper}"
+        return 0
+    fi
 
-    cat > "${helper}" <<HELPER
-#!/bin/bash
-# ObiOra Panel — lance update-panel.sh en root (setuid, groupe ${obiora_group})
-set -euo pipefail
+    info "Compilation du helper de mise à jour panel (binaire setuid)..."
 
-if [[ "\${EUID}" -ne 0 ]]; then
-    echo "ERREUR: privilèges insuffisants pour la mise à jour" >&2
-    exit 1
-fi
+    if ! command -v gcc &>/dev/null; then
+        if command -v dnf &>/dev/null; then
+            dnf install -y -q gcc 2>/dev/null || true
+        elif command -v apt-get &>/dev/null; then
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gcc 2>/dev/null || true
+        fi
+    fi
 
-OBIORA_INSTALL_DIR="${install_dir}"
-UPDATE_SCRIPT="\${OBIORA_INSTALL_DIR}/install/update-panel.sh"
-HISTORY_ID="\${1:-0}"
+    if ! command -v gcc &>/dev/null; then
+        warn "gcc indisponible — helper setuid non compilé (sudo NOPASSWD sera utilisé)"
+        _remove_legacy_bash_helper "${helper}"
+        return 0
+    fi
 
-if [[ ! "\${HISTORY_ID}" =~ ^[0-9]+\$ ]]; then
-    HISTORY_ID="0"
-fi
+    _remove_legacy_bash_helper "${helper}"
 
-if [[ ! -f "\${UPDATE_SCRIPT}" ]]; then
-    echo "ERREUR: script de mise à jour introuvable" >&2
-    exit 1
-fi
+    local tmp="${helper}.build.$$"
+    if ! gcc -O2 -Wall -Wextra \
+        -DOBIORA_INSTALL_DIR="\"${install_dir}\"" \
+        -o "${tmp}" "${src}"; then
+        warn "Échec compilation helper MAJ — sudo sera utilisé"
+        rm -f "${tmp}"
+        return 0
+    fi
 
-exec bash "\${UPDATE_SCRIPT}" "\${HISTORY_ID}"
-HELPER
+    install -o root -g "${obiora_group}" -m 4750 "${tmp}" "${helper}"
+    rm -f "${tmp}"
 
-    chmod 4750 "${helper}"
-    chown root:"${obiora_group}" "${helper}"
+    if ! _helper_is_elf "${helper}"; then
+        warn "Helper MAJ invalide après installation"
+        rm -f "${helper}"
+        return 0
+    fi
 
-    success "Helper MAJ installé : ${helper}"
+    success "Helper MAJ installé : ${helper} (binaire setuid)"
+}
+
+_remove_legacy_bash_helper() {
+    local helper="$1"
+
+    [[ -f "${helper}" ]] || return 0
+
+    # Ancien helper bash (setuid ignoré par Linux) — à supprimer
+    if head -c 2 "${helper}" 2>/dev/null | grep -q '^#!'; then
+        warn "Suppression de l'ancien helper bash (setuid non fonctionnel)"
+        rm -f "${helper}"
+    fi
+}
+
+_helper_is_elf() {
+    local file="$1"
+    [[ -f "${file}" ]] || return 1
+    [[ "$(head -c 4 "${file}" 2>/dev/null || true)" == $'\x7fELF' ]]
 }

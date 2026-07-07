@@ -110,13 +110,14 @@ final class PanelUpdater
         $helper = '/usr/local/bin/obiora-panel-update';
 
         try {
-            if (is_executable($helper)) {
-                // Helper setuid root — ne dépend pas de sudoers (fiable pour obiora-queue)
+            if ($this->setuidHelperAvailable($helper)) {
+                // Binaire ELF setuid root — ne dépend pas de sudoers
                 $result = $this->executor->run(
                     escapeshellarg($helper).' '.escapeshellarg((string) $historyId),
                     ['timeout' => 1500],
                 );
             } else {
+                // Fallback sudo (obiora-queue tourne sous l'utilisateur obiora)
                 $result = $this->executor->run(
                     'sudo -n '.escapeshellarg($updateScript).' '.escapeshellarg((string) $historyId),
                     ['timeout' => 1500],
@@ -169,6 +170,31 @@ final class PanelUpdater
 
         return File::isDirectory($panelRoot.'/.git')
             && is_file($panelRoot.'/install/update-panel.sh');
+    }
+
+    /**
+     * Le setuid Linux ne fonctionne que sur les binaires ELF, pas sur les scripts bash.
+     */
+    private function setuidHelperAvailable(string $helper): bool
+    {
+        if (! is_executable($helper)) {
+            return false;
+        }
+
+        $stat = @stat($helper);
+        if ($stat === false || ($stat['mode'] & 0o4000) === 0) {
+            return false;
+        }
+
+        $handle = @fopen($helper, 'rb');
+        if ($handle === false) {
+            return false;
+        }
+
+        $magic = fread($handle, 4);
+        fclose($handle);
+
+        return $magic === "\x7FELF";
     }
 
     /**
