@@ -4,9 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
-## v1.8.4 - 2026-07-06
+## [1.8.5] - 2026-07-07
 
-Corrige composer command not found sur AlmaLinux/RHEL (PATH preserve via sudo) et installe la branche main pour eviter les tags casses.
+### Corrigé
+
+- **composer.lock incompatible PHP 8.3** : plateforme figée à `php 8.3.0` dans `composer.json`, lock régénéré vers Symfony 7.x — corrige `requires php >=8.4.1 -> your php version (8.3.32) does not satisfy` sur AlmaLinux
+- **Réinstallation** : mise à jour du dépôt robuste (`git checkout -B main origin/main`) — corrige `pathspec 'main' did not match` sur un ancien clone shallow
 
 ## [1.8.4] - 2026-07-07
 

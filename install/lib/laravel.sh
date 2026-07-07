@@ -11,14 +11,16 @@ clone_panel() {
     if [[ -d "${OBIORA_INSTALL_DIR}/.git" ]]; then
         info "Mise à jour du dépôt existant..."
         cd "${OBIORA_INSTALL_DIR}"
-        sudo -u "${OBIORA_USER}" git fetch origin
+        # --unshallow si nécessaire pour disposer de toutes les refs
+        git config --global --add safe.directory "${OBIORA_INSTALL_DIR}" 2>/dev/null || true
         if [[ -n "${OBIORA_TAG}" ]]; then
-            sudo -u "${OBIORA_USER}" git checkout "tags/${OBIORA_TAG}" 2>/dev/null \
-                || sudo -u "${OBIORA_USER}" git checkout "${OBIORA_TAG}"
+            git fetch --depth 1 origin "tag" "${OBIORA_TAG}" 2>/dev/null || git fetch origin
+            git checkout -f "${OBIORA_TAG}"
         else
-            sudo -u "${OBIORA_USER}" git checkout "${OBIORA_BRANCH}"
-            sudo -u "${OBIORA_USER}" git pull origin "${OBIORA_BRANCH}"
+            git fetch --depth 1 origin "${OBIORA_BRANCH}"
+            git checkout -B "${OBIORA_BRANCH}" "origin/${OBIORA_BRANCH}"
         fi
+        chown -R "${OBIORA_USER}:${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}"
     else
         # Clone en root : obiora ne peut pas créer de répertoire dans /opt
         rm -rf "${OBIORA_INSTALL_DIR}"
