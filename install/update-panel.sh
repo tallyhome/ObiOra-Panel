@@ -121,6 +121,18 @@ progress 94 "Rechargement des services (PHP-FPM, Nginx, file d'attente)…"
 systemctl reload-or-restart php8.3-fpm 2>/dev/null || systemctl reload-or-restart php-fpm 2>/dev/null || true
 systemctl reload nginx 2>/dev/null || true
 
+# S'assure que le timer du scheduler est bien activé et démarré. Certaines
+# installations plus anciennes ou interrompues peuvent se retrouver avec un
+# timer présent mais jamais démarré (visible comme "inactive" dans le panel).
+if systemctl list-unit-files 2>/dev/null | grep -q '^obiora-scheduler\.timer'; then
+    systemctl enable obiora-scheduler.timer >/dev/null 2>&1 || true
+    systemctl start obiora-scheduler.timer >/dev/null 2>&1 || true
+fi
+if systemctl list-unit-files 2>/dev/null | grep -q '^obiora-agent\.service'; then
+    systemctl enable obiora-agent >/dev/null 2>&1 || true
+    systemctl is-active --quiet obiora-agent || systemctl start obiora-agent >/dev/null 2>&1 || true
+fi
+
 # Redémarrage différé du worker de file d'attente (ce script tourne DANS ce
 # worker lorsque la MAJ est lancée depuis le panel : un restart immédiat et
 # bloquant se tuerait lui-même). On le programme après la fin du script.

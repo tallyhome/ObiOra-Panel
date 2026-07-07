@@ -45,6 +45,10 @@ final class SettingsIndex extends Component
 
     public string $updateProgressMessage = '';
 
+    public ?int $viewingOutputId = null;
+
+    public string $viewingOutput = '';
+
     public function mount(LicenseService $licenseService, UpdateManager $updateManager): void
     {
         $this->loadLicense($licenseService);
@@ -140,9 +144,13 @@ final class SettingsIndex extends Component
             $this->updateSuccess = false;
             $this->updateMessage = 'Échec de la mise à jour.';
             if (! empty($history->output)) {
-                $this->updateMessage .= ' — '.mb_substr((string) $history->output, 0, 200);
+                // La fin du log contient l'erreur réelle (le début n'est que
+                // le rappel des étapes "[1/8] git fetch..." etc.).
+                $tail = trim((string) $history->output);
+                $tail = mb_substr($tail, max(0, mb_strlen($tail) - 400));
+                $this->updateMessage .= ' — …'.$tail;
             }
-            $this->dispatch('notify', type: 'danger', message: $this->updateMessage);
+            $this->dispatch('notify', type: 'danger', message: 'La mise à jour a échoué. Consultez le détail dans l\'historique ci-dessous.');
 
             return;
         }
@@ -179,6 +187,19 @@ final class SettingsIndex extends Component
             : ($pending->status === 'running'
                 ? 'Mise à jour en cours d\'exécution (composer, migrations, build)…'
                 : 'Mise à jour en file d\'attente, démarrage imminent…');
+    }
+
+    public function showHistoryOutput(int $historyId): void
+    {
+        $history = UpdateHistory::query()->find($historyId);
+        $this->viewingOutputId = $historyId;
+        $this->viewingOutput = trim((string) ($history?->output ?? '')) ?: 'Aucune sortie enregistrée.';
+    }
+
+    public function closeHistoryOutput(): void
+    {
+        $this->viewingOutputId = null;
+        $this->viewingOutput = '';
     }
 
     private function setUpdateFeedback(): void

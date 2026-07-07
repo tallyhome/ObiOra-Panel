@@ -162,6 +162,7 @@
                                 <th>Vers</th>
                                 <th>Statut</th>
                                 <th>Date</th>
+                                <th class="text-end">Log</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -184,11 +185,28 @@
                                         </span>
                                     </td>
                                     <td class="text-muted small">{{ $entry->completed_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                                    <td class="text-end">
+                                        @if (! empty($entry->output))
+                                            <button type="button" wire:click="showHistoryOutput({{ $entry->id }})" class="btn btn-outline-secondary btn-sm py-0">Voir le log</button>
+                                        @endif
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
+
+                @if ($viewingOutputId)
+                    <div class="card obiora-card mt-3">
+                        <div class="card-header d-flex justify-content-between align-items-center py-2">
+                            <span class="small fw-medium">Log complet — MAJ #{{ $viewingOutputId }}</span>
+                            <button type="button" class="btn-close btn-close-white btn-sm" wire:click="closeHistoryOutput"></button>
+                        </div>
+                        <div class="card-body p-0">
+                            <pre class="small mb-0 p-3 obiora-log-pre">{{ $viewingOutput }}</pre>
+                        </div>
+                    </div>
+                @endif
             </div>
         </div>
     @endif
