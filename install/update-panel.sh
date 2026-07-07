@@ -94,7 +94,9 @@ prepare_frontend_build_dir() {
     mkdir -p "${build_dir}"
     chown "${OBIORA_USER}:${OBIORA_GROUP}" "${build_dir}"
     chmod 775 "${build_dir}"
-} (pour récupérer les correctifs avant installation)
+}
+
+# Helper setuid APRÈS git sync (pour récupérer les correctifs avant installation)
 if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/common.sh" ]] && [[ -f "${OBIORA_INSTALL_DIR}/install/lib/panel-update-helper.sh" ]]; then
     # shellcheck source=/dev/null
     source "${OBIORA_INSTALL_DIR}/install/lib/common.sh"
