@@ -12,8 +12,8 @@
     "runtime": {
         "type": "docker",
         "container": "obiora-headphones",
-        "port": 8181,
-        "url": "http://{host}:8181",
+        "port": 8183,
+        "url": "http://{host}:8183",
         "usage": "Gestionnaire de musique automatique (legacy)."
     }
 }

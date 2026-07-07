@@ -12,8 +12,6 @@
     "runtime": {
         "type": "systemd",
         "service": "x2goserver",
-        "port": 22,
-        "url": "http://{host}:22",
-        "usage": "Bureau à distance Linux."
+        "usage": "Bureau à distance Linux via client X2Go (connexion SSH, port 22)."
     }
 }

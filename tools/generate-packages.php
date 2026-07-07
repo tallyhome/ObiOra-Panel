@@ -78,6 +78,10 @@ echo "\nTerminé : {$created} packages générés, {$skipped} ignorés.\n";
 
 function writeSharedLib(string $libDir): void
 {
+    if (is_file($libDir.'/docker.sh')) {
+        return;
+    }
+
     $dockerLib = <<<'BASH'
 #!/usr/bin/env bash
 # ObiOra — helper installation Docker
@@ -206,7 +210,7 @@ if [[ "\${EUID}" -ne 0 ]]; then
     exec sudo -n bash "\$0" "\$@"
 fi
 
-if dpkg -s {$package} &>/dev/null; then
+if dpkg -s {$package} &>/dev/null || rpm -q {$package} &>/dev/null; then
     echo "OK:{$slug} (déjà installé)"
     exit 0
 fi
@@ -216,6 +220,8 @@ if command -v apt-get &>/dev/null; then
     apt-get install -y -qq {$package}
 elif command -v dnf &>/dev/null; then
     dnf install -y {$package} 2>/dev/null || { echo "Paquet {$package} non disponible" >&2; exit 1; }
+elif command -v yum &>/dev/null; then
+    yum install -y {$package} 2>/dev/null || { echo "Paquet {$package} non disponible" >&2; exit 1; }
 else
     echo "Gestionnaire de paquets non supporté" >&2
     exit 1

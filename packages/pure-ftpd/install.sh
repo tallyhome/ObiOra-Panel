@@ -22,6 +22,9 @@ fi
 if command -v dnf &>/dev/null; then
     dnf install -y epel-release >/dev/null 2>&1 || true
     dnf install -y pure-ftpd 2>/dev/null || { echo "Paquet pure-ftpd non disponible (EPEL requis)" >&2; exit 1; }
+elif command -v yum &>/dev/null; then
+    yum install -y epel-release >/dev/null 2>&1 || true
+    yum install -y pure-ftpd 2>/dev/null || { echo "Paquet pure-ftpd non disponible (EPEL requis)" >&2; exit 1; }
 elif command -v apt-get &>/dev/null; then
     apt-get update -qq
     apt-get install -y -qq pure-ftpd

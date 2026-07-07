@@ -15,5 +15,7 @@
         "port": 80,
         "url": "http://{host}:80",
         "usage": "Client BitTorrent en ligne de commande."
-    }
+    },
+    "installable": false,
+    "install_notice": "Utilisez ruTorrent pour rTorrent avec interface web."
 }

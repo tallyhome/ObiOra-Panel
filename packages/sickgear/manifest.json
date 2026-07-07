@@ -12,8 +12,8 @@
     "runtime": {
         "type": "docker",
         "container": "obiora-sickgear",
-        "port": 8081,
-        "url": "http://{host}:8081",
+        "port": 8092,
+        "url": "http://{host}:8092",
         "usage": "Gestionnaire de séries TV."
     }
 }

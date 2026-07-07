@@ -11,6 +11,30 @@
     },
     "runtime": {
         "type": "binary",
-        "usage": "Mise à jour dynamique DNS DuckDNS. Configurez DUCKDNS_DOMAIN et DUCKDNS_TOKEN dans /opt/duckdns/duck.sh puis planifiez un cron."
+        "usage": "Mise à jour DNS DuckDNS via timer systemd (toutes les 5 min). Domaine et token définis à l'installation."
+    },
+    "install": {
+        "options": [
+            {
+                "name": "label",
+                "label": "Nom affiché dans le panel",
+                "type": "text",
+                "default": "DuckDNS"
+            },
+            {
+                "name": "domain",
+                "label": "Sous-domaine DuckDNS",
+                "type": "text",
+                "required": true,
+                "help": "Ex. monserveur (sans .duckdns.org)"
+            },
+            {
+                "name": "token",
+                "label": "Token DuckDNS",
+                "type": "password",
+                "required": true,
+                "min": 8
+            }
+        ]
     }
 }

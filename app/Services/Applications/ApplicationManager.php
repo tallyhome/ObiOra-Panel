@@ -582,6 +582,9 @@ final class ApplicationManager
         if ($username === '' && preg_match('/credentials:([^\s\/]+)/', $output, $credMatch)) {
             $username = $credMatch[1];
         }
+        if ($username === '') {
+            $username = trim((string) ($installOptions['domain'] ?? ''));
+        }
 
         $usage = $package->usageNotes();
         if ($username !== '') {
@@ -602,7 +605,7 @@ final class ApplicationManager
             'install_output' => trim($output),
         ];
 
-        $password = trim((string) ($installOptions['pass'] ?? ''));
+        $password = trim((string) ($installOptions['pass'] ?? $installOptions['token'] ?? ''));
         if ($username !== '' || $password !== '') {
             $metadata['credentials'] = array_filter([
                 'username' => $username !== '' ? $username : null,

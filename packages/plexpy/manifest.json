@@ -12,8 +12,10 @@
     "runtime": {
         "type": "docker",
         "container": "obiora-plexpy",
-        "port": 8181,
-        "url": "http://{host}:8181",
+        "port": 8182,
+        "url": "http://{host}:8182",
         "usage": "Statistiques et monitoring Plex (ancien PlexPy)."
-    }
+    },
+    "installable": false,
+    "install_notice": "Doublon de Tautulli — installez Tautulli à la place."
 }

@@ -11,6 +11,8 @@
     "runtime": {
         "type": "docker",
         "container": "obiora-sonarr",
-        "usage": "Gestion et téléchargement de séries TV."
+        "usage": "Gestion et téléchargement de séries TV sur le port 8989.",
+        "port": 8989,
+        "url": "http://{host}:8989"
     }
 }

@@ -12,8 +12,8 @@
     "runtime": {
         "type": "docker",
         "container": "obiora-subsonic",
-        "port": 4040,
-        "url": "http://{host}:4040",
+        "port": 4042,
+        "url": "http://{host}:4042",
         "usage": "Serveur de streaming musical."
     }
 }

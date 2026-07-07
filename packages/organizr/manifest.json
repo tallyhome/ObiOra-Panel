@@ -12,8 +12,8 @@
     "runtime": {
         "type": "docker",
         "container": "obiora-organizr",
-        "port": 80,
-        "url": "http://{host}:80",
+        "port": 8086,
+        "url": "http://{host}:8086",
         "usage": "Page d'accueil pour vos services."
     }
 }

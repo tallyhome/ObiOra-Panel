@@ -12,8 +12,8 @@
     "runtime": {
         "type": "docker",
         "container": "obiora-rapidleech",
-        "port": 80,
-        "url": "http://{host}:80",
+        "port": 8087,
+        "url": "http://{host}:8087",
         "usage": "Gestionnaire de liens premium (legacy)."
     }
 }

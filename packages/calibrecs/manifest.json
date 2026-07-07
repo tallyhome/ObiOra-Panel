@@ -12,8 +12,8 @@
     "runtime": {
         "type": "docker",
         "container": "obiora-calibrecs",
-        "port": 8081,
-        "url": "http://{host}:8081",
+        "port": 8093,
+        "url": "http://{host}:8093",
         "usage": "Serveur de contenu Calibre."
     }
 }

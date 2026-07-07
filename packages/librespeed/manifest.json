@@ -12,8 +12,8 @@
     "runtime": {
         "type": "docker",
         "container": "obiora-librespeed",
-        "port": 80,
-        "url": "http://{host}:80",
+        "port": 8088,
+        "url": "http://{host}:8088",
         "usage": "Test de débit réseau self-hosted."
     }
 }

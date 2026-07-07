@@ -15,6 +15,7 @@
         "container": "obiora-netronome",
         "port": 9090,
         "url": "http://{host}:9090",
-        "usage": "Entrée legacy Swizzin désactivée : le script installait Prometheus au lieu de Netronome. Utilisez Netdata ou un déploiement Prometheus dédié."
-    }
+        "usage": "Monitoring réseau (Swizzin legacy)."
+    },
+    "install_notice": "Entrée legacy désactivée (installait Prometheus). Utilisez Netdata."
 }

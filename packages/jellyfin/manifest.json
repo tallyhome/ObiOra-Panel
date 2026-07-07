@@ -11,8 +11,8 @@
     "runtime": {
         "type": "docker",
         "container": "obiora-jellyfin",
-        "port": 8096,
-        "url": "http://{host}:8096",
-        "usage": "Créez le compte administrateur au premier lancement via l'interface web."
+        "port": 8097,
+        "url": "http://{host}:8097",
+        "usage": "Serveur média open source."
     }
 }

@@ -14,6 +14,6 @@
         "container": "obiora-mango",
         "port": 25600,
         "url": "http://{host}:25600",
-        "usage": "Komga (gotson/komga) sur le port 25600. Interface web de lecture BD/manga."
+        "usage": "Lecteur de mangas self-hosted."
     }
 }

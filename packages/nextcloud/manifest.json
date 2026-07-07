@@ -50,8 +50,8 @@
     "runtime": {
         "type": "docker",
         "container": "obiora-nextcloud",
-        "port": 443,
-        "url": "https://{host}:443",
-        "usage": "Suite bureautique et cloud privé."
+        "port": 8443,
+        "url": "https://{host}:8443",
+        "usage": "Nextcloud sur le port 8443 (HTTPS). Compte admin et base MySQL configurés automatiquement à l'installation."
     }
 }

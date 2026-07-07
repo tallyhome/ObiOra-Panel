@@ -52,4 +52,18 @@ final class ApplicationPackageRuntimeTest extends TestCase
 
         $this->assertFalse($package->isInstallable());
     }
+
+    public function test_nginx_is_not_installable(): void
+    {
+        $manifest = json_decode(
+            (string) file_get_contents(base_path('packages/nginx/manifest.json')),
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
+
+        $package = new ApplicationPackage('nginx', base_path('packages/nginx'), $manifest);
+
+        $this->assertFalse($package->isInstallable());
+    }
 }

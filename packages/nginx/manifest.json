@@ -15,5 +15,7 @@
         "port": 80,
         "url": "http://{host}:80",
         "usage": "Serveur web — géré par ObiOra (module Sites)."
-    }
+    },
+    "installable": false,
+    "install_notice": "Nginx est géré par le module Sites ObiOra — ne pas installer en double."
 }

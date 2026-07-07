@@ -14,6 +14,33 @@
         "container": "obiora-znc",
         "port": 6501,
         "url": "http://{host}:6501",
-        "usage": "Bouncer IRC persistant."
+        "usage": "Bouncer IRC persistant. Identifiants définis à l'installation via le wizard du panel."
+    },
+    "install": {
+        "options": [
+            {
+                "name": "label",
+                "label": "Nom affiché dans le panel",
+                "type": "text",
+                "default": "Znc",
+                "help": "Libellé visible dans le centre de contrôle."
+            },
+            {
+                "name": "username",
+                "label": "Identifiant",
+                "type": "text",
+                "default": "admin",
+                "required": true,
+                "min": 3
+            },
+            {
+                "name": "pass",
+                "label": "Mot de passe",
+                "type": "password",
+                "required": true,
+                "min": 8,
+                "help": "Stocké dans les infos de l'application après installation."
+            }
+        ]
     }
 }

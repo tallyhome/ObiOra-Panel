@@ -12,8 +12,35 @@
     "runtime": {
         "type": "docker",
         "container": "obiora-sabnzbd",
-        "port": 8080,
-        "url": "http://{host}:8080",
-        "usage": "Client Usenet avec interface web."
+        "port": 8085,
+        "url": "http://{host}:8085",
+        "usage": "Client Usenet avec interface web. Identifiants définis à l'installation via le wizard du panel."
+    },
+    "install": {
+        "options": [
+            {
+                "name": "label",
+                "label": "Nom affiché dans le panel",
+                "type": "text",
+                "default": "Sabnzbd",
+                "help": "Libellé visible dans le centre de contrôle."
+            },
+            {
+                "name": "username",
+                "label": "Identifiant",
+                "type": "text",
+                "default": "admin",
+                "required": true,
+                "min": 3
+            },
+            {
+                "name": "pass",
+                "label": "Mot de passe",
+                "type": "password",
+                "required": true,
+                "min": 1,
+                "help": "Stocké dans les infos de l'application après installation."
+            }
+        ]
     }
 }

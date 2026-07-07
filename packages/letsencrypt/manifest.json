@@ -13,5 +13,6 @@
     "runtime": {
         "type": "binary",
         "usage": "Certificats SSL — utilisez le module Sites ObiOra."
-    }
+    },
+    "install_notice": "Utilisez le module Sites ObiOra pour les certificats SSL."
 }

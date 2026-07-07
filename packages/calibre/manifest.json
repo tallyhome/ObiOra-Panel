@@ -12,8 +12,8 @@
     "runtime": {
         "type": "docker",
         "container": "obiora-calibre",
-        "port": 8080,
-        "url": "http://{host}:8080",
+        "port": 8089,
+        "url": "http://{host}:8089",
         "usage": "Gestion d'ebooks et bibliothèque."
     }
 }

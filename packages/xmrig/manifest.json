@@ -12,8 +12,8 @@
     "runtime": {
         "type": "docker",
         "container": "obiora-xmrig",
-        "port": 8080,
-        "url": "http://{host}:8080",
+        "port": 8090,
+        "url": "http://{host}:8090",
         "usage": "Mineur Monero (CPU/GPU) — usage à vos risques."
     }
 }

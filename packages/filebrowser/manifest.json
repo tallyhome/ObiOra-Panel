@@ -39,8 +39,8 @@
     "runtime": {
         "type": "docker",
         "container": "obiora-filebrowser",
-        "port": 8080,
-        "url": "http://{host}:8080",
-        "usage": "Gestionnaire de fichiers web."
+        "port": 8082,
+        "url": "http://{host}:8082",
+        "usage": "Interface web sur le port 8082. Identifiants définis à l'installation."
     }
 }
