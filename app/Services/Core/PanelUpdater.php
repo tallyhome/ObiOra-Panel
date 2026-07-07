@@ -60,9 +60,9 @@ final class PanelUpdater
                 ['timeout' => 900],
             );
 
-            $output = trim($result->output()."\n".$result->errorOutput());
+            $output = trim($result->output."\n".$result->errorOutput);
 
-            if (! $result->successful()) {
+            if (! $result->successful) {
                 $history->update([
                     'status' => 'failed',
                     'output' => $output,
