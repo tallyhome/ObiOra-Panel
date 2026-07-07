@@ -87,4 +87,13 @@ return [
         'max_tokens' => (int) env('OBIORA_AI_MAX_TOKENS', 2048),
     ],
 
+    'site_api' => [
+        'key' => env('OBIORA_SITE_API_KEY'),
+        'demo_ttl_hours' => (int) env('OBIORA_SITE_DEMO_TTL_HOURS', 24),
+    ],
+
+    'suite' => [
+        'url' => env('OBIORA_SUITE_URL', ''),
+    ],
+
 ];

@@ -70,6 +70,7 @@ php artisan serve
 | 10 | v1.9.0 | AdminLicence & Mises à jour |
 | **11** | **v2.0.0** | **Reverb temps réel + modules stub UI + polish monitoring** |
 | **12** | **v2.0.1** | **Assistant IA + sidebar Infrastructure repliable** |
+| **13** | **v2.1.0** | **Modules métier Infrastructure, Doctor/Suite, IA enrichie** |
 
 ## Documentation
 
@@ -85,6 +86,7 @@ php artisan serve
 - [AdminLicence Phase 10](docs/architecture/PHASE-10.md)
 - [Reverb temps réel Phase 11](docs/architecture/PHASE-11.md)
 - [Assistant IA Phase 12](docs/architecture/PHASE-12.md)
+- [Modules métier & Suite Phase 13](docs/architecture/PHASE-13.md)
 
 ## Licence
 

@@ -6,6 +6,7 @@ namespace Modules\Monitoring\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
+use Modules\Monitoring\Livewire\DoctorSuiteIndex;
 use Modules\Monitoring\Livewire\MonitoringIndex;
 
 class MonitoringServiceProvider extends ServiceProvider
@@ -19,5 +20,6 @@ class MonitoringServiceProvider extends ServiceProvider
     {
         $this->loadViewsFrom(__DIR__.'/../Resources/views', 'monitoring');
         Livewire::component('monitoring.monitoring-index', MonitoringIndex::class);
+        Livewire::component('doctor.index', DoctorSuiteIndex::class);
     }
 }

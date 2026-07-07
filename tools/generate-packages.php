@@ -298,13 +298,14 @@ function scriptInstallScript(string $slug, string $service): string
 {
     $body = match ($service) {
         'webmin' => <<<'BODY'
+# Utiliser packages/webmin/install.sh (dépôt officiel + firewall port 10000)
 if [[ -f /etc/webmin/miniserv.conf ]]; then
+    systemctl restart webmin 2>/dev/null || true
     echo "OK:webmin (déjà installé)"
     exit 0
 fi
-curl -fsSL https://raw.githubusercontent.com/webmin/webmin/master/setup.sh -o /tmp/webmin-setup.sh
-bash /tmp/webmin-setup.sh --unattended
-rm -f /tmp/webmin-setup.sh
+echo "ERREUR: régénérez packages/webmin/install.sh depuis le dépôt ObiOra" >&2
+exit 1
 BODY,
         'duckdns' => <<<'BODY'
 install -d -m 0755 /opt/duckdns

@@ -197,5 +197,14 @@ if systemctl list-unit-files 2>/dev/null | grep -q '^obiora-reverb\.service'; th
     systemctl restart obiora-reverb >/dev/null 2>&1 || true
 fi
 
+if grep -q '^OBIORA_REALTIME_ENABLED=true' "${OBIORA_INSTALL_DIR}/.env" 2>/dev/null \
+    && [[ -f "${OBIORA_INSTALL_DIR}/install/lib/reverb.sh" ]]; then
+    # shellcheck source=/dev/null
+    source "${OBIORA_INSTALL_DIR}/install/lib/common.sh"
+    # shellcheck source=/dev/null
+    source "${OBIORA_INSTALL_DIR}/install/lib/reverb.sh"
+    append_reverb_nginx
+fi
+
 progress 100 "Mise à jour terminée avec succès"
 echo "OK: panel mis à jour."

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Modules\Cluster\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
+use Modules\Cluster\Livewire\ClusterIndex;
 
 class ClusterServiceProvider extends ServiceProvider
 {
@@ -15,6 +17,6 @@ class ClusterServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        Livewire::component('cluster.index', ClusterIndex::class);
     }
 }

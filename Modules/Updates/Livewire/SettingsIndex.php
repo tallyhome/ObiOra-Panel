@@ -6,6 +6,7 @@ namespace Modules\Updates\Livewire;
 
 use App\Jobs\RunSystemPackageUpdateJob;
 use App\Models\UpdateHistory;
+use App\Support\ChangelogParser;
 use App\Services\Core\LicenseService;
 use App\Services\Core\PanelUpdater;
 use App\Services\Core\SystemMaintenance;
@@ -301,13 +302,18 @@ final class SettingsIndex extends Component
         }
     }
 
-    public function render(SystemMaintenance $systemMaintenance)
+    public function render(SystemMaintenance $systemMaintenance, ChangelogParser $changelog)
     {
+        $latestVersion = (string) ($this->updateInfo['latest'] ?? '');
+        $availableNotes = $latestVersion !== '' ? $changelog->notesForVersion($latestVersion) : null;
+
         return view('updates::livewire.settings-index', [
             'history' => UpdateHistory::query()->latest()->limit(10)->get(),
             'licenseEnabled' => (bool) config('license.enabled', false),
             'adminLicenceUrl' => (string) config('license.admin_licence_url'),
             'systemInfo' => $systemMaintenance->detectPackageManager(),
+            'changelogSections' => $changelog->sections(6),
+            'availableReleaseNotes' => $availableNotes,
         ]);
     }
 }

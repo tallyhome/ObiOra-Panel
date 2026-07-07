@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Modules\AI\Livewire;
 
+use App\Services\AI\AiActionExecutor;
 use App\Services\AI\AiAssistantManager;
 use App\Services\AI\AiContextBuilder;
+use App\Services\AI\AiConversationStore;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -28,55 +30,91 @@ final class AiAssistant extends Component
 
     public bool $planAllowed = true;
 
-    public function mount(AiAssistantManager $ai, AiContextBuilder $context): void
-    {
+    public ?int $conversationId = null;
+
+    public function mount(
+        AiAssistantManager $ai,
+        AiContextBuilder $context,
+        AiConversationStore $store,
+    ): void {
         $this->enabled = $ai->isEnabled();
         $this->planAllowed = $ai->isAllowedForCurrentPlan();
         $this->suggestions = $context->suggestedActions($context->build());
 
-        if ($this->messages === []) {
-            $this->messages[] = [
-                'role' => 'assistant',
-                'content' => 'Bonjour — je suis l\'assistant ObiOra. Posez une question sur votre serveur, le monitoring Doctor ou la marketplace.',
-                'offline' => false,
-            ];
-        }
-    }
+        $conversation = $store->loadOrCreate($this->conversationId);
+        $this->conversationId = $conversation->id;
 
-    public function send(AiAssistantManager $ai): void
-    {
-        $text = trim($this->prompt);
-        if ($text === '' || $this->thinking) {
+        $stored = $store->messagesForUi($conversation);
+        if ($stored !== []) {
+            $this->messages = $stored;
+
             return;
         }
 
+        $welcome = 'Bonjour — je suis l\'assistant ObiOra. Posez une question sur votre serveur, le monitoring Doctor ou la marketplace.';
+        $this->messages[] = ['role' => 'assistant', 'content' => $welcome, 'offline' => false];
+        $store->append($conversation, 'assistant', $welcome);
+    }
+
+    public function send(
+        AiAssistantManager $ai,
+        AiConversationStore $store,
+        AiActionExecutor $actions,
+    ): void {
+        $text = trim($this->prompt);
+        if ($text === '' || $this->thinking || $this->conversationId === null) {
+            return;
+        }
+
+        $conversation = $store->loadOrCreate($this->conversationId);
         $this->messages[] = ['role' => 'user', 'content' => $text];
+        $store->append($conversation, 'user', $text);
         $this->prompt = '';
         $this->thinking = true;
 
+        $actionResult = $actions->tryExecute($text);
+        if ($actionResult['handled']) {
+            $this->messages[] = [
+                'role' => 'assistant',
+                'content' => $actionResult['message'],
+                'offline' => false,
+            ];
+            $store->append($conversation, 'assistant', $actionResult['message']);
+            $this->thinking = false;
+
+            return;
+        }
+
         $history = array_map(
             fn (array $m) => ['role' => $m['role'], 'content' => $m['content']],
-            array_filter($this->messages, fn (array $m) => $m['role'] !== 'assistant' || ! str_contains($m['content'], 'Bonjour — je suis')),
+            array_filter($this->messages, fn (array $m) => $m['role'] === 'user' || $m['role'] === 'assistant'),
         );
 
         $result = $ai->chat($text, $history);
+        $content = $result['content'] !== '' ? $result['content'] : 'Réponse vide du provider.';
 
         $this->messages[] = [
             'role' => 'assistant',
-            'content' => $result['content'] !== '' ? $result['content'] : 'Réponse vide du provider.',
+            'content' => $content,
             'offline' => $result['offline'],
         ];
+        $store->append($conversation, 'assistant', $content, $result['offline']);
 
         $this->thinking = false;
     }
 
-    public function clearChat(): void
+    public function clearChat(AiConversationStore $store): void
     {
-        $this->messages = [[
-            'role' => 'assistant',
-            'content' => 'Conversation effacée. Comment puis-je vous aider ?',
-            'offline' => false,
-        ]];
+        if ($this->conversationId === null) {
+            return;
+        }
+
+        $conversation = $store->loadOrCreate($this->conversationId);
+        $store->clear($conversation);
+
+        $msg = 'Conversation effacée. Comment puis-je vous aider ?';
+        $this->messages = [['role' => 'assistant', 'content' => $msg, 'offline' => false]];
+        $store->append($conversation, 'assistant', $msg);
     }
 
     public function useSuggestion(int $index): void

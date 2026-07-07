@@ -28,6 +28,11 @@ final class ModuleStubRoutesTest extends TestCase
 
     public function test_authenticated_user_can_open_stub_modules(): void
     {
+        $slugs = array_keys(ModuleStubRegistry::infrastructure());
+        if ($slugs === []) {
+            $this->markTestSkipped('Aucun module stub infrastructure restant.');
+        }
+
         $this->seed();
 
         $user = User::factory()->create(['is_active' => true]);

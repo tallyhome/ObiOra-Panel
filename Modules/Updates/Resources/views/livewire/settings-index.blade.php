@@ -142,6 +142,13 @@
                         <p class="text-muted small mb-3">Dernière vérification : {{ $lastCheckedAt }}</p>
                     @endif
 
+                    @if(($updateInfo['available'] ?? false) && !empty($availableReleaseNotes))
+                        <div class="border rounded p-3 mb-3 bg-dark bg-opacity-25">
+                            <h3 class="h6 mb-2">Notes v{{ $updateInfo['latest'] ?? '?' }}</h3>
+                            <pre class="small text-muted mb-0" style="white-space: pre-wrap; font-family: inherit;">{{ $availableReleaseNotes }}</pre>
+                        </div>
+                    @endif
+
                     <p class="text-muted small mb-0">
                         Les mises à jour sont téléchargées depuis GitHub Releases.
                         Avec AdminLicence activé, seules les installations licenciées pourront mettre à jour.
@@ -150,6 +157,45 @@
             </div>
         </div>
     </div>
+
+    @if(!empty($changelogSections))
+        <div class="card obiora-card mt-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3">Journal des versions</h2>
+                <p class="text-muted small mb-3">Changelog intégré depuis <code>CHANGELOG.md</code> du panel.</p>
+                <div class="accordion accordion-flush" id="changelogAccordion">
+                    @foreach($changelogSections as $index => $section)
+                        <div class="accordion-item bg-transparent border-secondary">
+                            <h3 class="accordion-header">
+                                <button class="accordion-button collapsed bg-transparent text-light shadow-none py-2"
+                                    type="button"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#changelog-{{ $index }}">
+                                    v{{ $section['version'] }}
+                                    @if($section['date'])
+                                        <span class="text-muted small ms-2">{{ $section['date'] }}</span>
+                                    @endif
+                                </button>
+                            </h3>
+                            <div id="changelog-{{ $index }}" class="accordion-collapse collapse" data-bs-parent="#changelogAccordion">
+                                <div class="accordion-body pt-0">
+                                    @if(!empty($section['items']))
+                                        <ul class="small mb-0">
+                                            @foreach($section['items'] as $item)
+                                                <li>{{ $item }}</li>
+                                            @endforeach
+                                        </ul>
+                                    @else
+                                        <pre class="small text-muted mb-0" style="white-space: pre-wrap; font-family: inherit;">{{ $section['body'] }}</pre>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
 
     @can('updates.manage')
         @if(($systemInfo['can_update'] ?? false) || ($systemInfo['can_reboot'] ?? false))

@@ -109,6 +109,10 @@ final class ModuleStubRegistry
         $all = self::all();
         unset($all['ai']);
 
+        foreach (InfrastructureModuleRegistry::implementedSlugs() as $slug) {
+            unset($all[$slug]);
+        }
+
         return $all;
     }
 

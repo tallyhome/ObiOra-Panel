@@ -39,18 +39,23 @@
         <a href="{{ route('backups.index') }}" class="nav-link {{ request()->routeIs('backups.*') ? 'active' : '' }}">
             <span class="obiora-nav-icon" aria-hidden="true">⬚</span> Sauvegardes
         </a>
-        @if(!empty($stubModules))
+        @if(!empty($infraModules) || !empty($stubModules))
         <hr class="border-secondary opacity-25 my-2">
         <button type="button"
                 id="infra-toggle"
                 class="nav-link w-100 text-start border-0 bg-transparent text-white d-flex align-items-center justify-content-between py-2 px-2 small"
                 aria-expanded="false"
                 aria-controls="infra-nav"
-                data-force-open="{{ request()->routeIs('modules.stub') ? '1' : '0' }}">
+                data-force-open="{{ request()->routeIs('modules.stub') || request()->routeIs('ssl.*', 'firewall.*', 'users.*', 'nginx.*', 'redis.*', 'apache.*', 'ftp.*', 'dns.*', 'applications.*', 'virtualizor.*', 'cluster.*', 'doctor.*') ? '1' : '0' }}">
             <span>Infrastructure</span>
             <span class="infra-chevron opacity-75" aria-hidden="true">▸</span>
         </button>
-        <div class="collapse {{ request()->routeIs('modules.stub') ? 'show' : '' }}" id="infra-nav">
+        <div class="collapse {{ request()->routeIs('modules.stub') || request()->routeIs('ssl.*', 'firewall.*', 'users.*', 'nginx.*', 'redis.*', 'apache.*', 'ftp.*', 'dns.*', 'applications.*', 'virtualizor.*', 'cluster.*', 'doctor.*') ? 'show' : '' }}" id="infra-nav">
+            @foreach($infraModules ?? [] as $slug => $module)
+            <a href="{{ route($module['route']) }}" class="nav-link small py-1 ps-4 {{ request()->routeIs($module['route']) ? 'active' : '' }}">
+                <span class="me-1">{{ $module['icon'] ?? '◫' }}</span>{{ $module['name'] ?? $slug }}
+            </a>
+            @endforeach
             @foreach($stubModules as $slug => $stub)
             <a href="{{ route('modules.stub', $slug) }}" class="nav-link small py-1 ps-4 {{ request()->routeIs('modules.stub') && request()->route('slug') === $slug ? 'active' : '' }}">
                 <span class="me-1">{{ $stub['icon'] ?? '◫' }}</span>{{ $stub['name'] ?? $slug }}

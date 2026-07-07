@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Modules\Users\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
+use Modules\Users\Livewire\UserIndex;
 
 class UsersServiceProvider extends ServiceProvider
 {
@@ -15,6 +17,7 @@ class UsersServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        $this->loadViewsFrom(__DIR__.'/../Resources/views', 'users');
+        Livewire::component('users.index', UserIndex::class);
     }
 }

@@ -4,6 +4,33 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.0 - 2026-07-08
+
+- Phase 13 : modules Infrastructure métier (SSL, Firewall, Users, Nginx, Redis, Apache, FTP, DNS, Applications, Virtualizor, Cluster)
+- Page Doctor & Suite (`/doctor`) — agent Doctor, lien ObiOra-Suite
+- IA : historique conversations BDD, actions chat (redémarrage service)
+- Scripts agent infrastructure + gestion ports firewall
+- Reverb : proxy Nginx `/app` réappliqué automatiquement à la MAJ si activé
+
+## v2.0.2 - 2026-07-08
+
+- Marketplace Webmin : ouverture port 10000 (firewalld/ufw), vérification service, écoute réseau
+- Changelog intégré dans Licence & MAJ (parser CHANGELOG.md)
+- Documentation Phase 13 (roadmap modules métier, Doctor/Suite, IA enrichie)
+
+## v2.0.1 - 2026-07-08
+
+- Phase 12 : assistant IA (`/ai`) avec contexte Doctor, OpenAI/Anthropic/Ollama, mode local sans clé
+- Sidebar Infrastructure repliable (état mémorisé navigateur)
+- Assistant IA sorti de la section Infrastructure (lien dédié)
+
+## v2.0.0 - 2026-07-08
+
+- Phase 11 : Laravel Reverb temps réel (opt-in, polling en repli)
+- Pages stub Infrastructure sous `/modules/{slug}`
+- Polish monitoring Vue, events dashboard/services/marketplace
+- Service systemd `obiora-reverb`, proxy Nginx WebSocket `/app`
+
 ## v1.9.41 - 2026-07-07
 
 - Marketplace : grille de cartes avec icones officielles (Homarr) et fallback lettre

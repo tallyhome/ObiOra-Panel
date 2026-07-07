@@ -81,4 +81,5 @@ php artisan test --filter=ModuleStub
 
 ## Prochaine phase
 
-**Phase 12 (v2.0.0)** — Assistant IA. Voir [PHASE-12.md](PHASE-12.md).
+**Phase 13 (v2.1.0+)** — Modules métier Infrastructure, Doctor/Suite, IA enrichie.
+Voir [PHASE-13.md](PHASE-13.md).

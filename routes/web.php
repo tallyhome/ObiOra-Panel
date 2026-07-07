@@ -70,6 +70,23 @@ Route::middleware(['setup', 'auth', 'server'])->group(function () {
     Route::get('/ai', \Modules\AI\Livewire\AiAssistant::class)->name('ai.index');
     Route::redirect('/modules/ai', '/ai');
 
+    Route::get('/ssl', \Modules\SSL\Livewire\SslIndex::class)->name('ssl.index');
+    Route::get('/firewall', \Modules\Firewall\Livewire\FirewallIndex::class)->name('firewall.index');
+    Route::get('/users', \Modules\Users\Livewire\UserIndex::class)->name('users.index');
+    Route::get('/nginx', \Modules\Nginx\Livewire\NginxIndex::class)->name('nginx.index');
+    Route::get('/redis', \Modules\Redis\Livewire\RedisIndex::class)->name('redis.index');
+    Route::get('/apache', \Modules\Apache\Livewire\ApacheIndex::class)->name('apache.index');
+    Route::get('/ftp', \Modules\FTP\Livewire\FtpIndex::class)->name('ftp.index');
+    Route::get('/dns', \Modules\DNS\Livewire\DnsIndex::class)->name('dns.index');
+    Route::get('/applications', \Modules\Applications\Livewire\ApplicationsIndex::class)->name('applications.index');
+    Route::get('/virtualizor', \Modules\Virtualizor\Livewire\VirtualizorIndex::class)->name('virtualizor.index');
+    Route::get('/cluster', \Modules\Cluster\Livewire\ClusterIndex::class)->name('cluster.index');
+    Route::get('/doctor', \Modules\Monitoring\Livewire\DoctorSuiteIndex::class)->name('doctor.index');
+
+    Route::redirect('/modules/ssl', '/ssl');
+    Route::redirect('/modules/firewall', '/firewall');
+    Route::redirect('/modules/users', '/users');
+
     Route::prefix('api/monitoring')->name('monitoring.api.')->group(function () {
         Route::get('/fleet', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'fleet'])->name('fleet');
         Route::get('/stream', [\App\Http\Controllers\MonitoringStreamController::class, 'stream'])->name('stream');

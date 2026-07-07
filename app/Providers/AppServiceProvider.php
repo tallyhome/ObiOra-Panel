@@ -13,6 +13,7 @@ use App\Services\Core\UpdateManager;
 use App\Support\InstalledVersion;
 use App\Services\System\LocalExecutor;
 use App\Livewire\Modules\ModuleStubIndex;
+use App\Support\InfrastructureModuleRegistry;
 use App\Support\ModuleStubRegistry;
 use Illuminate\Support\Facades\View;
 use Livewire\Livewire;
@@ -46,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
                 auth()->check() && $this->app->make(ModuleManager::class)->isEnabled('monitoring'),
             );
             $view->with('stubModules', ModuleStubRegistry::infrastructure());
+            $view->with('infraModules', InfrastructureModuleRegistry::implemented());
             $view->with('realtimeEnabled', \App\Support\Realtime::enabled());
         });
     }

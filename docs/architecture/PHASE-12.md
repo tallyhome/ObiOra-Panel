@@ -31,3 +31,8 @@ OBIORA_AI_BASE_URL=http://127.0.0.1:11434/v1
 ```bash
 php artisan test --filter=AiAssistant
 ```
+
+## Suite
+
+**Phase 13 (v2.1.0+)** — Modules métier, ObiOra-Doctor/Suite, enrichissements IA.
+Voir [PHASE-13.md](PHASE-13.md).

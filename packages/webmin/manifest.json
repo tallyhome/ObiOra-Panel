@@ -14,6 +14,6 @@
         "service": "webmin",
         "port": 10000,
         "url": "https://{host}:10000",
-        "usage": "Interface Webmin sur le port 10000 en HTTPS. Connexion avec un compte système autorisé (ex. root si activé sur le serveur). L'installation utilise le dépôt officiel Webmin pour obtenir la dernière version stable disponible."
+        "usage": "Interface Webmin sur https://{host}:10000 (certificat auto-signé : accepter l'avertissement navigateur). Connexion avec un compte système autorisé. Le port 10000 est ouvert automatiquement (firewalld/ufw) à l'installation."
     }
 }
