@@ -16,6 +16,9 @@
         <a href="{{ route('servers.index') }}" class="nav-link {{ request()->routeIs('servers.*') ? 'active' : '' }}">
             <span class="obiora-nav-icon" aria-hidden="true">⬢</span> Serveurs
         </a>
+        <a href="{{ route('monitoring.index') }}" class="nav-link {{ request()->routeIs('monitoring.*') ? 'active' : '' }}">
+            <span class="obiora-nav-icon" aria-hidden="true">◉</span> Monitoring
+        </a>
         <a href="{{ route('websites.index') }}" class="nav-link {{ request()->routeIs('websites.*') ? 'active' : '' }}">
             <span class="obiora-nav-icon" aria-hidden="true">◎</span> Sites web
         </a>
