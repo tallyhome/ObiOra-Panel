@@ -4,9 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
-## v1.8.7 - 2026-07-07
+## [1.8.8] - 2026-07-07
 
-Demarre Redis avant les migrations pour corriger Connection refused sur la migration permission_tables.
+### Corrigé
+
+- **Nginx sur RHEL/AlmaLinux** : écriture directe dans `/etc/nginx/conf.d/` quand `sites-available/` n'existe pas (convention Debian) — corrige `No such file or directory` sur AlmaLinux
 
 ## [1.8.7] - 2026-07-07
 

@@ -13,7 +13,15 @@ setup_nginx() {
         server_name="$(get_server_ip) _"
     fi
 
-    local nginx_conf="/etc/nginx/sites-available/obiora-panel"
+    # Debian/Ubuntu utilisent sites-available/enabled ; RHEL/AlmaLinux conf.d
+    local nginx_conf
+    if [[ -d /etc/nginx/sites-available ]]; then
+        nginx_conf="/etc/nginx/sites-available/obiora-panel"
+    else
+        mkdir -p /etc/nginx/conf.d
+        nginx_conf="/etc/nginx/conf.d/obiora-panel.conf"
+    fi
+
     local php_sock="/run/php/php8.3-fpm.sock"
 
     # AlmaLinux/Rocky peuvent utiliser un chemin différent
@@ -57,13 +65,10 @@ server {
 }
 NGINX
 
-    # Activation du site
+    # Activation du site (Debian : lien symbolique ; RHEL : déjà dans conf.d)
     if [[ -d /etc/nginx/sites-enabled ]]; then
         ln -sf "${nginx_conf}" /etc/nginx/sites-enabled/obiora-panel
         rm -f /etc/nginx/sites-enabled/default
-    else
-        # AlmaLinux/Rocky : conf.d
-        cp "${nginx_conf}" /etc/nginx/conf.d/obiora-panel.conf
     fi
 
     nginx -t
