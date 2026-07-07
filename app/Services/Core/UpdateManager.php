@@ -78,15 +78,19 @@ final class UpdateManager
                 $latest = ltrim((string) $response->json('tag_name', ''), 'v');
 
                 if ($latest !== '') {
-                    return [
+                    $release = [
                         'latest' => $latest,
                         'changelog_url' => $response->json('html_url'),
                         'error' => null,
                     ];
+
+                    return $this->mergeWithTags($repository, $baseUrl, $release);
                 }
             }
 
-            return $this->fetchLatestFromReleasesList($repository, $baseUrl, $response->status());
+            $fallback = $this->fetchLatestFromReleasesList($repository, $baseUrl, $response->status());
+
+            return $this->mergeWithTags($repository, $baseUrl, $fallback);
         } catch (\Throwable $exception) {
             Log::warning('Update check failed', ['message' => $exception->getMessage()]);
 
@@ -164,6 +168,75 @@ final class UpdateManager
                 'changelog_url' => null,
                 'error' => 'Impossible de lister les releases GitHub.',
             ];
+        }
+    }
+
+    /**
+     * @param  array{latest: ?string, changelog_url: ?string, error: ?string}  $release
+     * @return array{latest: ?string, changelog_url: ?string, error: ?string}
+     */
+    private function mergeWithTags(string $repository, string $baseUrl, array $release): array
+    {
+        $tagLatest = $this->fetchLatestTag($repository, $baseUrl);
+
+        if ($tagLatest === null) {
+            return $release;
+        }
+
+        $currentLatest = $release['latest'];
+
+        if ($currentLatest === null || $this->versionComparator->isNewer($tagLatest, $currentLatest)) {
+            $release['latest'] = $tagLatest;
+
+            if ($release['changelog_url'] === null) {
+                $release['changelog_url'] = 'https://github.com/'.$repository.'/releases/tag/v'.$tagLatest;
+            }
+        }
+
+        if ($release['error'] !== null && $release['latest'] !== null) {
+            $release['error'] = null;
+        }
+
+        return $release;
+    }
+
+    private function fetchLatestTag(string $repository, string $baseUrl): ?string
+    {
+        try {
+            $response = Http::timeout(20)
+                ->withHeaders([
+                    'Accept' => 'application/vnd.github+json',
+                    'User-Agent' => 'ObiOra-Panel/'.$this->installedVersion->current(),
+                    'X-GitHub-Api-Version' => '2022-11-28',
+                ])
+                ->get("{$baseUrl}/repos/{$repository}/tags", [
+                    'per_page' => 30,
+                ]);
+
+            if (! $response->successful()) {
+                return null;
+            }
+
+            $best = null;
+
+            /** @var list<array<string, mixed>> $tags */
+            $tags = $response->json() ?? [];
+
+            foreach ($tags as $tag) {
+                $name = ltrim((string) ($tag['name'] ?? ''), 'v');
+
+                if ($name === '' || ! preg_match('/^\d+\.\d+/', $name)) {
+                    continue;
+                }
+
+                if ($best === null || $this->versionComparator->isNewer($name, $best)) {
+                    $best = $name;
+                }
+            }
+
+            return $best;
+        } catch (\Throwable) {
+            return null;
         }
     }
 }

@@ -29,6 +29,8 @@ final class SettingsIndex extends Component
 
     public bool $updateSuccess = false;
 
+    public ?string $lastCheckedAt = null;
+
     public string $installationUuid = '';
 
     public string $currentPlan = 'free';
@@ -39,6 +41,7 @@ final class SettingsIndex extends Component
     {
         $this->loadLicense($licenseService);
         $this->updateInfo = $updateManager->checkForUpdates();
+        $this->lastCheckedAt = now()->format('d/m/Y H:i:s');
         $this->setUpdateFeedback();
     }
 
@@ -65,7 +68,14 @@ final class SettingsIndex extends Component
     public function checkUpdates(UpdateManager $updateManager): void
     {
         $this->updateInfo = $updateManager->checkForUpdates(fresh: true);
+        $this->lastCheckedAt = now()->format('d/m/Y H:i:s');
         $this->setUpdateFeedback();
+
+        $type = ($this->updateInfo['available'] ?? false)
+            ? 'warning'
+            : ($this->updateSuccess ? 'success' : 'danger');
+
+        $this->dispatch('notify', type: $type, message: $this->updateMessage ?? 'Vérification terminée.');
     }
 
     public function applyUpdate(PanelUpdater $panelUpdater, UpdateManager $updateManager): void

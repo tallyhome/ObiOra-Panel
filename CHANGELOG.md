@@ -42,6 +42,13 @@ Corrige la detection des mises a jour (VERSION, git, GitHub API) et affiche un b
 
 Phase 10: page Licence et MAJ, integration AdminLicence, correctifs installateur (404, permissions, SELinux).
 
+## [1.9.9] - 2026-07-07
+
+### Corrigé
+
+- **Vérifier les MAJ** : toast SweetAlert2 + indicateur de chargement + horodatage de la dernière vérification
+- **Détection MAJ** : prise en compte des tags GitHub (ex. v1.9.8) même sans release publiée
+
 ## [1.9.8] - 2026-07-07
 
 ### Amélioré

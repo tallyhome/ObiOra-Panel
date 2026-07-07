@@ -92,9 +92,10 @@
                         </div>
                     @endif
 
-                    <div class="d-flex flex-wrap gap-2 mb-3">
+                    <div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
                         <button wire:click="checkUpdates" class="btn btn-outline-primary btn-sm" wire:loading.attr="disabled">
-                            Vérifier
+                            <span wire:loading.remove wire:target="checkUpdates">Vérifier</span>
+                            <span wire:loading wire:target="checkUpdates">↻ Vérification…</span>
                         </button>
                         @can('updates.manage')
                             @if($updateInfo['available'] ?? false)
@@ -111,6 +112,10 @@
                             </a>
                         @endif
                     </div>
+
+                    @if($lastCheckedAt)
+                        <p class="text-muted small mb-3">Dernière vérification : {{ $lastCheckedAt }}</p>
+                    @endif
 
                     <p class="text-muted small mb-0">
                         Les mises à jour sont téléchargées depuis GitHub Releases.
