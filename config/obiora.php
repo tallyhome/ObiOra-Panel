@@ -60,4 +60,16 @@ return [
         'types' => ['database', 'files', 'full'],
     ],
 
+    'diagnostics' => [
+        'signing_key' => env('OBIORA_DOCTOR_SIGNING_KEY'),
+        'require_signature' => (bool) env('OBIORA_DOCTOR_REQUIRE_SIGNATURE', false),
+        'ping_interval_seconds' => (int) env('OBIORA_MONITOR_PING_INTERVAL', 30),
+        'ping_history_hours' => (int) env('OBIORA_MONITOR_HISTORY_HOURS', 24),
+        'alerts_email' => (bool) env('OBIORA_MONITOR_ALERTS_EMAIL', true),
+    ],
+
+    'monitoring' => [
+        'stream_interval_seconds' => (int) env('OBIORA_MONITOR_STREAM_INTERVAL', 5),
+    ],
+
 ];

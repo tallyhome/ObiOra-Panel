@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\DiagnosticReportController;
 use App\Http\Controllers\ApplicationIconController;
 use App\Http\Controllers\MarketplaceInstallSetupController;
 use App\Livewire\Auth\Login;
@@ -63,6 +64,17 @@ Route::middleware(['setup', 'auth', 'server'])->group(function () {
     Route::get('/plugins/icons/{slug}', ApplicationIconController::class)->name('plugins.icon');
 
     Route::get('/monitoring', \Modules\Monitoring\Livewire\MonitoringIndex::class)->name('monitoring.index');
+
+    Route::prefix('api/monitoring')->name('monitoring.api.')->group(function () {
+        Route::get('/fleet', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'fleet'])->name('fleet');
+        Route::get('/stream', [\App\Http\Controllers\MonitoringStreamController::class, 'stream'])->name('stream');
+        Route::get('/servers/{server}/ping-history', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'pingHistory'])->name('ping-history');
+        Route::get('/servers/{server}/score-history', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'scoreHistory'])->name('score-history');
+        Route::get('/servers/{server}/compare', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'compare'])->name('compare');
+        Route::post('/alerts/{alert}/read', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'markAlertRead'])->name('alerts.read');
+        Route::get('/servers/{server}/diagnostics/latest', [DiagnosticReportController::class, 'latest'])->name('diagnostics.latest');
+        Route::get('/servers/{server}/diagnostics', [DiagnosticReportController::class, 'index'])->name('diagnostics.index');
+    });
 
     Route::get('/settings', \Modules\Updates\Livewire\SettingsIndex::class)->name('settings.index');
 });

@@ -42,8 +42,8 @@
                         <input wire:model="agent_port" type="number" class="form-control obiora-input">
                     </div>
                     <div class="col-12">
-                        <label class="form-label">Clé API (générée sur le slave)</label>
-                        <input wire:model="agent_token" type="text" class="form-control obiora-input font-monospace @error('agent_token') is-invalid @enderror" placeholder="Collez la clé affichée après Slave/install.sh">
+                        <label class="form-label">Clé API (optionnel — laissez vide pour générer côté panel)</label>
+                        <input wire:model="agent_token" type="text" class="form-control obiora-input font-monospace @error('agent_token') is-invalid @enderror" placeholder="Clé Slave/install.sh ou vide = génération auto">
                         @error('agent_token') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
                 </div>

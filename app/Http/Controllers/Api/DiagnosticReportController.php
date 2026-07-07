@@ -32,6 +32,7 @@ final class DiagnosticReportController extends Controller
             'id' => $report->id,
             'score' => $report->score,
             'status' => $report->status,
+            'signature_verified' => $report->signature_verified,
         ]);
     }
 

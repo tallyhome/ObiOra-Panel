@@ -394,7 +394,7 @@ final class ApplicationManager
         $server = $application->server;
 
         if (! $this->isLocal($server) || PHP_OS_FAMILY !== 'Linux') {
-            return 'unknown';
+            return $this->remoteAppRuntimeStatus($server, $application, $package);
         }
 
         $runtimeType = $package->effectiveRuntimeType();
@@ -454,6 +454,10 @@ final class ApplicationManager
         $metadata = $application->metadata ?? [];
 
         if (! $this->isLocal($server) || PHP_OS_FAMILY !== 'Linux') {
+            if (! $this->isLocal($server) && $server->primaryNode !== null) {
+                return $this->remoteAppLogs($server, $application, $package, $lines);
+            }
+
             $info = collect([
                 'Application' => $application->name,
                 'Slug' => $application->slug,
@@ -520,6 +524,7 @@ final class ApplicationManager
             'port' => $metadata['port'] ?? $package?->port(),
             'url' => $package?->accessUrl($host) ?? $metadata['url'] ?? null,
             'usage' => $metadata['usage'] ?? $package?->usageNotes() ?? '',
+            'runtime_warning' => $metadata['runtime_warning'] ?? null,
             'username' => $metadata['credentials']['username'] ?? null,
             'password' => $metadata['credentials']['password'] ?? null,
             'installed_at' => $application->installed_at?->format('d/m/Y H:i'),
@@ -815,7 +820,12 @@ final class ApplicationManager
 
             $response = Http::timeout(120)
                 ->withToken($server->agent_token)
-                ->post("http://{$host}:{$port}/api/v1/applications/{$slug}/{$action}");
+                ->post("http://{$host}:{$port}/api/v1/applications/control", [
+                    'slug' => $slug,
+                    'action' => $action,
+                    'runtime_type' => $this->catalog->find($slug)?->effectiveRuntimeType() ?? 'docker',
+                    'target' => $this->resolveRemoteTarget($slug),
+                ]);
         } catch (\Throwable $e) {
             return ['success' => false, 'output' => $e->getMessage()];
         }
@@ -824,5 +834,77 @@ final class ApplicationManager
             'success' => (bool) $response->json('success', false),
             'output' => (string) $response->json('output', $response->body()),
         ];
+    }
+
+    private function resolveRemoteTarget(string $slug): string
+    {
+        $package = $this->catalog->find($slug);
+
+        if ($package === null) {
+            return 'obiora-'.$slug;
+        }
+
+        if ($package->effectiveRuntimeType() === 'docker') {
+            return $package->effectiveContainerName();
+        }
+
+        return $package->effectiveSystemdService() ?? $slug;
+    }
+
+    private function remoteAppRuntimeStatus(Server $server, InstalledApplication $application, ApplicationPackage $package): string
+    {
+        $node = $server->primaryNode;
+
+        if ($node === null) {
+            return 'unknown';
+        }
+
+        if (! in_array($package->effectiveRuntimeType(), ['docker', 'systemd'], true)) {
+            return 'installed';
+        }
+
+        try {
+            $host = $node->host ?? $server->ip_address;
+            $port = $node->port ?? 9100;
+
+            $response = Http::timeout(30)
+                ->withToken($server->agent_token)
+                ->post("http://{$host}:{$port}/api/v1/applications/status", [
+                    'slug' => $application->slug,
+                    'runtime_type' => $package->effectiveRuntimeType(),
+                    'target' => $this->resolveRemoteTarget($application->slug),
+                ]);
+        } catch (\Throwable) {
+            return 'unknown';
+        }
+
+        return (string) $response->json('status', 'unknown');
+    }
+
+    private function remoteAppLogs(Server $server, InstalledApplication $application, ApplicationPackage $package, int $lines): string
+    {
+        $node = $server->primaryNode;
+
+        if ($node === null) {
+            return 'Nœud agent introuvable.';
+        }
+
+        try {
+            $host = $node->host ?? $server->ip_address;
+            $port = $node->port ?? 9100;
+
+            $response = Http::timeout(60)
+                ->withToken($server->agent_token)
+                ->post("http://{$host}:{$port}/api/v1/applications/logs", [
+                    'slug' => $application->slug,
+                    'runtime_type' => $package->effectiveRuntimeType(),
+                    'target' => $this->resolveRemoteTarget($application->slug),
+                    'lines' => $lines,
+                ]);
+        } catch (\Throwable $e) {
+            return $e->getMessage();
+        }
+
+        return (string) $response->json('output', $response->body());
     }
 }

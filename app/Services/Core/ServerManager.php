@@ -13,6 +13,7 @@ use App\Services\System\AgentExecutor;
 use App\Services\System\LocalExecutor;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 final class ServerManager
@@ -59,7 +60,11 @@ final class ServerManager
      */
     public function createRemote(array $data): Server
     {
-        $token = (string) ($data['agent_token'] ?? '');
+        $token = trim((string) ($data['agent_token'] ?? ''));
+
+        if ($token === '') {
+            $token = $this->generateAgentToken();
+        }
 
         if (strlen($token) < 32) {
             throw new InvalidArgumentException('La clé API slave est invalide (min. 32 caractères).');
@@ -74,6 +79,9 @@ final class ServerManager
             'is_master' => false,
             'os_name' => $data['os_name'] ?? null,
             'agent_token' => $token,
+            'metadata' => [
+                'doctor_signing_key' => $this->generateSigningKey(),
+            ],
         ]);
 
         ServerNode::query()->create([
@@ -89,6 +97,48 @@ final class ServerManager
         $this->ping($server);
 
         return $server->fresh(['nodes']) ?? $server;
+    }
+
+    public function generateAgentToken(): string
+    {
+        return Str::random(64);
+    }
+
+    public function generateSigningKey(): string
+    {
+        return bin2hex(random_bytes(32));
+    }
+
+    public function regenerateAgentToken(Server $server): string
+    {
+        if ($server->is_master) {
+            throw new InvalidArgumentException('Impossible de régénérer le token du serveur maître depuis le panel.');
+        }
+
+        $token = $this->generateAgentToken();
+        $server->update(['agent_token' => $token]);
+        $server->primaryNode?->update([
+            'credentials' => array_merge($server->primaryNode->credentials ?? [], ['token' => $token]),
+        ]);
+
+        return $token;
+    }
+
+    public function ensureDoctorSigningKey(Server $server): string
+    {
+        $metadata = $server->metadata ?? [];
+        $key = $metadata['doctor_signing_key'] ?? null;
+
+        if (is_string($key) && strlen($key) >= 32) {
+            return $key;
+        }
+
+        $key = $this->generateSigningKey();
+        $server->update([
+            'metadata' => array_merge($metadata, ['doctor_signing_key' => $key]),
+        ]);
+
+        return $key;
     }
 
     public function ping(Server $server): bool

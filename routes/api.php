@@ -18,8 +18,3 @@ Route::prefix('v1')->group(function () {
         Route::post('/servers/{server}/diagnostics/heartbeat', [DiagnosticReportController::class, 'heartbeat']);
     });
 });
-
-Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
-    Route::get('/servers/{server}/diagnostics/latest', [DiagnosticReportController::class, 'latest']);
-    Route::get('/servers/{server}/diagnostics', [DiagnosticReportController::class, 'index']);
-});

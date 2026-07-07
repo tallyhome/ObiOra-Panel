@@ -9,10 +9,12 @@
     "dependencies": {
         "apexcharts": "^4.7.0",
         "bootstrap": "^5.3.6",
-        "sweetalert2": "^11.22.2"
+        "sweetalert2": "^11.22.2",
+        "vue": "^3.5.17"
     },
     "devDependencies": {
         "@popperjs/core": "^2.11.8",
+        "@vitejs/plugin-vue": "^6.0.0",
         "axios": "^1.11.0",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^2.0.0",

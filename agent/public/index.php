@@ -74,6 +74,9 @@ match (true) {
     $method === 'GET' && $uri === '/api/v1/applications' => respond(['data' => agentListPackages()]),
     $method === 'POST' && $uri === '/api/v1/applications/install' => respond(agentApplicationAction($body, 'install')),
     $method === 'POST' && $uri === '/api/v1/applications/uninstall' => respond(agentApplicationAction($body, 'uninstall')),
+    $method === 'POST' && $uri === '/api/v1/applications/control' => respond(agentApplicationControl($body)),
+    $method === 'POST' && $uri === '/api/v1/applications/status' => respond(agentApplicationStatus($body)),
+    $method === 'POST' && $uri === '/api/v1/applications/logs' => respond(agentApplicationLogs($body)),
     default => abort404(),
 };
 

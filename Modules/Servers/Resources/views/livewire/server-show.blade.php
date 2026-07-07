@@ -91,13 +91,28 @@
                     @if ($server->agent_token)
                         <dl class="row small mb-3">
                             <dt class="col-sm-3">Token agent</dt>
-                            <dd class="col-sm-9"><code>{{ $server->agent_token }}</code></dd>
+                            <dd class="col-sm-9">
+                                <code class="user-select-all">{{ $server->agent_token }}</code>
+                                @unless ($server->is_master)
+                                    <button type="button" class="btn btn-outline-warning btn-sm ms-2 py-0"
+                                        wire:click="regenerateAgentToken"
+                                        wire:confirm="Régénérer le token agent ? Les agents devront être reconfigurés.">
+                                        Régénérer
+                                    </button>
+                                @endunless
+                            </dd>
+                            @if (!empty($server->metadata['doctor_signing_key']))
+                                <dt class="col-sm-3">Clé signature Doctor</dt>
+                                <dd class="col-sm-9"><code class="user-select-all">{{ $server->metadata['doctor_signing_key'] }}</code></dd>
+                            @endif
                         </dl>
-                        <p class="small text-muted mb-2">Commande d'installation (ObiOra-Doctor doit être présent sur le VPS) :</p>
-                        <pre class="small bg-dark text-light p-3 rounded"><code>OBIORA_PANEL_URL={{ rtrim(config('app.url'), '/') }} \
+                        <p class="small text-muted mb-2">Commande d'installation Doctor (copiez le dossier ObiOra-Doctor sur le VPS ou clonez-le) :</p>
+                        <pre class="small bg-dark text-light p-3 rounded user-select-all"><code>OBIORA_PANEL_URL={{ rtrim(config('app.url'), '/') }} \
 OBIORA_SERVER_ID={{ $server->id }} \
 OBIORA_AGENT_TOKEN={{ $server->agent_token }} \
+OBIORA_SIGNING_KEY={{ $server->metadata['doctor_signing_key'] ?? '' }} \
 bash ObiOra-Doctor/install/install-agent.sh</code></pre>
+                        <p class="small text-muted mb-0">Agent PHP slave (marketplace distant) : port {{ $server->primaryNode?->port ?? 9100 }} — <code>Slave/install.sh</code></p>
                     @else
                         <p class="text-muted small mb-0">Aucun token agent — régénérez-le depuis la gestion des serveurs si nécessaire.</p>
                     @endif

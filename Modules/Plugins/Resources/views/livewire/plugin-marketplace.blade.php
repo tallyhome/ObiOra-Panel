@@ -61,8 +61,9 @@
                                     'stopped' => 'danger',
                                     default => 'warning',
                                 };
+                                $hasWarning = !empty($app->metadata['runtime_warning']);
                             @endphp
-                            <tr>
+                            <tr @class(['table-warning' => $hasWarning])>
                                 <td>
                                     <span class="obiora-status-dot {{ $dotClass }}" title="{{ $runtime }}"></span>
                                 </td>
@@ -118,6 +119,9 @@
                 <button type="button" class="btn-close btn-close-white btn-sm" wire:click="closeAppInfo"></button>
             </div>
             <div class="card-body">
+                @if (!empty($appInfo['runtime_warning']))
+                    <div class="alert alert-warning small py-2">{{ $appInfo['runtime_warning'] }}</div>
+                @endif
                 <div class="row g-3 small">
                     <div class="col-md-6">
                         <dl class="mb-0">

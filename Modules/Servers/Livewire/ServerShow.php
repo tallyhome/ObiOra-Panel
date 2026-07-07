@@ -16,9 +16,22 @@ final class ServerShow extends Component
 {
     public Server $server;
 
-    public function mount(Server $server): void
+    public function mount(Server $server, ServerManager $serverManager): void
     {
         $this->server = $server->load(['nodes', 'latestDiagnosticReport']);
+        $serverManager->ensureDoctorSigningKey($this->server);
+        $this->server->refresh();
+    }
+
+    public function regenerateAgentToken(ServerManager $serverManager): void
+    {
+        try {
+            $token = $serverManager->regenerateAgentToken($this->server);
+            $this->server->refresh();
+            $this->dispatch('notify', type: 'success', message: 'Token agent régénéré.');
+        } catch (\Throwable $e) {
+            $this->dispatch('notify', type: 'danger', message: $e->getMessage());
+        }
     }
 
     public function ping(ServerManager $serverManager): void

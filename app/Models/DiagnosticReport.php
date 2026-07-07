@@ -23,6 +23,7 @@ class DiagnosticReport extends Model
         'critical_findings',
         'support_mode',
         'signature',
+        'signature_verified',
     ];
 
     protected function casts(): array
@@ -33,6 +34,7 @@ class DiagnosticReport extends Model
             'report_json' => 'array',
             'critical_findings' => 'array',
             'support_mode' => 'boolean',
+            'signature_verified' => 'boolean',
         ];
     }
 

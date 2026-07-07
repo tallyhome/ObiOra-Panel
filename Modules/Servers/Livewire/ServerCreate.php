@@ -33,7 +33,7 @@ final class ServerCreate extends Component
             'ip_address' => ['required', 'ip'],
             'hostname' => ['nullable', 'string', 'max:255'],
             'type' => ['required', 'in:vps,dedicated,cluster'],
-            'agent_token' => ['required', 'string', 'min:32', 'max:128'],
+            'agent_token' => ['nullable', 'string', 'min:32', 'max:128'],
             'agent_port' => ['required', 'integer', 'min:1', 'max:65535'],
         ]);
 
@@ -54,7 +54,7 @@ final class ServerCreate extends Component
 
         $status = $server->status->value === 'online' ? 'connecté' : 'en attente (vérifiez le ping)';
 
-        session()->flash('success', "Serveur « {$server->name} » ajouté — {$status}.");
+        session()->flash('success', "Serveur « {$server->name} » ajouté — {$status}. Token agent : {$server->agent_token}");
 
         $this->redirect(route('servers.show', $server), navigate: true);
     }
