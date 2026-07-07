@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.9.14 - 2026-07-07
+
+Corrige l'échec `vite build` sur les serveurs déjà installés : `npm ci`/`npm install` est désormais toujours exécuté avant `npm run build` (dépendance `sweetalert2` manquante dans node_modules).
+
 ## v1.9.13 - 2026-07-07
 
 Logo SVG intégré directement dans le HTML (plus de fichier externe — fonctionne sur tous les serveurs). Widgets RAM et disque refaits style QuickBox avec icônes et libellés « utilisé / libre / total ». Correction du bouton « Mettre à jour » (SweetAlert + Livewire) et barre de progression avec % pendant l'installation depuis GitHub.

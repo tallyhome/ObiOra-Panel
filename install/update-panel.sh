@@ -50,17 +50,15 @@ sudo -u "${OBIORA_USER}" env PATH=/usr/local/bin:/usr/bin:/bin \
     composer install --no-dev --optimize-autoloader --no-interaction
 
 echo "[4/8] assets frontend..."
-progress 55 "Compilation des assets frontend…"
 if command -v npm &>/dev/null && [[ -f package.json ]]; then
-    if [[ ! -f public/build/manifest.json ]]; then
-        sudo -u "${OBIORA_USER}" npm ci --omit=dev 2>/dev/null || sudo -u "${OBIORA_USER}" npm install
-        sudo -u "${OBIORA_USER}" npm run build
-    else
-        # Rebuild si SCSS/JS modifiés dans le dernier pull
-        if git diff HEAD@{1} HEAD --name-only 2>/dev/null | grep -qE '(resources/|package.*\.json|vite\.config)'; then
-            sudo -u "${OBIORA_USER}" npm run build
-        fi
-    fi
+    progress 52 "Installation des dépendances npm…"
+    # Toujours réinstaller avant build : évite les erreurs « cannot resolve sweetalert2 »
+    # quand package.json a changé mais node_modules est obsolète.
+    sudo -u "${OBIORA_USER}" npm ci --ignore-scripts 2>/dev/null \
+        || sudo -u "${OBIORA_USER}" npm install --ignore-scripts
+
+    progress 58 "Compilation des assets frontend…"
+    sudo -u "${OBIORA_USER}" npm run build
 fi
 
 echo "[5/8] artisan migrate..."
