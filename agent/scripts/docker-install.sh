@@ -77,8 +77,8 @@ case "${PKG_MGR}" in
 esac
 
 progress 82 "Activation du service Docker…"
-systemctl enable docker
-systemctl start docker
+systemctl enable docker >/dev/null 2>&1
+systemctl start docker >/dev/null 2>&1
 
 progress 90 "Configuration des permissions utilisateurs…"
 for u in "${OBIORA_USER}" apache nginx www-data; do

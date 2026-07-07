@@ -142,9 +142,7 @@ final class DockerManager
         $output = trim($result->output."\n".$result->errorOutput);
 
         if ($result->successful && str_contains($output, 'OK:')) {
-            $message = trim(str_replace('OK:', '', strstr($output, 'OK:') ?: 'Docker désinstallé'));
-
-            return ['success' => true, 'message' => $message !== '' ? $message : 'Docker désinstallé'];
+            return ['success' => true, 'message' => $this->extractOkMessage($output, 'Docker désinstallé')];
         }
 
         return ['success' => false, 'message' => $output !== '' ? $output : 'Échec désinstallation Docker'];
@@ -160,12 +158,21 @@ final class DockerManager
         $output = trim($result->output."\n".$result->errorOutput);
 
         if ($result->successful && str_contains($output, 'OK:')) {
-            $message = trim(str_replace('OK:', '', strstr($output, 'OK:') ?: 'Docker installé'));
-
-            return ['success' => true, 'message' => $message !== '' ? $message : 'Docker installé'];
+            return ['success' => true, 'message' => $this->extractOkMessage($output, 'Docker installé')];
         }
 
         return ['success' => false, 'message' => $output !== '' ? $output : 'Échec installation Docker'];
+    }
+
+    private function extractOkMessage(string $output, string $fallback): string
+    {
+        if (preg_match('/^OK:(.+)$/m', $output, $matches)) {
+            $message = trim($matches[1]);
+
+            return $message !== '' ? $message : $fallback;
+        }
+
+        return $fallback;
     }
 
     /**

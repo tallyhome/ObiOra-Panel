@@ -82,6 +82,10 @@ final class ApplicationManager
             throw new InvalidArgumentException("« {$package->name()} » est déjà installé sur ce serveur.");
         }
 
+        if ($package->runtimeType() === 'docker') {
+            $this->assertDockerAvailable($server);
+        }
+
         $existing = InstalledApplication::query()
             ->where('server_id', $server->id)
             ->where('slug', $slug)
@@ -453,6 +457,21 @@ final class ApplicationManager
     private function isLocal(Server $server): bool
     {
         return $server->is_master || $server->type->value === 'local';
+    }
+
+    private function assertDockerAvailable(Server $server): void
+    {
+        if (! $this->isLocal($server) || PHP_OS_FAMILY !== 'Linux') {
+            return;
+        }
+
+        $result = $this->scripts->run(base_path('agent/scripts/docker-info.sh'));
+
+        if (! $result->successful || ! str_starts_with(trim($result->output), 'OK:')) {
+            throw new InvalidArgumentException(
+                'Docker est requis pour installer cette application. Allez dans le menu Docker et installez-le d\'abord.'
+            );
+        }
     }
 
     /**

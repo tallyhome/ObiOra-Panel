@@ -14,6 +14,24 @@
         @endif
     </div>
 
+    @if($installingDocker || $uninstallingDocker)
+        <div class="card obiora-card mb-4 border-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong class="small text-uppercase">{{ $uninstallingDocker ? 'Désinstallation Docker' : 'Installation Docker' }}</strong>
+                    <span class="badge bg-info">{{ $dockerProgress }}%</span>
+                </div>
+                <div class="obiora-progress info mb-2" style="height: 12px;">
+                    <div class="bar" style="width: {{ max(2, $dockerProgress) }}%"></div>
+                </div>
+                <p class="mb-0 small text-muted d-flex align-items-center gap-2">
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    {{ $dockerProgressMessage ?: ($uninstallingDocker ? 'Désinstallation en cours…' : 'Installation en cours…') }}
+                </p>
+            </div>
+        </div>
+    @endif
+
     @if ($dockerInfo['installed'] ?? false)
         <div class="row g-3 mb-4">
             <div class="col-md-3">
@@ -50,23 +68,7 @@
             </div>
         </div>
     @else
-        @if($installingDocker || $uninstallingDocker)
-            <div class="card obiora-card mb-4 border-info">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <strong class="small text-uppercase">{{ $uninstallingDocker ? 'Désinstallation Docker' : 'Installation Docker' }}</strong>
-                        <span class="badge bg-info">{{ $dockerProgress }}%</span>
-                    </div>
-                    <div class="obiora-progress info mb-2" style="height: 12px;">
-                        <div class="bar" style="width: {{ max(2, $dockerProgress) }}%"></div>
-                    </div>
-                    <p class="mb-0 small text-muted d-flex align-items-center gap-2">
-                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        {{ $dockerProgressMessage ?: 'Installation en cours…' }}
-                    </p>
-                </div>
-            </div>
-        @else
+        @if(!($installingDocker || $uninstallingDocker))
             <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div>
                     Docker n'est pas installé ou inaccessible sur ce serveur.

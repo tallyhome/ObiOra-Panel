@@ -8,6 +8,7 @@ use App\Models\InstalledApplication;
 use App\Services\Applications\ApplicationCatalog;
 use App\Services\Applications\ApplicationManager;
 use App\Services\Core\ServerManager;
+use App\Services\Docker\DockerManager;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -169,7 +170,7 @@ final class PluginMarketplace extends Component
         $this->appLogOutput = '';
     }
 
-    public function render(ApplicationCatalog $catalog, ApplicationManager $manager, ServerManager $serverManager)
+    public function render(ApplicationCatalog $catalog, ApplicationManager $manager, ServerManager $serverManager, DockerManager $dockerManager)
     {
         $server = $serverManager->getCurrentServer();
         $installed = $manager->installed($server);
@@ -197,6 +198,7 @@ final class PluginMarketplace extends Component
 
         return view('plugins::livewire.plugin-marketplace', [
             'serverName' => $server?->name ?? 'Aucun',
+            'dockerInstalled' => ($dockerManager->info($server)['installed'] ?? false),
             'installed' => $installed,
             'installedApps' => $installedApps,
             'filtered' => $filtered,

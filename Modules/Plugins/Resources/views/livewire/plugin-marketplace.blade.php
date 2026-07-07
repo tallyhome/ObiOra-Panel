@@ -6,6 +6,16 @@
         </div>
     </div>
 
+    @if (! $dockerInstalled)
+        <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+            <div>
+                <strong>Docker requis</strong> — la plupart des applications du Marketplace s'installent via Docker.
+                Installez Docker avant d'ajouter une application.
+            </div>
+            <a href="{{ route('docker.index') }}" class="btn btn-primary btn-sm">Installer Docker</a>
+        </div>
+    @endif
+
     @if ($installRunning)
         <div class="card obiora-card mb-4 border-primary">
             <div class="card-body">
