@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Core;
 
-use App\Support\InstalledVersion;
+use App\Contracts\SystemExecutorInterface;
 use App\Models\UpdateHistory;
+use App\Support\InstalledVersion;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 final class PanelUpdater
 {
@@ -24,7 +27,7 @@ final class PanelUpdater
         if (! $this->canUpdate()) {
             return [
                 'success' => false,
-                'message' => 'Les mises à jour panel ne sont disponibles que sur une installation Linux en /opt/obiora-panel.',
+                'message' => 'Mise à jour indisponible : dépôt git introuvable ou script update-panel.sh absent.',
                 'output' => '',
             ];
         }
@@ -42,6 +45,7 @@ final class PanelUpdater
         $fromVersion = $this->installedVersion->current();
         $toVersion = (string) ($check['latest'] ?? $fromVersion);
         $panelRoot = base_path();
+        $updateScript = $panelRoot.'/install/update-panel.sh';
 
         $history = UpdateHistory::query()->create([
             'from_version' => $fromVersion,
@@ -50,20 +54,13 @@ final class PanelUpdater
             'changelog_url' => $check['changelog_url'] ?? null,
         ]);
 
-        $commands = [
-            "cd {$panelRoot} && git fetch origin main --tags",
-            "cd {$panelRoot} && git checkout main && git pull --ff-only origin main",
-            "cd {$panelRoot} && sudo -u obiora env PATH=/usr/local/bin:/usr/bin:/bin composer install --no-dev --optimize-autoloader --no-interaction",
-            "cd {$panelRoot} && sudo -u obiora php artisan migrate --force",
-            "cd {$panelRoot} && sudo -u obiora php artisan config:clear",
-            "cd {$panelRoot} && sudo -u obiora php artisan optimize",
-        ];
+        try {
+            $result = $this->executor->run(
+                'sudo -n '.escapeshellarg($updateScript),
+                ['timeout' => 900],
+            );
 
-        $output = '';
-
-        foreach ($commands as $command) {
-            $result = $this->executor->run($command, ['timeout' => 600]);
-            $output .= $result->output()."\n".$result->errorOutput()."\n";
+            $output = trim($result->output()."\n".$result->errorOutput());
 
             if (! $result->successful()) {
                 $history->update([
@@ -72,25 +69,41 @@ final class PanelUpdater
                     'completed_at' => now(),
                 ]);
 
+                Log::warning('Panel update failed', ['output' => $output]);
+
                 return [
                     'success' => false,
-                    'message' => 'Échec de la mise à jour. Consultez l\'historique.',
+                    'message' => 'Échec de la mise à jour. Vérifiez les droits sudo (réinstallez ou exécutez update-panel.sh en SSH).',
                     'output' => $output,
                 ];
             }
+
+            $history->update([
+                'status' => 'completed',
+                'output' => $output,
+                'completed_at' => now(),
+            ]);
+
+            return [
+                'success' => true,
+                'message' => "Mise à jour vers v{$toVersion} terminée. Rechargez la page (Ctrl+F5).",
+                'output' => $output,
+            ];
+        } catch (Throwable $exception) {
+            Log::error('Panel update exception', ['message' => $exception->getMessage()]);
+
+            $history->update([
+                'status' => 'failed',
+                'output' => $exception->getMessage(),
+                'completed_at' => now(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Erreur interne : '.$exception->getMessage(),
+                'output' => '',
+            ];
         }
-
-        $history->update([
-            'status' => 'completed',
-            'output' => $output,
-            'completed_at' => now(),
-        ]);
-
-        return [
-            'success' => true,
-            'message' => "Mise à jour vers v{$toVersion} terminée. Rechargez la page.",
-            'output' => $output,
-        ];
     }
 
     public function canUpdate(): bool
@@ -102,6 +115,6 @@ final class PanelUpdater
         $panelRoot = base_path();
 
         return File::isDirectory($panelRoot.'/.git')
-            && is_writable($panelRoot);
+            && is_file($panelRoot.'/install/update-panel.sh');
     }
 }
