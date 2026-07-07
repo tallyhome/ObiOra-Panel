@@ -6,6 +6,7 @@ namespace App\Services\Docker;
 
 use App\Models\Server;
 use App\Services\Core\ServerManager;
+use App\Services\System\PrivilegedScriptRunner;
 use Illuminate\Support\Facades\Http;
 use InvalidArgumentException;
 
@@ -15,6 +16,7 @@ final class DockerManager
 
     public function __construct(
         private readonly ServerManager $serverManager,
+        private readonly PrivilegedScriptRunner $scripts,
     ) {}
 
     /**
@@ -39,7 +41,7 @@ final class DockerManager
                 ];
             }
 
-            $result = $this->runScript($server, base_path('agent/scripts/docker-info.sh'));
+            $result = $this->runScript(base_path('agent/scripts/docker-info.sh'));
 
             return $this->parseInfoOutput($result['success'], $result['output']);
         }
@@ -69,7 +71,7 @@ final class DockerManager
                 ]];
             }
 
-            $result = $this->runScript($server, base_path('agent/scripts/docker-containers.sh'));
+            $result = $this->runScript(base_path('agent/scripts/docker-containers.sh'));
 
             return $this->parseRows($result['output'], ['id', 'name', 'image', 'status', 'ports']);
         }
@@ -98,7 +100,7 @@ final class DockerManager
                 ]];
             }
 
-            $result = $this->runScript($server, base_path('agent/scripts/docker-images.sh'));
+            $result = $this->runScript(base_path('agent/scripts/docker-images.sh'));
 
             return $this->parseRows($result['output'], ['id', 'repository', 'tag', 'size']);
         }
@@ -128,7 +130,7 @@ final class DockerManager
                 return ['success' => true, 'output' => "OK:{$action} (dev)"];
             }
 
-            $result = $this->runScript($server, base_path('agent/scripts/docker-action.sh'), [$container, $action]);
+            $result = $this->runScript(base_path('agent/scripts/docker-action.sh'), [$container, $action]);
 
             return [
                 'success' => $result['success'] && str_contains($result['output'], 'OK:'),
@@ -155,7 +157,7 @@ final class DockerManager
                 return "Logs simulés pour {$container}";
             }
 
-            $result = $this->runScript($server, base_path('agent/scripts/docker-logs.sh'), [$container, (string) $lines]);
+            $result = $this->runScript(base_path('agent/scripts/docker-logs.sh'), [$container, (string) $lines]);
             $output = preg_replace('/\nOK$/', '', $result['output']) ?? $result['output'];
 
             return trim($output);
@@ -195,7 +197,7 @@ final class DockerManager
                 $args[] = $ports;
             }
 
-            $result = $this->runScript($server, base_path('agent/scripts/docker-run.sh'), $args);
+            $result = $this->runScript(base_path('agent/scripts/docker-run.sh'), $args);
 
             if (preg_match('/OK:(.+)/', $result['output'], $m)) {
                 return ['success' => true, 'container_id' => trim($m[1]), 'output' => $result['output']];
@@ -224,7 +226,7 @@ final class DockerManager
                 return ['success' => true, 'output' => 'OK:removed (dev)'];
             }
 
-            $result = $this->runScript($server, base_path('agent/scripts/docker-rmi.sh'), [$image]);
+            $result = $this->runScript(base_path('agent/scripts/docker-rmi.sh'), [$image]);
 
             return [
                 'success' => $result['success'] && str_contains($result['output'], 'OK:'),
@@ -266,19 +268,9 @@ final class DockerManager
      * @param  list<string>  $args
      * @return array{success: bool, output: string}
      */
-    private function runScript(Server $server, string $script, array $args = []): array
+    private function runScript(string $script, array $args = []): array
     {
-        $escapedArgs = implode(' ', array_map('escapeshellarg', $args));
-        $command = 'bash '.escapeshellarg($script);
-        if ($escapedArgs !== '') {
-            $command .= ' '.$escapedArgs;
-        }
-
-        if (PHP_OS_FAMILY === 'Linux' && (! function_exists('posix_geteuid') || posix_geteuid() !== 0)) {
-            $command = 'sudo -n '.$command;
-        }
-
-        $result = $this->serverManager->executorFor($server)->run($command, ['timeout' => 120]);
+        $result = $this->scripts->run($script, $args);
 
         return [
             'success' => $result->successful,

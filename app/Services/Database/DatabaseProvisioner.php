@@ -6,6 +6,7 @@ namespace App\Services\Database;
 
 use App\Models\Server;
 use App\Services\Core\ServerManager;
+use App\Services\System\PrivilegedScriptRunner;
 use Illuminate\Support\Facades\Http;
 use InvalidArgumentException;
 
@@ -13,6 +14,7 @@ final class DatabaseProvisioner
 {
     public function __construct(
         private readonly ServerManager $serverManager,
+        private readonly PrivilegedScriptRunner $scripts,
     ) {}
 
     /**
@@ -32,9 +34,9 @@ final class DatabaseProvisioner
             }
 
             $script = base_path('agent/scripts/mysql-list.sh');
-            $result = $this->runScript($server, $script, []);
+            $result = $this->scripts->run($script, []);
 
-            return $this->parseListOutput($result['success'], $result['output']);
+            return $this->parseListOutput($result->successful, trim($result->output.$result->errorOutput));
         }
 
         return $this->remoteList($server);
@@ -66,9 +68,9 @@ final class DatabaseProvisioner
                 $args[] = $password;
             }
 
-            $result = $this->runScript($server, $script, $args);
+            $result = $this->scripts->run($script, $args);
 
-            return $this->parseCreateOutput($result['success'], $result['output']);
+            return $this->parseCreateOutput($result->successful, trim($result->output.$result->errorOutput));
         }
 
         return $this->remoteCreate($server, $name, $username, $password);
@@ -93,9 +95,12 @@ final class DatabaseProvisioner
                 $args[] = $username;
             }
 
-            $result = $this->runScript($server, $script, $args);
+            $result = $this->scripts->run($script, $args);
 
-            return ['success' => $result['success'], 'output' => $result['output']];
+            return [
+                'success' => $result->successful,
+                'output' => trim($result->output.$result->errorOutput),
+            ];
         }
 
         return $this->remoteDelete($server, $name, $username);
@@ -129,30 +134,6 @@ final class DatabaseProvisioner
         }
 
         return $user;
-    }
-
-    /**
-     * @param  list<string>  $args
-     * @return array{success: bool, output: string}
-     */
-    private function runScript(Server $server, string $script, array $args): array
-    {
-        $escapedArgs = implode(' ', array_map('escapeshellarg', $args));
-        $command = 'bash '.escapeshellarg($script);
-        if ($escapedArgs !== '') {
-            $command .= ' '.$escapedArgs;
-        }
-
-        if (PHP_OS_FAMILY === 'Linux' && (! function_exists('posix_geteuid') || posix_geteuid() !== 0)) {
-            $command = 'sudo -n '.$command;
-        }
-
-        $result = $this->serverManager->executorFor($server)->run($command, ['timeout' => 120]);
-
-        return [
-            'success' => $result->successful,
-            'output' => trim($result->output.$result->errorOutput),
-        ];
     }
 
     /**

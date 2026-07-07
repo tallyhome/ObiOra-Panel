@@ -55,7 +55,9 @@
                                 <label for="restore_database" class="form-label">Base de destination</label>
                                 <input wire:model="restore_database" type="text" id="restore_database" class="form-control font-monospace" placeholder="nom_base">
                             </div>
-                            <button type="submit" class="btn btn-warning btn-sm" wire:confirm="Restaurer cette sauvegarde ? Les données existantes seront écrasées." wire:loading.attr="disabled">
+                            <button type="button" wire:loading.attr="disabled"
+                                onclick="obioraConfirm(() => $wire.restore(), 'Restaurer la sauvegarde', 'Les données existantes seront écrasées. Continuer ?')"
+                                class="btn btn-warning btn-sm">
                                 Restaurer
                             </button>
                         </form>
@@ -67,7 +69,9 @@
                 <div class="card-body">
                     <h2 class="h6 text-danger">Zone dangereuse</h2>
                     <p class="small text-muted mb-2">Supprime l'archive et l'entrée en base.</p>
-                    <button wire:click="delete" wire:confirm="Supprimer définitivement cette sauvegarde ?" class="btn btn-outline-danger btn-sm">Supprimer</button>
+                    <button type="button" wire:loading.attr="disabled"
+                        onclick="obioraConfirm(() => $wire.delete(), 'Supprimer la sauvegarde', 'Supprimer définitivement cette sauvegarde ?')"
+                        class="btn btn-outline-danger btn-sm">Supprimer</button>
                 </div>
             </div>
         </div>

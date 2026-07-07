@@ -42,8 +42,17 @@ echo "[5/6] artisan migrate..."
 sudo -u "${OBIORA_USER}" php artisan migrate --force
 sudo -u "${OBIORA_USER}" php artisan config:clear
 
-echo "[6/6] artisan optimize..."
+echo "[6/7] artisan optimize..."
 sudo -u "${OBIORA_USER}" php artisan optimize
+
+echo "[7/7] sudoers agent + répertoire web..."
+if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/common.sh" ]] && [[ -f "${OBIORA_INSTALL_DIR}/install/lib/sudoers.sh" ]]; then
+    # shellcheck source=/dev/null
+    source "${OBIORA_INSTALL_DIR}/install/lib/common.sh"
+    # shellcheck source=/dev/null
+    source "${OBIORA_INSTALL_DIR}/install/lib/sudoers.sh"
+    setup_sudoers
+fi
 
 # Permissions web
 for u in nginx apache www-data; do

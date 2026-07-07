@@ -98,9 +98,9 @@
                         </button>
                         @can('updates.manage')
                             @if($updateInfo['available'] ?? false)
-                                <button wire:click="applyUpdate" class="btn btn-primary btn-sm"
-                                    wire:confirm="Appliquer la mise à jour maintenant ?"
-                                    wire:loading.attr="disabled">
+                                <button type="button" wire:loading.attr="disabled"
+                                    onclick="obioraConfirm(() => $wire.applyUpdate(), 'Mettre à jour', 'Appliquer la mise à jour maintenant ?')"
+                                    class="btn btn-primary btn-sm">
                                     Mettre à jour
                                 </button>
                             @endif

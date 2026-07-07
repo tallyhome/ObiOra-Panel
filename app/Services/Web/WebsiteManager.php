@@ -142,6 +142,12 @@ final class WebsiteManager
         $result = $this->provisioner->delete($server, $website->domain);
 
         if (! $result['success']) {
+            if (in_array($website->status, [WebsiteStatus::Error, WebsiteStatus::Pending], true)) {
+                $website->delete();
+
+                return;
+            }
+
             throw new InvalidArgumentException('Échec suppression : '.trim($result['output']));
         }
 
