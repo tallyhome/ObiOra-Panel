@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.9.5 - 2026-07-07
+
+### Correctifs
+
+- Sites web / Bases / Docker : scripts agent via sudo -n (PHP-FPM apache)
+- Sudoers apache/nginx sur agent/scripts + /var/www
+- Suppression des entrees error/pending meme si deprovisionnement echoue
+- Provisionnement website-create.sh (permissions, socket PHP Remi)
+
+### Ameliorations
+
+- SweetAlert2 pour toasts et confirmations
+- update-panel.sh reapplique sudoers automatiquement
+
 ## v1.9.4 - 2026-07-07
 
 Corrige erreur 500 lors de la mise a jour depuis le panel. Script install/update-panel.sh + sudoers pour PHP-FPM. Dashboard refresh 10s.
@@ -243,11 +257,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 
 
 
+
 ```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
+
 
 
 
@@ -297,11 +313,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 
 
 
+
 ```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
+
 
 
 
