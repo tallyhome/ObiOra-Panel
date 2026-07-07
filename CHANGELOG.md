@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.9.9 - 2026-07-07
+
+Corrige le bouton Verifier (toast + chargement) et detecte les tags GitHub sans release.
+
 ## v1.9.8 - 2026-07-07
 
 Dashboard bande passante temps reel et layout Swizzin.
@@ -299,11 +303,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 
 
 
+
 ```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
+
 
 
 
@@ -361,11 +367,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 
 
 
+
 ```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
+
 
 
 
