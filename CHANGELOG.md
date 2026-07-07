@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.9.12 - 2026-07-07
+
+Corrige le logo qui ne s'affichait pas après MAJ (SELinux bloquait silencieusement les nouveaux fichiers non relabellisés : `restorecon` ajouté à update-panel.sh). Le worker de file d'attente (`obiora-queue`) est désormais démarré automatiquement par le panel si besoin — plus aucune commande SSH à taper côté client.
+
 ## v1.9.11 - 2026-07-07
 
 Corrige le bouton « Mettre à jour » qui ne faisait rien : la MAJ tournait de façon synchrone dans la requête HTTP et dépassait les timeouts PHP-FPM/Nginx (composer+npm+migrate peuvent prendre plusieurs minutes). Bascule sur une file d'attente (`obiora-queue`) : le clic lance immédiatement le job en arrière-plan, avec suivi en direct (statut, spinner, historique) via un polling toutes les 3 secondes.

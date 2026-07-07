@@ -24,6 +24,12 @@ SUDOERS
             cat >> "${sudoers_file}" <<SUDOERS
 ${web_user} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/agent/scripts/*.sh
 ${web_user} ALL=(root) NOPASSWD: ${update_script}
+${web_user} ALL=(root) NOPASSWD: /usr/bin/systemctl start obiora-queue
+${web_user} ALL=(root) NOPASSWD: /usr/bin/systemctl restart obiora-queue
+${web_user} ALL=(root) NOPASSWD: /usr/bin/systemctl is-active obiora-queue
+${web_user} ALL=(root) NOPASSWD: /bin/systemctl start obiora-queue
+${web_user} ALL=(root) NOPASSWD: /bin/systemctl restart obiora-queue
+${web_user} ALL=(root) NOPASSWD: /bin/systemctl is-active obiora-queue
 SUDOERS
         fi
     done

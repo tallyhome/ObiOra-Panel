@@ -69,6 +69,14 @@ if id apache &>/dev/null; then
     chown -R "${OBIORA_USER}:apache" "${OBIORA_INSTALL_DIR}/storage" "${OBIORA_INSTALL_DIR}/bootstrap/cache" 2>/dev/null || true
 fi
 
+# Relabel SELinux : les nouveaux fichiers ajoutés par git (ex. images, assets)
+# n'héritent pas automatiquement du contexte httpd_sys_content_t défini à l'install.
+# Sans ce restorecon, Nginx/PHP-FPM reçoivent un "Permission denied" silencieux
+# (ex. logo qui ne s'affiche pas comme si le fichier n'existait pas).
+if command -v getenforce &>/dev/null && [[ "$(getenforce)" != "Disabled" ]] && command -v restorecon &>/dev/null; then
+    restorecon -Rv "${OBIORA_INSTALL_DIR}" >/dev/null 2>&1 || true
+fi
+
 echo "[8/8] rechargement des services..."
 systemctl reload-or-restart php8.3-fpm 2>/dev/null || systemctl reload-or-restart php-fpm 2>/dev/null || true
 systemctl reload nginx 2>/dev/null || true

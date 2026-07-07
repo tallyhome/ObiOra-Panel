@@ -46,6 +46,8 @@ final class PanelUpdater
             ];
         }
 
+        $this->ensureQueueWorkerRunning();
+
         $fromVersion = $this->installedVersion->current();
         $toVersion = (string) ($check['latest'] ?? $fromVersion);
 
@@ -146,5 +148,32 @@ final class PanelUpdater
 
         return File::isDirectory($panelRoot.'/.git')
             && is_file($panelRoot.'/install/update-panel.sh');
+    }
+
+    /**
+     * S'assure que le worker de file d'attente tourne avant de lui confier la
+     * MAJ, pour que le client n'ait jamais besoin de lancer une commande SSH.
+     * Best-effort : si le service n'existe pas ou que sudo échoue, le job
+     * reste simplement "en file d'attente" (visible dans l'UI) sans bloquer.
+     */
+    private function ensureQueueWorkerRunning(): void
+    {
+        if (PHP_OS_FAMILY !== 'Linux') {
+            return;
+        }
+
+        try {
+            $status = $this->executor->run('sudo -n systemctl is-active obiora-queue', ['timeout' => 10]);
+
+            if (trim($status->output) === 'active') {
+                return;
+            }
+
+            $this->executor->run('sudo -n systemctl start obiora-queue', ['timeout' => 15]);
+        } catch (Throwable $exception) {
+            Log::info('Impossible de vérifier/démarrer obiora-queue automatiquement', [
+                'message' => $exception->getMessage(),
+            ]);
+        }
     }
 }
