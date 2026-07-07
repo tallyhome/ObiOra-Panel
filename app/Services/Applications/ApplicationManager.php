@@ -89,6 +89,7 @@ final class ApplicationManager
             $value = trim((string) ($options[$name] ?? ''));
             $required = (bool) ($field['required'] ?? false);
             $label = (string) ($field['label'] ?? $name);
+            $isConfirmField = isset($field['matches']);
 
             if ($required && $value === '') {
                 $errors[] = "« {$label} » est requis.";
@@ -97,7 +98,7 @@ final class ApplicationManager
             }
 
             $min = isset($field['min']) ? (int) $field['min'] : null;
-            if ($min !== null && $value !== '' && mb_strlen($value) < $min) {
+            if (! $isConfirmField && $min !== null && $value !== '' && mb_strlen($value) < $min) {
                 $errors[] = "« {$label} » doit contenir au moins {$min} caractères.";
             }
 
@@ -108,16 +109,17 @@ final class ApplicationManager
                 }
             }
 
-            if (isset($field['matches'])) {
+            if ($isConfirmField) {
                 $matchName = (string) $field['matches'];
-                if ($value !== trim((string) ($options[$matchName] ?? ''))) {
+                $matchValue = trim((string) ($options[$matchName] ?? ''));
+                if ($value !== '' && $value !== $matchValue) {
                     $errors[] = 'Les mots de passe ne correspondent pas.';
                 }
+
+                continue;
             }
 
-            if (! isset($field['matches'])) {
-                $validated[$name] = $value;
-            }
+            $validated[$name] = $value;
         }
 
         if ($errors !== []) {

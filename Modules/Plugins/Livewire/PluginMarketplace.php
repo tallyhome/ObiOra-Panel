@@ -43,7 +43,8 @@ final class PluginMarketplace extends Component
     /** @var array<string, string> */
     public array $setupValues = [];
 
-    /** @var array<string, string> */
+    /** Indices numériques pour éviter les conflits Livewire (ex. user_pass / user_pass_confirm). */
+    /** @var list<string> */
     public array $setupPasswords = [];
 
     public function mount(ApplicationManager $manager, ServerManager $serverManager): void
@@ -87,7 +88,7 @@ final class PluginMarketplace extends Component
 
         $this->setupSlug = $slug;
         $values = [];
-        $passwords = [];
+        $passwordCount = 0;
         foreach ($package->installOptions() as $field) {
             $name = (string) ($field['name'] ?? '');
             if ($name === '') {
@@ -95,13 +96,13 @@ final class PluginMarketplace extends Component
             }
 
             if (($field['type'] ?? '') === 'password') {
-                $passwords[$name] = '';
+                $passwordCount++;
             } else {
                 $values[$name] = (string) ($field['default'] ?? '');
             }
         }
         $this->setupValues = $values;
-        $this->setupPasswords = $passwords;
+        $this->setupPasswords = array_fill(0, $passwordCount, '');
     }
 
     public function cancelInstallSetup(): void
@@ -132,7 +133,7 @@ final class PluginMarketplace extends Component
                 throw new \InvalidArgumentException('Aucun serveur sélectionné.');
             }
 
-            $options = $manager->validateInstallOptions($package, array_merge($this->setupValues, $this->setupPasswords));
+            $options = $manager->validateInstallOptions($package, $this->buildInstallOptionsFromSetup($package));
             $slug = $this->setupSlug;
             $this->cancelInstallSetup();
             $this->startInstall($slug, $manager, $serverManager, $options);
@@ -316,5 +317,30 @@ final class PluginMarketplace extends Component
                 return;
             }
         }
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function buildInstallOptionsFromSetup(\App\DTOs\ApplicationPackage $package): array
+    {
+        $options = $this->setupValues;
+        $passwordIndex = 0;
+
+        foreach ($package->installOptions() as $field) {
+            if (($field['type'] ?? '') !== 'password') {
+                continue;
+            }
+
+            $name = (string) ($field['name'] ?? '');
+            if ($name === '') {
+                continue;
+            }
+
+            $options[$name] = trim((string) ($this->setupPasswords[$passwordIndex] ?? ''));
+            $passwordIndex++;
+        }
+
+        return $options;
     }
 }
