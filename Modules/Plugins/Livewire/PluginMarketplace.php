@@ -43,6 +43,9 @@ final class PluginMarketplace extends Component
     /** @var array<string, string> */
     public array $setupValues = [];
 
+    /** @var array<string, string> */
+    public array $setupPasswords = [];
+
     public function mount(ApplicationManager $manager, ServerManager $serverManager): void
     {
         $this->resumeInstall($manager, $serverManager);
@@ -84,19 +87,28 @@ final class PluginMarketplace extends Component
 
         $this->setupSlug = $slug;
         $values = [];
+        $passwords = [];
         foreach ($package->installOptions() as $field) {
             $name = (string) ($field['name'] ?? '');
-            if ($name !== '') {
+            if ($name === '') {
+                continue;
+            }
+
+            if (($field['type'] ?? '') === 'password') {
+                $passwords[$name] = '';
+            } else {
                 $values[$name] = (string) ($field['default'] ?? '');
             }
         }
         $this->setupValues = $values;
+        $this->setupPasswords = $passwords;
     }
 
     public function cancelInstallSetup(): void
     {
         $this->setupSlug = null;
         $this->setupValues = [];
+        $this->setupPasswords = [];
     }
 
     public function confirmInstallSetup(ApplicationManager $manager, ServerManager $serverManager, ApplicationCatalog $catalog): void
@@ -120,7 +132,7 @@ final class PluginMarketplace extends Component
                 throw new \InvalidArgumentException('Aucun serveur sélectionné.');
             }
 
-            $options = $manager->validateInstallOptions($package, $this->setupValues);
+            $options = $manager->validateInstallOptions($package, array_merge($this->setupValues, $this->setupPasswords));
             $slug = $this->setupSlug;
             $this->cancelInstallSetup();
             $this->startInstall($slug, $manager, $serverManager, $options);

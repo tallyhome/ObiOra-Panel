@@ -12,7 +12,7 @@ image="filebrowser/filebrowser:latest"
 port=8080
 data_dir="/var/lib/obiora/filebrowser"
 fb_user="${OBIORA_APP_USERNAME:-admin}"
-fb_pass="${OBIORA_APP_PASSWORD:-admin}"
+fb_pass="${OBIORA_APP_USER_PASS:-admin}"
 
 if docker ps -a --format '{{.Names}}' | grep -q "^${name}$"; then
     echo "OK:filebrowser (déjà installé)"

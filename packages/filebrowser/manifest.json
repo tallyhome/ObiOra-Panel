@@ -27,18 +27,18 @@
                 "min": 3
             },
             {
-                "name": "password",
+                "name": "user_pass",
                 "label": "Mot de passe",
                 "type": "password",
                 "required": true,
                 "min": 4
             },
             {
-                "name": "pass_confirm",
+                "name": "user_pass_confirm",
                 "label": "Confirmer le mot de passe",
                 "type": "password",
                 "required": true,
-                "matches": "password"
+                "matches": "user_pass"
             }
         ]
     },
