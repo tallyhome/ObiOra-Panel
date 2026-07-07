@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
 
+## [1.9.1] - 2026-07-07
+
+### Corrigé
+
+- **Serveurs** : page détail « Local Server » — vue `server-show` complète (corrige erreur 500)
+- **Sites web / Bases de données** : nouvelle tentative possible après échec (suppression des entrées `pending`/`error` fantômes)
+
 ## [1.9.0] - 2026-07-07
 
 ### Phase 10 — AdminLicence & Mises à jour

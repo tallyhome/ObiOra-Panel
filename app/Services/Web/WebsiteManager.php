@@ -56,6 +56,8 @@ final class WebsiteManager
             throw new InvalidArgumentException('Email requis pour activer SSL.');
         }
 
+        $this->clearStaleWebsiteRecord($server->id, $domain);
+
         if (Website::query()->where('server_id', $server->id)->where('domain', $domain)->exists()) {
             throw new InvalidArgumentException("Le domaine « {$domain} » existe déjà sur ce serveur.");
         }
@@ -144,5 +146,14 @@ final class WebsiteManager
         }
 
         $website->delete();
+    }
+
+    private function clearStaleWebsiteRecord(int $serverId, string $domain): void
+    {
+        Website::query()
+            ->where('server_id', $serverId)
+            ->where('domain', $domain)
+            ->whereIn('status', [WebsiteStatus::Error, WebsiteStatus::Pending])
+            ->delete();
     }
 }

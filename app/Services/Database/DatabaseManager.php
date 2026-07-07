@@ -57,6 +57,8 @@ final class DatabaseManager
 
         $name = strtolower(trim($data['name']));
 
+        $this->clearStaleDatabaseRecord($server->id, $name);
+
         if (ManagedDatabase::query()->where('server_id', $server->id)->where('name', $name)->exists()) {
             throw new InvalidArgumentException("La base « {$name} » existe déjà sur ce serveur.");
         }
@@ -116,5 +118,14 @@ final class DatabaseManager
         }
 
         $database->delete();
+    }
+
+    private function clearStaleDatabaseRecord(int $serverId, string $name): void
+    {
+        ManagedDatabase::query()
+            ->where('server_id', $serverId)
+            ->where('name', $name)
+            ->whereIn('status', [DatabaseStatus::Error, DatabaseStatus::Pending])
+            ->delete();
     }
 }
