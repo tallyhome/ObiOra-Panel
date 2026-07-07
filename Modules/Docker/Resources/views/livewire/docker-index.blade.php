@@ -1,10 +1,17 @@
-<div @if($installingDocker) wire:poll.2s="pollDockerInstall" @endif>
+<div @if($installingDocker || $uninstallingDocker) wire:poll.2s="pollDockerInstall" @endif>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-1">Docker</h1>
             <p class="text-muted mb-0">Serveur : <strong>{{ $serverName }}</strong></p>
         </div>
         <button wire:click="refresh" class="btn btn-outline-primary btn-sm" wire:loading.attr="disabled">Actualiser</button>
+        @if ($dockerInfo['installed'] ?? false)
+            <button type="button" class="btn btn-outline-danger btn-sm" wire:loading.attr="disabled"
+                onclick="obioraConfirmWire(this, 'uninstallDocker', 'Désinstaller Docker', 'Désinstaller Docker ? Les conteneurs seront arrêtés. Les données dans /var/lib/docker seront conservées.')"
+                @if($installingDocker || $uninstallingDocker) disabled @endif>
+                Désinstaller Docker
+            </button>
+        @endif
     </div>
 
     @if ($dockerInfo['installed'] ?? false)
@@ -43,11 +50,11 @@
             </div>
         </div>
     @else
-        @if($installingDocker)
+        @if($installingDocker || $uninstallingDocker)
             <div class="card obiora-card mb-4 border-info">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <strong class="small text-uppercase">Installation Docker</strong>
+                        <strong class="small text-uppercase">{{ $uninstallingDocker ? 'Désinstallation Docker' : 'Installation Docker' }}</strong>
                         <span class="badge bg-info">{{ $dockerProgress }}%</span>
                     </div>
                     <div class="obiora-progress info mb-2" style="height: 12px;">

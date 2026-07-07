@@ -47,10 +47,20 @@ final class ServiceList extends Component
     public function runAction(string $service, string $action, ServiceManager $serviceManager): void
     {
         $result = $serviceManager->action($service, $action);
-        $this->dispatch('notify', type: $result['success'] ? 'success' : 'danger', message: $result['success']
-            ? "Action « {$action} » effectuée sur {$service}."
-            : $result['output']);
+        $message = $result['success']
+            ? ($result['async'] ?? false
+                ? $result['output']
+                : "Action « {$action} » effectuée sur {$service}.")
+            : $result['output'];
+
+        $this->dispatch('notify', type: $result['success'] ? 'success' : 'danger', message: $message);
         $this->loadServices($serviceManager, app(ServerManager::class));
+
+        if ($this->logService !== null) {
+            $this->logOutput = $serviceManager->logs(
+                $serviceManager->resolveUnitName($this->logService)
+            );
+        }
     }
 
     public function showLogs(string $service, ServiceManager $serviceManager): void

@@ -27,7 +27,12 @@
                 <tbody>
                     @forelse ($filtered as $service)
                         <tr>
-                            <td class="font-monospace small">{{ $service['name'] }}</td>
+                            <td class="font-monospace small">
+                                {{ $service['name'] }}
+                                @if (($service['unit_type'] ?? '') === 'timer')
+                                    <span class="badge text-bg-light ms-1">timer</span>
+                                @endif
+                            </td>
                             <td>
                                 @php
                                     $badge = match($service['active']) {
@@ -64,7 +69,10 @@
                 <button type="button" class="btn-close btn-sm" wire:click="$set('logService', null)"></button>
             </div>
             <div class="card-body p-0">
-                <pre class="small mb-0 p-3 bg-dark text-light" style="max-height: 320px; overflow: auto;">{{ $logOutput ?: 'Aucun log.' }}</pre>
+                <div class="d-flex justify-content-end p-2 border-bottom border-secondary">
+                    <button wire:click="showLogs('{{ $logService }}')" class="btn btn-outline-secondary btn-sm py-0">Actualiser les logs</button>
+                </div>
+                <pre class="small mb-0 p-3 obiora-log-pre">{{ $logOutput ?: 'Aucun log.' }}</pre>
             </div>
         </div>
     @endif

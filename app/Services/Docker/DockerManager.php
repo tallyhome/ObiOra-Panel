@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Docker;
 
 use App\Jobs\DockerInstallJob;
+use App\Jobs\DockerUninstallJob;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
 use App\Services\System\PrivilegedScriptRunner;
@@ -85,6 +86,68 @@ final class DockerManager
         DockerInstallJob::dispatch();
 
         return ['success' => true, 'message' => 'Installation Docker lancée en arrière-plan.'];
+    }
+
+    /**
+     * @return array{success: bool, message: string}
+     */
+    public function uninstallDocker(?Server $server = null): array
+    {
+        $server ??= $this->serverManager->getCurrentServer();
+
+        if ($server === null) {
+            return ['success' => false, 'message' => 'Aucun serveur sélectionné.'];
+        }
+
+        if (! $this->isLocal($server)) {
+            return ['success' => false, 'message' => 'Désinstallation Docker disponible uniquement sur le serveur local.'];
+        }
+
+        if (PHP_OS_FAMILY !== 'Linux') {
+            return ['success' => false, 'message' => 'Désinstallation Docker non supportée sur cet environnement.'];
+        }
+
+        $info = $this->info($server);
+        if (! ($info['installed'] ?? false)) {
+            return ['success' => false, 'message' => 'Docker n\'est pas installé sur ce serveur.'];
+        }
+
+        foreach (['docker_install', 'docker_uninstall'] as $key) {
+            $status = \Illuminate\Support\Facades\Cache::get("obiora_progress:{$key}");
+            if (is_array($status) && ($status['running'] ?? false)) {
+                return ['success' => false, 'message' => 'Une opération Docker est déjà en cours.'];
+            }
+        }
+
+        \Illuminate\Support\Facades\Cache::put('obiora_progress:docker_uninstall', [
+            'progress' => 2,
+            'message' => 'Mise en file d\'attente…',
+            'running' => true,
+            'success' => null,
+            'updated_at' => now()->toIso8601String(),
+        ], 3600);
+
+        DockerUninstallJob::dispatch();
+
+        return ['success' => true, 'message' => 'Désinstallation Docker lancée en arrière-plan.'];
+    }
+
+    /**
+     * @return array{success: bool, message: string}
+     */
+    public function runUninstallScript(): array
+    {
+        $result = $this->scripts->run(base_path('agent/scripts/docker-uninstall.sh'), [], 600);
+
+        $output = trim($result->output."\n".$result->errorOutput);
+
+        if ($result->successful && str_contains($output, 'OK:')) {
+            $message = trim(str_replace('OK:', '', strstr($output, 'OK:') ?: 'Docker désinstallé'));
+
+            return ['success' => true, 'message' => $message !== '' ? $message : 'Docker désinstallé'];
+        }
+
+        return ['success' => false, 'message' => $output !== '' ? $output : 'Échec désinstallation Docker'];
     }
 
     /**

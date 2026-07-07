@@ -42,6 +42,8 @@ final class DockerIndex extends Component
 
     public bool $installingDocker = false;
 
+    public bool $uninstallingDocker = false;
+
     public int $dockerProgress = 0;
 
     public string $dockerProgressMessage = '';
@@ -67,7 +69,7 @@ final class DockerIndex extends Component
 
     public function installDocker(DockerManager $dockerManager, ServerManager $serverManager): void
     {
-        if ($this->installingDocker) {
+        if ($this->installingDocker || $this->uninstallingDocker) {
             return;
         }
 
@@ -82,21 +84,52 @@ final class DockerIndex extends Component
         $this->dispatch('notify', type: $result['success'] ? 'info' : 'danger', message: $result['message']);
     }
 
+    public function uninstallDocker(DockerManager $dockerManager, ServerManager $serverManager): void
+    {
+        if ($this->installingDocker || $this->uninstallingDocker) {
+            return;
+        }
+
+        $result = $dockerManager->uninstallDocker($serverManager->getCurrentServer());
+
+        if ($result['success']) {
+            $this->uninstallingDocker = true;
+            $this->dockerProgress = 2;
+            $this->dockerProgressMessage = 'Désinstallation Docker démarrée…';
+        }
+
+        $this->dispatch('notify', type: $result['success'] ? 'warning' : 'danger', message: $result['message']);
+    }
+
     public function pollDockerInstall(DockerManager $dockerManager, ServerManager $serverManager): void
     {
-        $status = \Illuminate\Support\Facades\Cache::get('obiora_progress:docker_install');
+        $cacheKey = $this->uninstallingDocker ? 'docker_uninstall' : 'docker_install';
+        $status = \Illuminate\Support\Facades\Cache::get("obiora_progress:{$cacheKey}");
 
         if (! is_array($status)) {
             $this->installingDocker = false;
+            $this->uninstallingDocker = false;
 
             return;
         }
 
         $this->dockerProgress = (int) ($status['progress'] ?? 0);
         $this->dockerProgressMessage = (string) ($status['message'] ?? '');
-        $this->installingDocker = (bool) ($status['running'] ?? false);
+        $running = (bool) ($status['running'] ?? false);
 
-        if (! $this->installingDocker && ($status['success'] ?? null) !== null) {
+        if ($running) {
+            if ($cacheKey === 'docker_uninstall') {
+                $this->uninstallingDocker = true;
+                $this->installingDocker = false;
+            } else {
+                $this->installingDocker = true;
+                $this->uninstallingDocker = false;
+            }
+        }
+
+        if (! $running && ($status['success'] ?? null) !== null) {
+            $this->installingDocker = false;
+            $this->uninstallingDocker = false;
             $this->loadData($dockerManager, $serverManager);
             $this->dispatch('notify', type: ($status['success'] ?? false) ? 'success' : 'danger', message: $this->dockerProgressMessage);
         }
@@ -104,15 +137,24 @@ final class DockerIndex extends Component
 
     private function resumeDockerInstall(): void
     {
-        $status = \Illuminate\Support\Facades\Cache::get('obiora_progress:docker_install');
+        foreach (['docker_install', 'docker_uninstall'] as $key) {
+            $status = \Illuminate\Support\Facades\Cache::get("obiora_progress:{$key}");
 
-        if (! is_array($status) || ! ($status['running'] ?? false)) {
+            if (! is_array($status) || ! ($status['running'] ?? false)) {
+                continue;
+            }
+
+            $this->dockerProgress = (int) ($status['progress'] ?? 0);
+            $this->dockerProgressMessage = (string) ($status['message'] ?? '');
+
+            if ($key === 'docker_uninstall') {
+                $this->uninstallingDocker = true;
+            } else {
+                $this->installingDocker = true;
+            }
+
             return;
         }
-
-        $this->installingDocker = true;
-        $this->dockerProgress = (int) ($status['progress'] ?? 0);
-        $this->dockerProgressMessage = (string) ($status['message'] ?? '');
     }
 
     public function runContainer(DockerManager $dockerManager, ServerManager $serverManager): void

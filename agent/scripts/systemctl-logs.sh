@@ -20,4 +20,22 @@ elif (( LINES > 500 )); then
     LINES=500
 fi
 
-exec journalctl -u "${SERVICE}" -n "${LINES}" --no-pager
+UNITS=(-u "${SERVICE}")
+
+# Timer associé (ex. obiora-scheduler.service → inclure le .timer)
+if [[ "${SERVICE}" == *.service ]]; then
+    TIMER="${SERVICE%.service}.timer"
+    if systemctl cat "${TIMER}" &>/dev/null 2>&1; then
+        UNITS+=(-u "${TIMER}")
+    fi
+fi
+
+# Service associé si on consulte un timer
+if [[ "${SERVICE}" == *.timer ]]; then
+    SVC="${SERVICE%.timer}.service"
+    if systemctl cat "${SVC}" &>/dev/null 2>&1; then
+        UNITS+=(-u "${SVC}")
+    fi
+fi
+
+exec journalctl "${UNITS[@]}" -n "${LINES}" --no-pager -o short-precise

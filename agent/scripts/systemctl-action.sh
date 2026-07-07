@@ -28,3 +28,5 @@ esac
 if ! systemctl "${ACTION}" "${SERVICE}" 2>&1; then
     exit 1
 fi
+
+echo "OK:${ACTION}:${SERVICE}"
