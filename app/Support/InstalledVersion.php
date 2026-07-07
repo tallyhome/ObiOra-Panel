@@ -49,6 +49,39 @@ final class InstalledVersion
         return $count >= 0 ? $count : null;
     }
 
+    /**
+     * Dernier tag semver connu depuis le dépôt git local (après fetch).
+     * Ne dépend pas de l'API REST GitHub, donc insensible à son rate-limit
+     * (60 requêtes/heure par IP en non-authentifié — souvent épuisé sur des
+     * IP de VPS partagées, ce qui déclenche des erreurs "HTTP 403").
+     */
+    public function latestGitTag(): ?string
+    {
+        if (! is_dir(base_path('.git'))) {
+            return null;
+        }
+
+        $root = base_path();
+
+        Process::path($root)->timeout(20)->run('git fetch origin --tags --quiet 2>/dev/null');
+
+        $result = Process::path($root)->timeout(10)->run('git tag -l --sort=-v:refname 2>/dev/null');
+
+        if (! $result->successful()) {
+            return null;
+        }
+
+        foreach (preg_split('/\r?\n/', trim($result->output())) ?: [] as $line) {
+            $tag = ltrim(trim($line), 'v');
+
+            if ($tag !== '' && preg_match('/^\d+\.\d+/', $tag)) {
+                return $tag;
+            }
+        }
+
+        return null;
+    }
+
     private function fromGitTag(): ?string
     {
         if (! is_dir(base_path('.git'))) {

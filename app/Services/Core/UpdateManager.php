@@ -94,12 +94,45 @@ final class UpdateManager
         } catch (\Throwable $exception) {
             Log::warning('Update check failed', ['message' => $exception->getMessage()]);
 
+            $gitFallback = $this->gitFallbackRelease($repository, $exception->getMessage());
+            if ($gitFallback !== null) {
+                return $gitFallback;
+            }
+
             return [
                 'latest' => null,
                 'changelog_url' => null,
                 'error' => 'Impossible de contacter GitHub : '.$exception->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Dernier recours quand l'API REST GitHub est indisponible ou rate-limitée
+     * (ex. HTTP 403) : on lit directement les tags git déjà présents/récupérés
+     * localement, puisque c'est de toute façon le mécanisme réel utilisé pour
+     * appliquer la mise à jour (`git reset --hard origin/main`).
+     *
+     * @return ?array{latest: ?string, changelog_url: ?string, error: ?string}
+     */
+    private function gitFallbackRelease(string $repository, string $reason): ?array
+    {
+        $tag = $this->installedVersion->latestGitTag();
+
+        if ($tag === null) {
+            return null;
+        }
+
+        Log::info('Update check: fallback sur les tags git locaux (API GitHub indisponible)', [
+            'reason' => $reason,
+            'tag' => $tag,
+        ]);
+
+        return [
+            'latest' => $tag,
+            'changelog_url' => 'https://github.com/'.$repository.'/releases/tag/v'.$tag,
+            'error' => null,
+        ];
     }
 
     /**
@@ -119,6 +152,11 @@ final class UpdateManager
                 ]);
 
             if (! $response->successful()) {
+                $gitFallback = $this->gitFallbackRelease($repository, "HTTP {$previousStatus}");
+                if ($gitFallback !== null) {
+                    return $gitFallback;
+                }
+
                 return [
                     'latest' => null,
                     'changelog_url' => null,
@@ -163,6 +201,11 @@ final class UpdateManager
                 'error' => null,
             ];
         } catch (\Throwable $exception) {
+            $gitFallback = $this->gitFallbackRelease($repository, $exception->getMessage());
+            if ($gitFallback !== null) {
+                return $gitFallback;
+            }
+
             return [
                 'latest' => null,
                 'changelog_url' => null,
