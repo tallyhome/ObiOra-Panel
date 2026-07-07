@@ -37,7 +37,7 @@ case "${TYPE}" in
     files)
         PATH_TO_BACKUP="${TARGET:-/var/www}"
         FILE="${BACKUP_ROOT}/${SAFE_LABEL}-files-${TIMESTAMP}.tar.gz"
-        tar -czf "${FILE}" -C "$(dirname "${PATH_TO_BACKUP}")" "$(basename "${PATH_TO_BACKUP}")" 2>/dev/null
+        tar_cmd -czf "${FILE}" -C "$(dirname "${PATH_TO_BACKUP}")" "$(basename "${PATH_TO_BACKUP}")" 2>/dev/null
         ;;
     full)
         TMP_DIR="$(mktemp -d)"
@@ -48,7 +48,7 @@ case "${TYPE}" in
         done
         gzip "${DB_DUMP}"
         FILE="${BACKUP_ROOT}/${SAFE_LABEL}-full-${TIMESTAMP}.tar.gz"
-        tar -czf "${FILE}" -C "${TMP_DIR}" databases.sql.gz -C / var/www 2>/dev/null || tar -czf "${FILE}" -C "${TMP_DIR}" databases.sql.gz
+        tar_cmd -czf "${FILE}" -C "${TMP_DIR}" databases.sql.gz -C / var/www 2>/dev/null || tar_cmd -czf "${FILE}" -C "${TMP_DIR}" databases.sql.gz
         rm -rf "${TMP_DIR}"
         ;;
     *)

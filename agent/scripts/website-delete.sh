@@ -2,6 +2,8 @@
 # Supprime un site web ObiOra
 set -euo pipefail
 
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 DOMAIN="${1:-}"
 WEB_ROOT="${2:-/var/www}"
 
@@ -12,11 +14,12 @@ fi
 
 SAFE_NAME="${DOMAIN//./-}"
 SITE_DIR="${WEB_ROOT}/${DOMAIN}"
-NGINX_AVAILABLE="/etc/nginx/sites-available/obiora-${SAFE_NAME}"
-NGINX_ENABLED="/etc/nginx/sites-enabled/obiora-${SAFE_NAME}"
-NGINX_CONFD="/etc/nginx/conf.d/obiora-${SAFE_NAME}.conf"
 
-rm -f "${NGINX_ENABLED}" "${NGINX_AVAILABLE}" "${NGINX_CONFD}"
+if [[ -d /etc/nginx/sites-available ]]; then
+    rm -f "/etc/nginx/sites-enabled/obiora-${SAFE_NAME}"
+    rm -f "/etc/nginx/sites-available/obiora-${SAFE_NAME}"
+fi
+rm -f "/etc/nginx/conf.d/obiora-${SAFE_NAME}.conf"
 rm -rf "${SITE_DIR}"
 
 nginx -t

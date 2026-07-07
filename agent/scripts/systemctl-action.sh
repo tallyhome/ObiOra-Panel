@@ -19,10 +19,12 @@ fi
 
 # Bloque les services système internes (non gérables / dangereux)
 case "${SERVICE}" in
-    systemd-*|dbus-*|dev-*|sys-*|dracut-*|kmod-*|user@*|session-*)
+    systemd-*|dbus-*|dev-*|sys-*|dracut-*|kmod-*|user@*|session-*|auditd|chronyd|rsyslog|polkit|getty@*)
         echo "ERREUR: service système protégé : ${SERVICE}" >&2
         exit 1
         ;;
 esac
 
-exec systemctl "${ACTION}" "${SERVICE}"
+if ! systemctl "${ACTION}" "${SERVICE}" 2>&1; then
+    exit 1
+fi

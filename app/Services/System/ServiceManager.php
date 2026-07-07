@@ -139,10 +139,29 @@ final class ServiceManager
     private function filterManageableServices(array $services): array
     {
         return array_values(array_filter($services, function (array $svc): bool {
-            $name = $svc['name'];
-
-            return ! preg_match('/^(systemd-|dbus-|dev-|sys-|dracut-|kmod-|user@|session-)/', $name);
+            return $this->isPanelService($svc['name']);
         }));
+    }
+
+    private function isPanelService(string $name): bool
+    {
+        $keywords = [
+            'nginx', 'php-fpm', 'php', 'mariadb', 'mysqld', 'mysql', 'redis',
+            'obiora', 'docker', 'fail2ban', 'supervisord', 'httpd', 'cron',
+            'qbittorrent', 'deluge', 'rtorrent', 'transmission', 'emby', 'jellyfin',
+            'plex', 'sonarr', 'radarr', 'netdata', 'vsftpd', 'postfix', 'dovecot',
+            'openvpn', 'wireguard', 'memcached', 'nfs', 'smb',
+        ];
+
+        $lower = strtolower($name);
+
+        foreach ($keywords as $keyword) {
+            if (str_contains($lower, $keyword)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

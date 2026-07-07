@@ -21,7 +21,7 @@ install_base_packages() {
                 php8.3-xml php8.3-curl php8.3-zip php8.3-bcmath php8.3-intl php8.3-redis \
                 supervisor certbot python3-certbot-nginx \
                 fail2ban ufw \
-                unzip curl wget git ca-certificates gnupg
+                unzip curl wget git ca-certificates gnupg tar gzip
 
             # Node.js 20 LTS via NodeSource
             if ! command -v node &>/dev/null; then
@@ -36,7 +36,7 @@ install_base_packages() {
                 php-xml php-curl php-zip php-bcmath php-intl php-pecl-redis \
                 supervisor certbot python3-certbot-nginx \
                 fail2ban firewalld \
-                unzip curl wget git ca-certificates
+                unzip curl wget git ca-certificates tar gzip
 
             if ! command -v node &>/dev/null; then
                 curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -

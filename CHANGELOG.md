@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.9.17 - 2026-07-07
+
+Corrige sauvegardes (`tar` + PATH sudo), sites web sur AlmaLinux/RHEL (`conf.d` au lieu de `sites-available`), marketplace install/désinstall via `marketplace-exec.sh`, et filtre les services panel (masque auditd et services système non gérables).
+
 ## v1.9.16 - 2026-07-07
 
 Corrige « Échec de la mise à jour : sudo: a password is required » : le worker `obiora-queue` (utilisateur `obiora`) peut désormais exécuter `update-panel.sh` sans mot de passe, et l'ID de progression est passé en argument (plus via `env` qui bloquait sudoers).

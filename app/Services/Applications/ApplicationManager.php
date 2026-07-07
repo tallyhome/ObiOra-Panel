@@ -9,6 +9,7 @@ use App\Enums\ApplicationStatus;
 use App\Models\InstalledApplication;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
+use App\Services\System\PrivilegedScriptRunner;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -19,6 +20,7 @@ final class ApplicationManager
     public function __construct(
         private readonly ServerManager $serverManager,
         private readonly ApplicationCatalog $catalog,
+        private readonly PrivilegedScriptRunner $scripts,
     ) {}
 
     /**
@@ -146,9 +148,8 @@ final class ApplicationManager
                 return ['success' => true, 'output' => "OK:{$package->slug} (dev stub)"];
             }
 
-            $command = $this->buildCommand($script);
-
-            $result = $this->serverManager->executorFor($server)->run($command, ['timeout' => 600]);
+            $wrapper = base_path('agent/scripts/marketplace-exec.sh');
+            $result = $this->scripts->run($wrapper, [$script], 600);
 
             return [
                 'success' => $result->successful || str_contains($result->output, 'OK:'),
@@ -157,17 +158,6 @@ final class ApplicationManager
         }
 
         return $this->remoteRun($server, $package->slug, $action);
-    }
-
-    private function buildCommand(string $script): string
-    {
-        $command = escapeshellarg($script);
-
-        if (PHP_OS_FAMILY === 'Linux' && (! function_exists('posix_geteuid') || posix_geteuid() !== 0)) {
-            $command = 'sudo -n '.$command;
-        }
-
-        return $command;
     }
 
     private function isLocal(Server $server): bool

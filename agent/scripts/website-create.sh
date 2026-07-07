@@ -2,6 +2,8 @@
 # Crée un site web Nginx + PHP-FPM (ObiOra)
 set -euo pipefail
 
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 DOMAIN="${1:-}"
 PHP_VERSION="${2:-8.3}"
 WEB_ROOT="${3:-/var/www}"
@@ -19,9 +21,17 @@ fi
 SAFE_NAME="${DOMAIN//./-}"
 SITE_DIR="${WEB_ROOT}/${DOMAIN}"
 PUBLIC_DIR="${SITE_DIR}/public"
-NGINX_AVAILABLE="/etc/nginx/sites-available/obiora-${SAFE_NAME}"
-NGINX_ENABLED="/etc/nginx/sites-enabled/obiora-${SAFE_NAME}"
-NGINX_CONFD="/etc/nginx/conf.d/obiora-${SAFE_NAME}.conf"
+
+if [[ -d /etc/nginx/sites-available ]]; then
+    mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+    NGINX_CONF="/etc/nginx/sites-available/obiora-${SAFE_NAME}"
+    NGINX_ENABLED="/etc/nginx/sites-enabled/obiora-${SAFE_NAME}"
+else
+    mkdir -p /etc/nginx/conf.d
+    NGINX_CONF="/etc/nginx/conf.d/obiora-${SAFE_NAME}.conf"
+    NGINX_ENABLED=""
+fi
+
 META_FILE="${SITE_DIR}/.obiora.json"
 
 WEB_USER="nginx"
@@ -53,7 +63,7 @@ PHP
 chown -R "${WEB_USER}:${WEB_USER}" "${SITE_DIR}"
 chmod -R 755 "${SITE_DIR}"
 
-cat > "${NGINX_AVAILABLE}" <<NGINX
+cat > "${NGINX_CONF}" <<NGINX
 # ObiOra managed - domain: ${DOMAIN}
 server {
     listen 80;
@@ -90,10 +100,8 @@ server {
 }
 NGINX
 
-if [[ -d /etc/nginx/sites-enabled ]]; then
-    ln -sf "${NGINX_AVAILABLE}" "${NGINX_ENABLED}"
-else
-    cp -f "${NGINX_AVAILABLE}" "${NGINX_CONFD}"
+if [[ -n "${NGINX_ENABLED}" ]]; then
+    ln -sf "${NGINX_CONF}" "${NGINX_ENABLED}"
 fi
 
 nginx -t
@@ -104,10 +112,10 @@ cat > "${META_FILE}" <<JSON
     "domain": "${DOMAIN}",
     "php_version": "${PHP_VERSION}",
     "document_root": "${PUBLIC_DIR}",
-    "nginx_config": "${NGINX_AVAILABLE}",
+    "nginx_config": "${NGINX_CONF}",
     "ssl_enabled": false,
     "created_at": "$(date -Iseconds)"
 }
 JSON
 
-echo "OK:${PUBLIC_DIR}:${NGINX_AVAILABLE}"
+echo "OK:${PUBLIC_DIR}:${NGINX_CONF}"
