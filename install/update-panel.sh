@@ -6,6 +6,11 @@ OBIORA_INSTALL_DIR="${OBIORA_INSTALL_DIR:-/opt/obiora-panel}"
 OBIORA_USER="${OBIORA_USER:-obiora}"
 OBIORA_UPDATE_HISTORY_ID="${OBIORA_UPDATE_HISTORY_ID:-}"
 
+# ID historique MAJ passé en 1er argument par PanelUpdater (via sudo)
+if [[ -n "${1:-}" ]] && [[ "${1}" =~ ^[0-9]+$ ]]; then
+    OBIORA_UPDATE_HISTORY_ID="${1}"
+fi
+
 progress() {
     local pct="$1"
     local msg="$2"

@@ -25,6 +25,7 @@ setup_sudoers() {
     cat > "${sudoers_file}" <<SUDOERS
 # ObiOra Panel — exécution scripts agent, marketplace et mise à jour panel
 ${OBIORA_USER} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/agent/scripts/*.sh
+${OBIORA_USER} ALL=(root) NOPASSWD: ${update_script}
 ${OBIORA_USER} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/packages/*/install.sh
 ${OBIORA_USER} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/packages/*/uninstall.sh
 SUDOERS

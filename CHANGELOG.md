@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.9.16 - 2026-07-07
+
+Corrige « Échec de la mise à jour : sudo: a password is required » : le worker `obiora-queue` (utilisateur `obiora`) peut désormais exécuter `update-panel.sh` sans mot de passe, et l'ID de progression est passé en argument (plus via `env` qui bloquait sudoers).
+
 ## v1.9.15 - 2026-07-07
 
 Corrige `sudo: a password is required` pour sauvegardes, sites web, bases MySQL, Docker et services : les scripts agent sont exécutés directement (plus via `bash`) pour correspondre aux règles sudoers. Ajout de scripts `systemctl-action.sh` et `systemctl-logs.sh` pour start/stop et journaux. Masquage des services systemd internes dans la liste.

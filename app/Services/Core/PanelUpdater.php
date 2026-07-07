@@ -109,9 +109,10 @@ final class PanelUpdater
         $updateScript = $panelRoot.'/install/update-panel.sh';
 
         try {
+            // ID passé en argument (pas via `env`) pour correspondre à la règle sudoers
+            // NOPASSWD sur le chemin exact du script.
             $result = $this->executor->run(
-                'sudo -n env OBIORA_UPDATE_HISTORY_ID='.escapeshellarg((string) $historyId).' '
-                .escapeshellarg($updateScript),
+                'sudo -n '.escapeshellarg($updateScript).' '.escapeshellarg((string) $historyId),
                 ['timeout' => 1500],
             );
 
