@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v1.9.39 - 2026-07-07
+
+Fix confirmation mot de passe File Browser (setupPasswords + form submit).
+
 ## v1.9.20 - 2026-07-07
 
 Corrige l'échec d'installation du helper setuid (`OBIORA_GROUP: unbound variable`) qui bloquait toute mise à jour. Le git sync s'exécute désormais avant l'installation du helper pour débloquer les serveurs coincés.
@@ -348,11 +352,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 
 
 
+
 ```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
+
 
 
 
@@ -412,11 +418,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/
 
 
 
+
 ```
 **Slave :**
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)
+
 
 
 
