@@ -459,6 +459,7 @@ final class ApplicationManager
             'url' => $package?->accessUrl($host) ?? $metadata['url'] ?? null,
             'usage' => $metadata['usage'] ?? $package?->usageNotes() ?? '',
             'username' => $metadata['credentials']['username'] ?? null,
+            'password' => $metadata['credentials']['password'] ?? null,
             'installed_at' => $application->installed_at?->format('d/m/Y H:i'),
             'install_output' => $metadata['install_output'] ?? '',
         ];
@@ -561,8 +562,12 @@ final class ApplicationManager
             'install_output' => trim($output),
         ];
 
-        if ($username !== '') {
-            $metadata['credentials'] = ['username' => $username];
+        $password = trim((string) ($installOptions['pass'] ?? ''));
+        if ($username !== '' || $password !== '') {
+            $metadata['credentials'] = array_filter([
+                'username' => $username !== '' ? $username : null,
+                'password' => $password !== '' ? $password : null,
+            ], static fn (?string $value): bool => $value !== null && $value !== '');
         }
 
         $dbHost = trim((string) ($installOptions['db_host'] ?? ''));

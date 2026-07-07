@@ -147,6 +147,10 @@
                                 <dt class="text-muted">Identifiant</dt>
                                 <dd class="font-monospace">{{ $appInfo['username'] }}</dd>
                             @endif
+                            @if (!empty($appInfo['password']))
+                                <dt class="text-muted">Mot de passe</dt>
+                                <dd class="font-monospace user-select-all">{{ $appInfo['password'] }}</dd>
+                            @endif
                             <dt class="text-muted">Utilisation</dt>
                             <dd>{{ $appInfo['usage'] ?: 'Consultez la documentation du package.' }}</dd>
                         </dl>
