@@ -10,7 +10,12 @@ setup_nginx() {
     if [[ -n "${OBIORA_DOMAIN}" ]]; then
         server_name="${OBIORA_DOMAIN}"
     else
-        server_name="$(get_server_ip) _"
+        server_name="$(get_server_ip)"
+    fi
+
+    # Désactiver le vhost par défaut RHEL/AlmaLinux (conflit server_name "_")
+    if [[ -f /etc/nginx/conf.d/default.conf ]]; then
+        mv -f /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.obiora-bak
     fi
 
     # Debian/Ubuntu utilisent sites-available/enabled ; RHEL/AlmaLinux conf.d
@@ -31,8 +36,8 @@ setup_nginx() {
 
     cat > "${nginx_conf}" <<NGINX
 server {
-    listen 80;
-    listen [::]:80;
+    listen 80 default_server;
+    listen [::]:80 default_server;
     server_name ${server_name};
 
     root ${OBIORA_INSTALL_DIR}/public;

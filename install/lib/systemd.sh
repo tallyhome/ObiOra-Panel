@@ -40,10 +40,13 @@ SERVICE
     cat > /etc/systemd/system/obiora-scheduler.timer <<TIMER
 [Unit]
 Description=ObiOra Panel Scheduler Timer
+Requires=obiora-scheduler.service
 
 [Timer]
-OnCalendar=* * * * *
+OnCalendar=minutely
+AccuracySec=1s
 Persistent=true
+Unit=obiora-scheduler.service
 
 [Install]
 WantedBy=timers.target
@@ -60,14 +63,14 @@ TIMER
     systemctl daemon-reload
     systemctl_enable_start obiora-queue
     systemctl enable obiora-scheduler.timer
-    systemctl start obiora-scheduler.timer
+    systemctl start obiora-scheduler.timer || die "Impossible de démarrer obiora-scheduler.timer (vérifiez: systemctl status obiora-scheduler.timer)"
 
     if [[ -f /etc/systemd/system/obiora-agent.service ]]; then
         systemctl_enable_start obiora-agent
     fi
 
-    systemctl_enable_start redis 2>/dev/null || systemctl_enable_start redis-server
-    systemctl_enable_start supervisor
+    systemctl_enable_start redis 2>/dev/null || systemctl_enable_start redis-server 2>/dev/null || true
+    systemctl enable supervisor 2>/dev/null && systemctl start supervisor 2>/dev/null || warn "Supervisor non démarré (optionnel)"
 
     success "Services systemd démarrés"
 }

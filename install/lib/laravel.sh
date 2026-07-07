@@ -77,9 +77,17 @@ setup_laravel() {
     local run_as="sudo -u ${OBIORA_USER} env PATH=/usr/local/bin:/usr/bin:/bin:${PATH}"
 
     ${run_as} composer install --no-dev --optimize-autoloader --no-interaction
-    ${run_as} php artisan key:generate --force
-    ${run_as} npm ci --ignore-scripts 2>/dev/null || ${run_as} npm install
-    ${run_as} npm run build
+
+    if ! grep -qE '^APP_KEY=base64:.+' .env 2>/dev/null; then
+        ${run_as} php artisan key:generate --force
+    fi
+
+    if [[ ! -d node_modules ]] || [[ ! -f public/build/manifest.json ]]; then
+        ${run_as} npm ci --ignore-scripts 2>/dev/null || ${run_as} npm install
+        ${run_as} npm run build
+    else
+        info "Assets frontend déjà compilés, étape npm ignorée"
+    fi
 
     # Migrations
     ${run_as} php artisan migrate --force

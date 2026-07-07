@@ -4,9 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
-## v1.8.8 - 2026-07-07
+## [1.8.9] - 2026-07-07
 
-Corrige l ecriture de la config Nginx dans conf.d sur RHEL/AlmaLinux (pas de sites-available).
+### Corrigé
+
+- **systemd timer** : `OnCalendar=minutely` à la place de `* * * * *` (syntaxe cron invalide) — corrige `bad unit file setting` sur AlmaLinux
+- **Nginx** : `default_server` + désactivation de `default.conf` RHEL — corrige le conflit `server_name "_"`
+- **Réinstallation** : conserve `APP_KEY` et saute npm si les assets sont déjà compilés
+- **Supervisor** : démarrage optionnel (n'interrompt plus l'install)
 
 ## [1.8.8] - 2026-07-07
 
