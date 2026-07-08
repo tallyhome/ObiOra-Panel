@@ -16,10 +16,16 @@ clone_slave_agent() {
 }
 
 configure_agent() {
-    info "Génération de la clé API..."
+    info "Configuration de l'agent ObiOra..."
 
     local api_key
-    api_key="$(generate_api_key)"
+    if [[ -n "${OBIORA_AGENT_TOKEN:-}" ]]; then
+        api_key="${OBIORA_AGENT_TOKEN}"
+        info "Utilisation du token fourni par le panel maître"
+    else
+        api_key="$(generate_api_key)"
+        info "Génération d'une nouvelle clé API"
+    fi
 
     mkdir -p "${OBIORA_INSTALL_DIR}/agent/config"
     cat > "${OBIORA_INSTALL_DIR}/agent/config/agent.json" <<JSON
@@ -36,5 +42,5 @@ JSON
     chown "${OBIORA_AGENT_USER}:${OBIORA_AGENT_USER}" "${OBIORA_INSTALL_DIR}/agent/config/agent.json"
     chmod +x "${OBIORA_INSTALL_DIR}/agent/bin/obiOra-agent"
 
-    success "Clé API générée"
+    success "Agent configuré (port ${OBIORA_AGENT_PORT})"
 }

@@ -52,9 +52,11 @@ final class ServerCreate extends Component
             return;
         }
 
-        $status = $server->status->value === 'online' ? 'connecté' : 'en attente (vérifiez le ping)';
+        $status = $server->status->value === 'online'
+            ? 'agent connecté'
+            : 'en attente — installez l\'agent via SSH sur la fiche serveur';
 
-        session()->flash('success', "Serveur « {$server->name} » ajouté — {$status}. Token agent : {$server->agent_token}");
+        session()->flash('success', "Serveur « {$server->name} » enregistré ({$status}).");
 
         $this->redirect(route('servers.show', $server), navigate: true);
     }

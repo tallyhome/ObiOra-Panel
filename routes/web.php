@@ -32,6 +32,18 @@ Route::post('/logout', function () {
     return redirect()->route('login');
 })->middleware('auth')->name('logout');
 
+Route::get('/install/slave-agent.sh', function () {
+    $path = base_path('Slave/install.sh');
+
+    abort_unless(is_readable($path), 404);
+
+    return response(
+        (string) file_get_contents($path),
+        200,
+        ['Content-Type' => 'text/x-shellscript; charset=utf-8'],
+    );
+})->name('install.slave-agent');
+
 Route::get('/install/doctor-agent.sh', function () {
     $path = base_path('agent/scripts/bootstrap-doctor-agent.sh');
 

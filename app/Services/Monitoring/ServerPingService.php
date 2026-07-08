@@ -16,7 +16,7 @@ final class ServerPingService
         $result = $this->icmpPing($host);
 
         if (! $result['success']) {
-            $port = (int) (($server->metadata['agent_port'] ?? null) ?: 9100);
+            $port = $this->resolvePort($server);
             $result = $this->tcpPing($host, $port);
         }
 
@@ -39,7 +39,6 @@ final class ServerPingService
 
         $server->forceFill([
             'metadata' => $metadata,
-            'status' => $result['success'] ? 'online' : 'offline',
             'last_seen_at' => $result['success'] ? now() : $server->last_seen_at,
         ])->save();
 
@@ -141,5 +140,14 @@ final class ServerPingService
         }
 
         return $host;
+    }
+
+    private function resolvePort(Server $server): int
+    {
+        if (! $server->relationLoaded('primaryNode')) {
+            $server->load('primaryNode');
+        }
+
+        return (int) ($server->primaryNode?->port ?? $server->metadata['agent_port'] ?? 9100);
     }
 }

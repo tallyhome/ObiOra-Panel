@@ -77,9 +77,11 @@ Usage: install.sh [options]
 Options:
   --port PORT     Port agent (défaut: 9100)
   --dir PATH      Répertoire d'installation (défaut: /opt/obiora-slave)
+  --token KEY     Clé API du panel maître (recommandé si installé depuis le panel)
   -h, --help      Aide
 
-À la fin, une clé API sera affichée — entrez-la dans le panel maître (Serveurs → Ajouter).
+Si OBIORA_AGENT_TOKEN est défini (curl depuis le panel), la clé affichée correspond
+déjà à celle enregistrée sur le panel maître — aucune saisie manuelle requise.
 EOF
 }
 
@@ -88,6 +90,7 @@ parse_args() {
         case "$1" in
             --port) OBIORA_AGENT_PORT="$2"; shift 2 ;;
             --dir)  OBIORA_INSTALL_DIR="$2"; shift 2 ;;
+            --token) OBIORA_AGENT_TOKEN="$2"; shift 2 ;;
             -h|--help) usage; exit 0 ;;
             *) die "Option inconnue: $1" ;;
         esac

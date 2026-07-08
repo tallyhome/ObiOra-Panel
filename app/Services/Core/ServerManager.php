@@ -81,6 +81,7 @@ final class ServerManager
             'agent_token' => $token,
             'metadata' => [
                 'doctor_signing_key' => $this->generateSigningKey(),
+                'agent_port' => (int) ($data['agent_port'] ?? 9100),
             ],
         ]);
 
@@ -94,7 +95,15 @@ final class ServerManager
             'credentials' => ['token' => $token],
         ]);
 
-        $this->ping($server);
+        // Ne pas marquer offline tant que l'agent n'a jamais répondu
+        if ($this->ping($server)) {
+            return $server->fresh(['nodes']) ?? $server;
+        }
+
+        $server->refresh();
+        if ($server->last_seen_at === null) {
+            $server->update(['status' => ServerStatus::Pending]);
+        }
 
         return $server->fresh(['nodes']) ?? $server;
     }
@@ -189,6 +198,12 @@ final class ServerManager
             }
         } catch (\Throwable) {
             //
+        }
+
+        if ($server->last_seen_at === null) {
+            $server->update(['status' => ServerStatus::Pending]);
+
+            return false;
         }
 
         $server->update(['status' => ServerStatus::Offline]);

@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.28 - 2026-07-09
+
+- Serveurs : statut « en attente » tant que l'agent n'est pas installé (plus de faux offline ICMP)
+- Serveurs : installation SSH automatique de l'agent seedbox slave (comme Doctor & Suite)
+- Fix commande Doctor sur fiche serveur (curl panel au lieu de ObiOra-Doctor local)
+- Slave/install.sh accepte `OBIORA_AGENT_TOKEN` depuis le panel
+
 ## v2.1.26 - 2026-07-09
 
 - Doctor & Suite : workflow simplifié (test connexion → installer), clé SSH auto, vue flotte lisible

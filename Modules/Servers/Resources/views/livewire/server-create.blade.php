@@ -5,10 +5,10 @@
     </div>
 
     <div class="alert alert-info small">
-        <strong>1.</strong> Sur le serveur slave, exécutez :<br>
-        <code class="user-select-all">bash &lt;(curl -fsSL https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/Slave/install.sh)</code><br>
-        <strong>2.</strong> Copiez la <strong>clé API</strong> affichée à la fin de l'installation.<br>
-        <strong>3.</strong> Collez-la ci-dessous avec l'adresse IP du slave.
+        <strong>Recommandé :</strong> enregistrez le serveur ici (IP + nom), puis sur la fiche serveur utilisez
+        <strong>Installation automatique (SSH)</strong> pour installer l'agent seedbox — comme Doctor &amp; Suite.<br>
+        <span class="text-muted">Alternative manuelle :</span>
+        <code class="user-select-all">curl -fsSL {{ url('/install/slave-agent.sh') }} | sudo OBIORA_AGENT_TOKEN=… bash</code>
     </div>
 
     <div class="card obiora-card">
@@ -42,16 +42,17 @@
                         <input wire:model="agent_port" type="number" class="form-control obiora-input">
                     </div>
                     <div class="col-12">
-                        <label class="form-label">Clé API (optionnel — laissez vide pour générer côté panel)</label>
-                        <input wire:model="agent_token" type="text" class="form-control obiora-input font-monospace @error('agent_token') is-invalid @enderror" placeholder="Clé Slave/install.sh ou vide = génération auto">
+                        <label class="form-label">Clé API agent (optionnel)</label>
+                        <input wire:model="agent_token" type="text" class="form-control obiora-input font-monospace @error('agent_token') is-invalid @enderror" placeholder="Laisser vide = génération auto (recommandé pour install SSH)">
                         @error('agent_token') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        <p class="form-text small mb-0">Laissez vide : le panel génère le token utilisé lors de l'installation SSH.</p>
                     </div>
                 </div>
 
                 <div class="mt-4">
                     <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">
-                        <span wire:loading.remove>Lier le serveur</span>
-                        <span wire:loading>Vérification...</span>
+                        <span wire:loading.remove>Enregistrer le serveur</span>
+                        <span wire:loading>Enregistrement…</span>
                     </button>
                 </div>
             </form>
