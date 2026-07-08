@@ -67,6 +67,7 @@ final class DoctorRemoteDeployTest extends TestCase
         $this->assertArrayHasKey('success', $result);
         $this->assertArrayHasKey('message', $result);
         $this->assertArrayHasKey('output', $result);
+        $this->assertStringNotContainsString('sshpass', strtolower($result['output']));
     }
 
     public function test_doctor_suite_page_shows_ssh_workflow(): void

@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.24 - 2026-07-09
+
+- Doctor & Suite : auth SSH par mot de passe via phpseclib (plus besoin de sshpass sur le panel)
+
 ## v2.1.23 - 2026-07-09
 
 - Monorepo : ajout du dépôt **ObiOra-Doctor** (moteur de diagnostic Linux, v0.4.0) + CI GitHub Actions

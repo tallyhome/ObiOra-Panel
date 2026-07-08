@@ -7,8 +7,6 @@ namespace App\Services\Diagnostics;
 use App\DTOs\SshConnection;
 use App\Models\Server;
 use App\Support\DoctorInstallHelper;
-use Illuminate\Support\Facades\Log;
-use Symfony\Component\Process\Process;
 
 /**
  * Déploie Doctor et Crash Analyzer via SSH.
@@ -18,6 +16,7 @@ final class DoctorRemoteDeployService
 {
     public function __construct(
         private readonly DoctorInstallHelper $doctor,
+        private readonly SshRemoteExecutor $ssh,
     ) {}
 
     /**
@@ -26,7 +25,7 @@ final class DoctorRemoteDeployService
      */
     public function deploySuite(
         Server $server,
-        SshConnection $ssh,
+        SshConnection $connection,
         bool $installDoctor = true,
         bool $installCrashAnalyzer = true,
         ?callable $onProgress = null,
@@ -46,7 +45,7 @@ final class DoctorRemoteDeployService
                 $server->id,
                 $server->agent_token,
             );
-            $result = $this->runRemote($ssh, $command);
+            $result = $this->runRemote($connection, $command);
             $steps[] = [
                 'component' => 'doctor_suite',
                 'success' => $result['success'],
@@ -58,7 +57,7 @@ final class DoctorRemoteDeployService
         } else {
             if ($installDoctor) {
                 $command = $this->doctor->remoteCommand($server);
-                $result = $this->runRemote($ssh, $command);
+                $result = $this->runRemote($connection, $command);
                 $steps[] = ['component' => 'doctor', 'success' => $result['success'], 'output' => $result['output']];
                 if ($onProgress !== null) {
                     $onProgress(65, 'Installation ObiOra Doctor…', $steps);
@@ -72,7 +71,7 @@ final class DoctorRemoteDeployService
                     $server->id,
                     $server->agent_token,
                 );
-                $result = $this->runRemote($ssh, $command);
+                $result = $this->runRemote($connection, $command);
                 $steps[] = ['component' => 'crash_analyzer', 'success' => $result['success'], 'output' => $result['output']];
                 if ($onProgress !== null) {
                     $onProgress(85, 'Installation Crash Analyzer…', $steps);
@@ -103,9 +102,9 @@ final class DoctorRemoteDeployService
     /**
      * @return array{success: bool, output: string, message: string}
      */
-    public function testConnection(SshConnection $ssh): array
+    public function testConnection(SshConnection $connection): array
     {
-        $result = $this->runRemote($ssh, 'echo OBIORA_SSH_OK && hostname -f 2>/dev/null || hostname');
+        $result = $this->runRemote($connection, 'echo OBIORA_SSH_OK && hostname -f 2>/dev/null || hostname');
 
         $ok = $result['success'] && str_contains($result['output'], 'OBIORA_SSH_OK');
 
@@ -121,75 +120,8 @@ final class DoctorRemoteDeployService
     /**
      * @return array{success: bool, output: string, exit_code: int}
      */
-    public function runRemote(SshConnection $ssh, string $remoteCommand): array
+    public function runRemote(SshConnection $connection, string $remoteCommand): array
     {
-        $keyFile = null;
-
-        try {
-            $sshArgs = [
-                '-p', (string) $ssh->port,
-                '-o', 'StrictHostKeyChecking=accept-new',
-                '-o', 'ConnectTimeout=30',
-                '-o', 'LogLevel=ERROR',
-            ];
-
-            if ($ssh->privateKey !== null && $ssh->privateKey !== '') {
-                $keyFile = tempnam(sys_get_temp_dir(), 'obiora_ssh_');
-                if ($keyFile === false) {
-                    return ['success' => false, 'output' => 'Impossible de créer un fichier clé temporaire.', 'exit_code' => 1];
-                }
-                file_put_contents($keyFile, $ssh->privateKey);
-                chmod($keyFile, 0600);
-                $sshArgs[] = '-i';
-                $sshArgs[] = $keyFile;
-                $sshArgs[] = '-o';
-                $sshArgs[] = 'BatchMode=yes';
-            }
-
-            $sshArgs[] = $ssh->username.'@'.$ssh->host;
-            $sshArgs[] = $remoteCommand;
-
-            if ($ssh->password !== null && $ssh->password !== '' && ($ssh->privateKey === null || $ssh->privateKey === '')) {
-                if (! $this->hasSshpass()) {
-                    return [
-                        'success' => false,
-                        'output' => 'Authentification par mot de passe : installez sshpass sur le serveur panel (apt install sshpass / dnf install sshpass).',
-                        'exit_code' => 1,
-                    ];
-                }
-                $process = new Process(
-                    array_merge(['sshpass', '-e', 'ssh'], $sshArgs),
-                    null,
-                    ['SSHPASS' => $ssh->password],
-                );
-            } else {
-                $process = new Process(array_merge(['ssh'], $sshArgs));
-            }
-
-            $process->setTimeout(300);
-            $process->run();
-
-            return [
-                'success' => $process->isSuccessful(),
-                'output' => trim($process->getOutput()."\n".$process->getErrorOutput()),
-                'exit_code' => $process->getExitCode() ?? 1,
-            ];
-        } catch (\Throwable $e) {
-            Log::warning('Doctor SSH deploy failed', ['host' => $ssh->host, 'error' => $e->getMessage()]);
-
-            return ['success' => false, 'output' => $e->getMessage(), 'exit_code' => 1];
-        } finally {
-            if ($keyFile !== null && is_file($keyFile)) {
-                @unlink($keyFile);
-            }
-        }
-    }
-
-    private function hasSshpass(): bool
-    {
-        $process = new Process(['which', 'sshpass']);
-        $process->run();
-
-        return $process->isSuccessful();
+        return $this->ssh->run($connection, $remoteCommand);
     }
 }
