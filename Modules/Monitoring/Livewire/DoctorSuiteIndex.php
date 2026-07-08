@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Modules\Monitoring\Livewire;
 
 use App\DTOs\SshConnection;
-use App\Jobs\Diagnostics\DoctorRemoteDeployJob;
 use App\Models\DiagnosticReport;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
 use App\Services\Diagnostics\DoctorDeployProgressService;
+use App\Services\Diagnostics\DoctorDeployRunner;
 use App\Services\Diagnostics\DoctorRemoteDeployService;
 use App\Services\Diagnostics\DoctorSuiteService;
 use App\Services\Diagnostics\ServerSshKeyService;
@@ -17,6 +17,8 @@ use App\Support\DoctorInstallHelper;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Symfony\Component\Process\PhpExecutableFinder;
+use Symfony\Component\Process\Process;
 
 #[Layout('layouts.app')]
 #[Title('Doctor & Suite')]
@@ -63,6 +65,13 @@ final class DoctorSuiteIndex extends Component
     public ?string $sshPublicKey = null;
 
     public bool $sshKeyInstalled = false;
+
+    /** @var list<string> */
+    public array $deployConsole = [];
+
+    public bool $deployFinished = false;
+
+    public ?bool $deploySuccess = null;
 
     public function mount(ServerManager $servers, DoctorInstallHelper $doctor, ServerSshKeyService $sshKeys): void
     {
@@ -136,8 +145,7 @@ final class DoctorSuiteIndex extends Component
 
     public function deployRemote(
         DoctorDeployProgressService $progress,
-        ServerSshKeyService $sshKeys,
-        DoctorRemoteDeployService $deploy,
+        DoctorDeployRunner $runner,
     ): void {
         $this->authorizeDeploy();
         $this->validateSshForm();
@@ -149,34 +157,48 @@ final class DoctorSuiteIndex extends Component
             return;
         }
 
-        $server = Server::query()->findOrFail($this->serverId);
-
-        try {
-            $server = $this->ensureSshKeyReady($server, $sshKeys, $deploy);
-        } catch (\Throwable $e) {
-            $this->deployError = $e->getMessage();
-            $this->dispatch('notify', type: 'danger', message: $this->deployError);
-
+        if ($this->deployRunning) {
             return;
         }
 
-        $progress->start($server->id);
+        try {
+            $server = Server::query()->findOrFail($this->serverId);
 
-        DoctorRemoteDeployJob::dispatch(
-            $server->id,
-            $this->sshHost,
-            $this->sshPort,
-            $this->sshUser,
-            $this->deployDoctor,
-            $this->deployCrashAnalyzer,
-        );
+            $runner->storeBootstrapPassword($server->id, $this->sshPassword);
 
-        $this->deployRunning = true;
-        $this->deployProgress = 5;
-        $this->deployProgressMessage = 'Connexion au VPS, envoi des agents et récupération des données…';
-        $this->deployError = null;
-        $this->deploySteps = [];
-        $this->sshPassword = '';
+            $progress->start($server->id);
+            $progress->appendLog($server->id, 'Lancement du processus d\'installation…');
+
+            $this->spawnDeployProcess($server->id);
+
+            $this->deployRunning = true;
+            $this->deployFinished = false;
+            $this->deploySuccess = null;
+            $this->deployProgress = 5;
+            $this->deployProgressMessage = 'Connexion au VPS, envoi des agents…';
+            $this->deployError = null;
+            $this->deploySteps = [];
+            $this->deployConsole = ['['.now()->format('H:i:s').'] Déploiement démarré…'];
+            $this->sshPassword = '';
+
+            $this->dispatch('deploy-console-scroll');
+        } catch (\Throwable $e) {
+            $progress->cancel($this->serverId, 'Échec au lancement : '.$e->getMessage());
+            $this->deployError = $e->getMessage();
+            $this->deployRunning = false;
+            $this->dispatch('notify', type: 'danger', message: $this->deployError);
+        }
+    }
+
+    public function cancelDeploy(DoctorDeployProgressService $progress): void
+    {
+        if ($this->serverId === null) {
+            return;
+        }
+
+        $progress->cancel($this->serverId, 'Déploiement annulé depuis le panel.');
+        $this->resetDeployState(false);
+        $this->deployError = 'Déploiement annulé.';
     }
 
     public function pollDeploy(DoctorDeployProgressService $progress): void
@@ -200,15 +222,31 @@ final class DoctorSuiteIndex extends Component
         $this->deployProgress = (int) ($status['progress'] ?? 0);
         $this->deployProgressMessage = (string) ($status['message'] ?? '');
         $this->deploySteps = is_array($status['steps'] ?? null) ? $status['steps'] : [];
+        $this->deployConsole = is_array($status['console'] ?? null) ? $status['console'] : [];
         $this->deployRunning = (bool) ($status['running'] ?? false);
+
+        if ($this->deployRunning && $progress->isStale($this->serverId)) {
+            $progress->cancel(
+                $this->serverId,
+                'Déploiement interrompu (processus panel arrêté ou bloqué). Relancez l\'installation.',
+            );
+            $this->deployRunning = false;
+            $this->deployError = 'Le déploiement semble bloqué. Vérifiez les logs panel et relancez.';
+        }
 
         if (! $this->deployRunning && array_key_exists('success', $status)) {
             $ok = (bool) $status['success'];
+            $this->deployFinished = true;
+            $this->deploySuccess = $ok;
             if (! $ok) {
                 $this->deployError = (string) ($status['message'] ?? 'Échec du déploiement.');
             }
+            $this->refreshSshState(
+                Server::query()->find($this->serverId),
+                app(ServerSshKeyService::class),
+            );
             $this->dispatch('notify', type: $ok ? 'success' : 'danger', message: (string) ($status['message'] ?? ''));
-            $this->resetDeployState(false);
+            $this->dispatch('deploy-console-scroll');
         }
     }
 
@@ -258,6 +296,49 @@ final class DoctorSuiteIndex extends Component
             $this->deployProgress = (int) ($status['progress'] ?? 0);
             $this->deployProgressMessage = (string) ($status['message'] ?? '');
             $this->deploySteps = is_array($status['steps'] ?? null) ? $status['steps'] : [];
+            $this->deployConsole = is_array($status['console'] ?? null) ? $status['console'] : [];
+
+            return;
+        }
+
+        if (is_array($status) && array_key_exists('success', $status)) {
+            $this->deployRunning = false;
+            $this->deployFinished = true;
+            $this->deploySuccess = (bool) $status['success'];
+            $this->deployProgress = (int) ($status['progress'] ?? 100);
+            $this->deployProgressMessage = (string) ($status['message'] ?? '');
+            $this->deploySteps = is_array($status['steps'] ?? null) ? $status['steps'] : [];
+            $this->deployConsole = is_array($status['console'] ?? null) ? $status['console'] : [];
+        }
+    }
+
+    private function spawnDeployProcess(int $serverId): void
+    {
+        $php = (new PhpExecutableFinder)->find(false) ?: 'php';
+
+        $process = new Process(
+            [
+                $php,
+                base_path('artisan'),
+                'obiora:doctor-deploy',
+                (string) $serverId,
+                $this->sshHost,
+                (string) $this->sshPort,
+                $this->sshUser,
+                $this->deployDoctor ? 'yes' : 'no',
+                $this->deployCrashAnalyzer ? 'yes' : 'no',
+            ],
+            base_path(),
+            null,
+            null,
+            null,
+        );
+
+        $process->disableOutput();
+        $process->start();
+
+        if (! $process->isRunning()) {
+            throw new \RuntimeException('Impossible de lancer le processus d\'installation.');
         }
     }
 
@@ -270,6 +351,9 @@ final class DoctorSuiteIndex extends Component
         $this->deployRunning = false;
         $this->deployProgress = 0;
         $this->deployProgressMessage = '';
+        $this->deployConsole = [];
+        $this->deployFinished = false;
+        $this->deploySuccess = null;
     }
 
     private function resetSshTest(): void
@@ -306,47 +390,6 @@ final class DoctorSuiteIndex extends Component
             'sshPort' => ['required', 'integer', 'min:1', 'max:65535'],
             'sshUser' => ['required', 'string', 'max:64'],
         ]);
-    }
-
-    /**
-     * Génère la clé SSH si besoin, l'installe sur le VPS, retourne le serveur à jour.
-     */
-    private function ensureSshKeyReady(
-        Server $server,
-        ServerSshKeyService $sshKeys,
-        DoctorRemoteDeployService $deploy,
-    ): Server {
-        if (! $sshKeys->hasKey($server)) {
-            $this->sshPublicKey = $sshKeys->generate($server);
-            $server = $server->fresh();
-            $this->sshBootstrapResult = 'Clé SSH dédiée créée automatiquement pour ce serveur.';
-        }
-
-        if ($sshKeys->isInstalledOnRemote($server)) {
-            $this->refreshSshState($server, $sshKeys);
-
-            return $server;
-        }
-
-        if ($this->sshPassword === '') {
-            throw new \RuntimeException('Mot de passe SSH requis pour la première installation sur ce VPS.');
-        }
-
-        $bootstrap = $sshKeys->installPublicKeyOnRemote(
-            $server,
-            $this->bootstrapConnection(),
-            $deploy,
-        );
-
-        if (! $bootstrap['success']) {
-            throw new \RuntimeException($bootstrap['output'] ?: 'Impossible d\'installer la clé SSH sur le VPS.');
-        }
-
-        $server = $server->fresh();
-        $this->refreshSshState($server, $sshKeys);
-        $this->sshBootstrapResult = 'Clé SSH installée sur le VPS. Lancement du déploiement des agents…';
-
-        return $server;
     }
 
     private function bootstrapConnection(): SshConnection

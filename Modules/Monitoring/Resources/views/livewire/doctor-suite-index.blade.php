@@ -1,4 +1,7 @@
-<div @if($deployRunning) wire:poll.2s="pollDeploy" @endif>
+<div @if($deployRunning) wire:poll.2s="pollDeploy" @endif
+     x-data="{ scrollConsole() { const el = document.getElementById('obiora-deploy-console'); if (el) el.scrollTop = el.scrollHeight; } }"
+     x-on:deploy-console-scroll.window="scrollConsole()"
+     x-init="$watch('$wire.deployConsole', () => scrollConsole())">
     <div class="mb-4 d-flex flex-wrap justify-content-between align-items-start gap-2">
         <div>
             <h1 class="h3 mb-1">ObiOra Doctor & Suite</h1>
@@ -102,17 +105,46 @@
     </div>
     @endif
 
-    @if($deployRunning)
+    @if($deployRunning || $deployFinished || count($deployConsole) > 0)
     <div class="card obiora-card mb-4 border-primary">
         <div class="card-body">
+            @if($deployRunning)
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="small fw-medium">Installation en cours sur le VPS…</span>
-                <span class="small text-muted">{{ $deployProgress }}%</span>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="small text-muted">{{ $deployProgress }}%</span>
+                    @if($canManageServers)
+                    <button type="button" wire:click="cancelDeploy" wire:loading.attr="disabled" class="btn btn-outline-danger btn-sm py-0 px-2">
+                        Annuler
+                    </button>
+                    @endif
+                </div>
             </div>
             <div class="obiora-progress info mb-2">
                 <div class="bar" style="width: {{ max(3, $deployProgress) }}%"></div>
             </div>
-            <p class="small text-muted mb-0">{{ $deployProgressMessage ?: 'Connexion SSH, envoi des fichiers et démarrage des services…' }}</p>
+            <p class="small text-muted mb-3">{{ $deployProgressMessage ?: 'Connexion SSH, envoi des fichiers et démarrage des services…' }}</p>
+            @elseif($deployFinished)
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="small fw-medium {{ $deploySuccess ? 'text-success' : 'text-danger' }}">
+                    {{ $deploySuccess ? 'Installation terminée' : 'Installation échouée' }}
+                </span>
+                <button type="button" wire:click="$set('deployFinished', false)" class="btn btn-outline-secondary btn-sm py-0 px-2">
+                    Masquer
+                </button>
+            </div>
+            @endif
+
+            <div class="obiora-deploy-console-wrap">
+                <div class="obiora-deploy-console-header">
+                    <span class="small fw-medium">Console d'installation (VPS distant)</span>
+                    @if($deployRunning)
+                    <span class="badge text-bg-info">Live</span>
+                    @endif
+                </div>
+                <pre id="obiora-deploy-console" class="obiora-deploy-console mb-0">@foreach($deployConsole as $line){{ $line }}
+@endforeach</pre>
+            </div>
         </div>
     </div>
     @endif

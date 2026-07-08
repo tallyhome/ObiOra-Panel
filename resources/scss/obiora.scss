@@ -673,6 +673,37 @@ label {
     }
 }
 
+.obiora-deploy-console-wrap {
+    border: 1px solid var(--obiora-border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: #0d0d12;
+}
+
+.obiora-deploy-console-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.45rem 0.75rem;
+    background: #16161f;
+    border-bottom: 1px solid var(--obiora-border);
+    color: var(--obiora-text-muted);
+}
+
+.obiora-deploy-console {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: #c8f7dc;
+    background: #0d0d12;
+    padding: 0.75rem;
+    max-height: 320px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 .dropdown-menu {
     background: var(--obiora-bg-card);
     border-color: var(--obiora-border);
