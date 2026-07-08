@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Docker\Livewire;
 
+use App\Livewire\Concerns\AuthorizesPanelAccess;
 use App\Services\Core\ServerManager;
 use App\Services\Docker\DockerManager;
 use Livewire\Attributes\Layout;
@@ -15,6 +16,8 @@ use Livewire\Component;
 #[Title('Docker')]
 final class DockerIndex extends Component
 {
+    use AuthorizesPanelAccess;
+
     /** @var list<array<string, string>> */
     public array $containers = [];
 
@@ -69,6 +72,8 @@ final class DockerIndex extends Component
 
     public function installDocker(DockerManager $dockerManager, ServerManager $serverManager): void
     {
+        $this->authorizePermission('docker.manage');
+
         if ($this->installingDocker || $this->uninstallingDocker) {
             return;
         }
@@ -86,6 +91,8 @@ final class DockerIndex extends Component
 
     public function uninstallDocker(DockerManager $dockerManager, ServerManager $serverManager): void
     {
+        $this->authorizePermission('docker.manage');
+
         if ($this->installingDocker || $this->uninstallingDocker) {
             return;
         }
@@ -159,6 +166,8 @@ final class DockerIndex extends Component
 
     public function runContainer(DockerManager $dockerManager, ServerManager $serverManager): void
     {
+        $this->authorizePermission('docker.manage');
+
         $this->validate([
             'run_image' => ['required', 'string', 'max:255'],
             'run_name' => ['nullable', 'string', 'max:128', 'regex:/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/'],
@@ -189,6 +198,8 @@ final class DockerIndex extends Component
 
     public function containerAction(string $container, string $action, DockerManager $dockerManager, ServerManager $serverManager): void
     {
+        $this->authorizePermission('docker.manage');
+
         $result = $dockerManager->containerAction($container, $action);
         $this->dispatch('notify', type: $result['success'] ? 'success' : 'danger', message: $result['success']
             ? "Action « {$action} » effectuée."
@@ -204,6 +215,8 @@ final class DockerIndex extends Component
 
     public function removeImage(string $imageId, DockerManager $dockerManager, ServerManager $serverManager): void
     {
+        $this->authorizePermission('docker.manage');
+
         $result = $dockerManager->removeImage($imageId);
         $this->dispatch('notify', type: $result['success'] ? 'success' : 'danger', message: $result['success']
             ? 'Image supprimée.'

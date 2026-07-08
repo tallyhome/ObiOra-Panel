@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Servers\Livewire;
 
+use App\Livewire\Concerns\AuthorizesPanelAccess;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
 use Livewire\Attributes\Layout;
@@ -14,6 +15,8 @@ use Livewire\Component;
 #[Title('Détail serveur')]
 final class ServerShow extends Component
 {
+    use AuthorizesPanelAccess;
+
     public Server $server;
 
     public function mount(Server $server, ServerManager $serverManager): void
@@ -25,6 +28,8 @@ final class ServerShow extends Component
 
     public function regenerateAgentToken(ServerManager $serverManager): void
     {
+        $this->authorizePermission('servers.manage');
+
         try {
             $token = $serverManager->regenerateAgentToken($this->server);
             $this->server->refresh();

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Services\Livewire;
 
+use App\Livewire\Concerns\AuthorizesPanelAccess;
 use App\Services\Core\ServerManager;
 use App\Services\System\ServiceManager;
 use Livewire\Attributes\Layout;
@@ -15,6 +16,8 @@ use Livewire\Component;
 #[Title('Services')]
 final class ServiceList extends Component
 {
+    use AuthorizesPanelAccess;
+
     /** @var list<array{name: string, load: string, active: string, sub: string, description: string}> */
     public array $services = [];
 
@@ -46,6 +49,8 @@ final class ServiceList extends Component
 
     public function runAction(string $service, string $action, ServiceManager $serviceManager): void
     {
+        $this->authorizePermission('services.manage');
+
         $result = $serviceManager->action($service, $action);
         $message = $result['success']
             ? ($result['async'] ?? false

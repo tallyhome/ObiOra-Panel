@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.10 - 2026-07-08
+
+- RBAC complet : matrice permissions admin / technicien / client (seeder + middleware routes + sidebar)
+- Actions sensibles protégées (serveurs, services, docker, marketplace)
+
 ## v2.1.9 - 2026-07-08
 
 - Profil utilisateur : menu déroulant (nom en haut à droite) → édition nom, email, mot de passe

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Servers\Livewire;
 
 use App\Enums\ServerType;
+use App\Livewire\Concerns\AuthorizesPanelAccess;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
 use Livewire\Attributes\Layout;
@@ -15,6 +16,8 @@ use Livewire\Component;
 #[Title('Serveurs')]
 final class ServerList extends Component
 {
+    use AuthorizesPanelAccess;
+
     public function ping(int $serverId, ServerManager $serverManager): void
     {
         $server = Server::query()->findOrFail($serverId);
@@ -27,6 +30,8 @@ final class ServerList extends Component
 
     public function delete(int $serverId, ServerManager $serverManager): void
     {
+        $this->authorizePermission('servers.manage');
+
         $server = Server::query()->findOrFail($serverId);
 
         try {

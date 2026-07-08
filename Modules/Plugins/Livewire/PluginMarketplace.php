@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Plugins\Livewire;
 
+use App\Livewire\Concerns\AuthorizesPanelAccess;
 use App\Models\InstalledApplication;
 use App\Services\Applications\ApplicationCatalog;
 use App\Services\Applications\ApplicationManager;
@@ -19,6 +20,8 @@ use Livewire\Component;
 #[Title('Marketplace')]
 final class PluginMarketplace extends Component
 {
+    use AuthorizesPanelAccess;
+
     public string $category = '';
 
     public string $search = '';
@@ -77,6 +80,8 @@ final class PluginMarketplace extends Component
 
     public function install(string $slug, ApplicationManager $manager, ServerManager $serverManager, ApplicationCatalog $catalog): void
     {
+        $this->authorizePermission('plugins.manage');
+
         if ($this->installRunning) {
             return;
         }
@@ -239,6 +244,8 @@ final class PluginMarketplace extends Component
 
     public function uninstall(int $id, ApplicationManager $manager): void
     {
+        $this->authorizePermission('plugins.manage');
+
         if ($this->installRunning) {
             $this->dispatch('notify', type: 'warning', message: 'Une opération est déjà en cours.');
 
