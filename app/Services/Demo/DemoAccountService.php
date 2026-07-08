@@ -28,9 +28,7 @@ final class DemoAccountService
             'demo_expires_at' => now()->addHours($ttlHours),
         ]);
 
-        if ($user->getRoleNames()->isEmpty()) {
-            $user->assignRole('client');
-        }
+        $user->syncRoles(['client']);
 
         return [
             'user_id' => $user->id,

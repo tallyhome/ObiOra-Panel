@@ -43,6 +43,14 @@ final class Login extends Component
             ]);
         }
 
+        $user = Auth::user();
+        if ($user !== null && $user->isDemoExpired()) {
+            Auth::logout();
+            throw ValidationException::withMessages([
+                'email' => 'Votre démo a expiré. Créez-en une nouvelle sur le site ObiOra.',
+            ]);
+        }
+
         RateLimiter::clear($key);
         session()->regenerate();
 

@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.14 - 2026-07-08
+
+- Rôle client : accès Docker (marketplace / installation apps)
+- Comptes démo : blocage connexion + déconnexion auto à expiration, commande `obiora:expire-demo-accounts` (cron horaire via `obiora-scheduler.timer`)
+- Bannière « Compte démo » avec date d'expiration dans le panel
+- Post-déploiement automatisé : `php artisan obiora:post-deploy` (migrate + RolePermissionSeeder + permission:cache-reset) intégré à l'install et aux MAJ
+
 ## v2.1.13 - 2026-07-08
 
 - Fix super-admin sans lien Monitoring : bypass Gate + migration sync permissions RBAC

@@ -28,8 +28,8 @@ Seeder : `Database\Seeders\RolePermissionSeeder`
 | Sites web (gérer) | `websites.manage` | ✓ | ✓ | ✗ | ✓ |
 | Bases de données (voir) | `databases.view` | ✓ | ✓ | ✓ | ✓ |
 | Bases de données (créer / gérer) | `databases.manage` | ✓ | ✓ | ✗ | ✗ |
-| Docker (voir) | `docker.view` | ✓ | ✓ | ✓ | ✗ |
-| Docker (gérer) | `docker.manage` | ✓ | ✓ | ✓ | ✗ |
+| Docker (voir) | `docker.view` | ✓ | ✓ | ✓ | ✓ |
+| Docker (gérer / installer apps) | `docker.manage` | ✓ | ✓ | ✓ | ✓ |
 | Sauvegardes (voir) | `backups.view` | ✓ | ✓ | ✓ | ✗ |
 | Sauvegardes (créer / restaurer) | `backups.manage` | ✓ | ✓ | ✗ | ✗ |
 | Utilisateurs panel (voir) | `users.view` | ✓ | ✗ | ✗ | ✗ |

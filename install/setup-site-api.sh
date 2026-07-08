@@ -17,7 +17,7 @@ run_artisan() {
 
 echo "=== ObiOra — activation API démo SiteWeb ==="
 
-run_artisan migrate --force
+run_artisan obiora:post-deploy --skip-migrate
 run_artisan obiora:setup-site-api --ensure
 run_artisan config:clear
 run_artisan route:clear

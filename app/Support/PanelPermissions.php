@@ -83,6 +83,8 @@ final class PanelPermissions
                 'services.view',
                 'plugins.view',
                 'plugins.manage',
+                'docker.view',
+                'docker.manage',
                 'websites.view',
                 'websites.manage',
                 'databases.view',

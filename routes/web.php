@@ -7,6 +7,7 @@ use App\Support\ModuleStubRegistry;
 use App\Http\Controllers\Api\DiagnosticReportController;
 use App\Http\Controllers\ApplicationIconController;
 use App\Http\Controllers\MarketplaceInstallSetupController;
+use App\Http\Controllers\CrashAnalyzerExportController;
 use App\Livewire\Auth\Login;
 use App\Livewire\Setup\CreateAdmin;
 use Illuminate\Support\Facades\Auth;
@@ -41,7 +42,19 @@ Route::get('/install/doctor-agent.sh', function () {
     );
 })->name('install.doctor-agent');
 
-Route::middleware(['setup', 'auth', 'server'])->group(function () {
+Route::get('/install/crash-analyzer.sh', function () {
+    $path = base_path('agent/scripts/install-crash-analyzer.sh');
+
+    abort_unless(is_readable($path), 404);
+
+    return response(
+        (string) file_get_contents($path),
+        200,
+        ['Content-Type' => 'text/x-shellscript; charset=utf-8'],
+    );
+})->name('install.crash-analyzer');
+
+Route::middleware(['setup', 'auth', 'demo.active', 'server'])->group(function () {
     Route::get('/', fn () => redirect()->route('dashboard'));
     Route::get('/profile', \Modules\Users\Livewire\ProfileIndex::class)->name('profile.index');
 
@@ -123,6 +136,7 @@ Route::middleware(['setup', 'auth', 'server'])->group(function () {
         Route::get('/virtualizor', \Modules\Virtualizor\Livewire\VirtualizorIndex::class)->name('virtualizor.index');
         Route::get('/cluster', \Modules\Cluster\Livewire\ClusterIndex::class)->name('cluster.index');
         Route::get('/doctor', \Modules\Monitoring\Livewire\DoctorSuiteIndex::class)->name('doctor.index');
+        Route::get('/crash-analyzer', \Modules\CrashAnalyzer\Livewire\CrashAnalyzerIndex::class)->name('crash-analyzer.index');
 
         $stubSlugs = array_keys(ModuleStubRegistry::infrastructure());
         if ($stubSlugs !== []) {
@@ -139,6 +153,17 @@ Route::middleware(['setup', 'auth', 'server'])->group(function () {
     Route::get('/users', \Modules\Users\Livewire\UserIndex::class)
         ->middleware('permission:users.view')
         ->name('users.index');
+
+    Route::prefix('crash-analyzer')->name('crash-analyzer.')->group(function () {
+        Route::middleware('permission:monitoring.view')->group(function () {
+            Route::get('/servers/{server}/export/json', [CrashAnalyzerExportController::class, 'json'])
+                ->name('export.json');
+            Route::get('/servers/{server}/export/csv', [CrashAnalyzerExportController::class, 'csv'])
+                ->name('export.csv');
+            Route::get('/servers/{server}/reports/{report}/export', [CrashAnalyzerExportController::class, 'pdf'])
+                ->name('export.pdf');
+        });
+    });
 
     Route::redirect('/modules/ssl', '/ssl');
     Route::redirect('/modules/firewall', '/firewall');

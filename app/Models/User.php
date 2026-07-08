@@ -42,4 +42,20 @@ class User extends Authenticatable
             'demo_expires_at' => 'datetime',
         ];
     }
+
+    public function isDemoExpired(): bool
+    {
+        return $this->is_demo
+            && $this->demo_expires_at !== null
+            && $this->demo_expires_at->isPast();
+    }
+
+    public function demoExpiresInHours(): ?int
+    {
+        if (! $this->is_demo || $this->demo_expires_at === null) {
+            return null;
+        }
+
+        return (int) max(0, now()->diffInHours($this->demo_expires_at, false));
+    }
 }

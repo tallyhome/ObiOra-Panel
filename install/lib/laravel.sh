@@ -89,9 +89,8 @@ setup_laravel() {
         info "Assets frontend déjà compilés, étape npm ignorée"
     fi
 
-    # Migrations
-    ${run_as} php artisan migrate --force
-    ${run_as} php artisan db:seed --force
+    # Migrations, RBAC et cache permissions (zéro intervention client)
+    ${run_as} php artisan obiora:post-deploy
 
     # Permissions storage (apache sur RHEL, www-data sur Debian)
     chmod -R 775 storage bootstrap/cache

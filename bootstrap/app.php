@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\EnsureSetupComplete;
+use App\Http\Middleware\EnsureDemoNotExpired;
 use App\Http\Middleware\SetCurrentServer;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'setup' => EnsureSetupComplete::class,
+            'demo.active' => EnsureDemoNotExpired::class,
             'server' => SetCurrentServer::class,
             'agent.token' => \App\Http\Middleware\AuthenticateAgentToken::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
@@ -30,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->priority([
             EnsureSetupComplete::class,
             \Illuminate\Auth\Middleware\Authenticate::class,
+            EnsureDemoNotExpired::class,
             SetCurrentServer::class,
         ]);
 

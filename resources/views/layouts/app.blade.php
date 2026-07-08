@@ -22,6 +22,16 @@
             @include('partials.navbar')
 
             <main class="p-4 obiora-main flex-grow-1">
+                @auth
+                    @if(auth()->user()->is_demo && auth()->user()->demo_expires_at)
+                        <div class="alert alert-info py-2 mb-3 small" role="status">
+                            Compte démo — expire le {{ auth()->user()->demo_expires_at->format('d/m/Y à H:i') }}
+                            @if(auth()->user()->demoExpiresInHours() !== null && auth()->user()->demoExpiresInHours() <= 2)
+                                <strong class="ms-1">(bientôt terminé)</strong>
+                            @endif
+                        </div>
+                    @endif
+                @endauth
                 @if (session('success'))
                     <span id="obiora-flash-success" class="d-none" data-message="{{ session('success') }}"></span>
                 @endif

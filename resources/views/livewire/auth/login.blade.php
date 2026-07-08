@@ -2,6 +2,10 @@
     <div class="card-body p-4">
         <h2 class="h5 mb-4">Connexion</h2>
 
+        @if (session('error'))
+            <div class="alert alert-warning small py-2">{{ session('error') }}</div>
+        @endif
+
         <form wire:submit="login">
             <div class="mb-3">
                 <label class="form-label" for="email">Email</label>

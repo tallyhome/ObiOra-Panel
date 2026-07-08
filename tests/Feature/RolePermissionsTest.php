@@ -34,6 +34,8 @@ final class RolePermissionsTest extends TestCase
         $this->assertTrue($technician->hasPermissionTo('monitoring.view'));
         $this->assertFalse($technician->hasPermissionTo('servers.manage'));
         $this->assertTrue($client->hasPermissionTo('plugins.manage'));
+        $this->assertTrue($client->hasPermissionTo('docker.view'));
+        $this->assertTrue($client->hasPermissionTo('docker.manage'));
         $this->assertFalse($client->hasPermissionTo('servers.view'));
         $this->assertFalse($client->hasPermissionTo('monitoring.view'));
     }
@@ -45,6 +47,7 @@ final class RolePermissionsTest extends TestCase
 
         $this->actingAs($user)->get(route('servers.index'))->assertForbidden();
         $this->actingAs($user)->get(route('plugins.index'))->assertOk();
+        $this->actingAs($user)->get(route('docker.index'))->assertOk();
         $this->actingAs($user)->get(route('profile.index'))->assertOk();
     }
 
