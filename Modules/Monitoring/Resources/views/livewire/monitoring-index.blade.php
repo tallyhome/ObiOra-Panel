@@ -13,6 +13,7 @@
          data-compare-base-url="{{ url('/api/monitoring/servers') }}"
          data-alerts-read-url="{{ url('/api/monitoring/alerts') }}"
          data-install-base-url="{{ url('/api/monitoring/servers') }}"
+         data-diagnostics-latest-url="{{ url('/api/monitoring/servers') }}"
          data-doctor-url="{{ route('doctor.index') }}"
          data-panel-url="{{ $panelUrl }}"
          data-realtime-enabled="{{ $realtimeEnabled ? '1' : '0' }}"

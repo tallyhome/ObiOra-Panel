@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.9 - 2026-07-08
+
+- Profil utilisateur : menu déroulant (nom en haut à droite) → édition nom, email, mot de passe
+- Monitoring enrichi : statut Doctor, avertissements, dernière activité, détail modules/findings, métriques en comparaison
+
 ## v2.1.8 - 2026-07-08
 
 - Fix erreur 500 page Doctor & Suite (syntaxe Blade `@if` inline invalide)

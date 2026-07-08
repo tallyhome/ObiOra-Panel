@@ -25,6 +25,7 @@ final class InfrastructureModulesTest extends TestCase
             'ssl.index',
             'firewall.index',
             'users.index',
+            'profile.index',
             'doctor.index',
         ];
 
@@ -49,6 +50,10 @@ final class InfrastructureModulesTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('users.index'))
+            ->assertOk();
+
+        $this->actingAs($user)
+            ->get(route('profile.index'))
             ->assertOk();
 
         $this->actingAs($user)

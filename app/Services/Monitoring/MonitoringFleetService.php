@@ -112,6 +112,7 @@ final class MonitoringFleetService
             'id' => $server->id,
             'name' => $server->name,
             'ip' => $server->ip_address,
+            'hostname' => $report?->hostname ?? $server->hostname,
             'status' => $server->status->value ?? (string) $server->status,
             'ping_ms' => $ping['latency_ms'] ?? null,
             'ping_success' => (bool) ($ping['success'] ?? false),
@@ -119,10 +120,33 @@ final class MonitoringFleetService
             'last_seen' => $server->last_seen_at?->diffForHumans(),
             'score' => $report?->score ?? ($doctor['score'] ?? null),
             'doctor_status' => $report?->status ?? ($doctor['status'] ?? null),
+            'doctor_version' => $report?->doctor_version,
             'critical' => count($report?->critical_findings ?? []),
+            'warnings' => $this->countWarnings($report),
             'signature_verified' => (bool) ($report?->signature_verified ?? false),
             'report_at' => $report?->generated_at?->format('d/m/Y H:i'),
         ];
+    }
+
+    private function countWarnings(?DiagnosticReport $report): int
+    {
+        if ($report === null) {
+            return 0;
+        }
+
+        $count = 0;
+        foreach ($report->report_json['results'] ?? [] as $result) {
+            if (($result['status'] ?? '') === 'warning') {
+                $count++;
+            }
+            foreach ($result['findings'] ?? [] as $finding) {
+                if (($finding['level'] ?? '') === 'WARNING') {
+                    $count++;
+                }
+            }
+        }
+
+        return $count;
     }
 
     /**

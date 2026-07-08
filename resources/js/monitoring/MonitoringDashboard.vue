@@ -59,8 +59,10 @@
               <th>IP</th>
               <th>Ping ICMP</th>
               <th>Score</th>
+              <th>Doctor</th>
               <th>Critiques</th>
-              <th>Signature</th>
+              <th>Avert.</th>
+              <th>Vu</th>
               <th>Rapport</th>
               <th></th>
             </tr>
@@ -81,11 +83,21 @@
                 </span>
                 <span v-else class="text-muted">—</span>
               </td>
-              <td>{{ server.critical ?? 0 }}</td>
               <td>
-                <span v-if="server.signature_verified" class="badge text-bg-success">OK</span>
-                <span v-else class="badge text-bg-secondary">—</span>
+                <span v-if="server.doctor_status" class="badge" :class="doctorStatusClass(server.doctor_status)">
+                  {{ doctorStatusLabel(server.doctor_status) }}
+                </span>
+                <span v-else class="text-muted">—</span>
               </td>
+              <td>
+                <span v-if="server.critical" class="badge text-bg-danger">{{ server.critical }}</span>
+                <span v-else class="text-muted">0</span>
+              </td>
+              <td>
+                <span v-if="server.warnings" class="badge text-bg-warning">{{ server.warnings }}</span>
+                <span v-else class="text-muted">0</span>
+              </td>
+              <td class="small text-muted">{{ server.last_seen || '—' }}</td>
               <td class="small text-muted">{{ server.report_at || 'Aucun' }}</td>
               <td>
                 <button class="btn btn-sm btn-outline-primary" @click="selectServer(server)">
@@ -94,7 +106,7 @@
               </td>
             </tr>
             <tr v-if="!servers.length">
-              <td colspan="8" class="text-center text-muted py-4">
+              <td colspan="10" class="text-center text-muted py-4">
                 Aucun serveur. Installez l'agent Obiora sur vos VPS.
               </td>
             </tr>
@@ -104,6 +116,93 @@
     </div>
 
     <div v-if="selectedServer" class="row g-4">
+      <div class="col-12">
+        <div class="card obiora-card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+              <h2 class="h6 mb-0">Dernier rapport Doctor — {{ selectedServer.name }}</h2>
+              <span v-if="latestReportLoading" class="small text-muted">Chargement…</span>
+            </div>
+
+            <div v-if="latestReport" class="row g-3 mb-3">
+              <div class="col-md-3">
+                <div class="text-muted small">Score</div>
+                <span class="badge fs-6" :class="scoreClass(latestReport.score)">{{ latestReport.score }}%</span>
+              </div>
+              <div class="col-md-3">
+                <div class="text-muted small">Statut</div>
+                <span class="badge" :class="doctorStatusClass(latestReport.status)">
+                  {{ doctorStatusLabel(latestReport.status) }}
+                </span>
+              </div>
+              <div class="col-md-3">
+                <div class="text-muted small">Hostname</div>
+                <div>{{ latestReport.hostname || selectedServer.hostname || '—' }}</div>
+              </div>
+              <div class="col-md-3">
+                <div class="text-muted small">Agent</div>
+                <div>{{ latestReport.doctor_version || '—' }}</div>
+              </div>
+              <div class="col-md-4">
+                <div class="text-muted small">Généré</div>
+                <div class="small">{{ formatDate(latestReport.generated_at) }}</div>
+              </div>
+              <div class="col-md-4">
+                <div class="text-muted small">Signature</div>
+                <span v-if="latestReport.signature_verified" class="badge text-bg-success">Vérifiée</span>
+                <span v-else class="badge text-bg-secondary">Non vérifiée</span>
+              </div>
+              <div class="col-md-4" v-if="latestReport.support_mode">
+                <div class="text-muted small">Mode</div>
+                <span class="badge text-bg-info">Support</span>
+              </div>
+            </div>
+            <p v-else-if="!latestReportLoading" class="text-muted small mb-3">
+              Aucun rapport Doctor reçu pour ce serveur.
+            </p>
+
+            <div v-if="latestReport?.critical_findings?.length" class="alert alert-danger py-2 mb-3">
+              <strong class="small">Findings critiques</strong>
+              <ul class="small mb-0 mt-1">
+                <li v-for="(f, idx) in latestReport.critical_findings" :key="'c'+idx">
+                  <strong>{{ f.module }}</strong> — {{ f.title }}
+                  <span v-if="f.details" class="text-muted">({{ f.details }})</span>
+                </li>
+              </ul>
+            </div>
+
+            <div v-if="moduleWarnings.length" class="alert alert-warning py-2 mb-3">
+              <strong class="small">Avertissements</strong>
+              <ul class="small mb-0 mt-1">
+                <li v-for="(w, idx) in moduleWarnings" :key="'w'+idx">{{ w }}</li>
+              </ul>
+            </div>
+
+            <div v-if="latestReport?.results?.length" class="table-responsive">
+              <table class="table table-sm mb-0 align-middle">
+                <thead>
+                  <tr>
+                    <th>Module</th>
+                    <th>Statut</th>
+                    <th>Détails</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="mod in latestReport.results" :key="mod.module">
+                    <td class="fw-medium">{{ mod.module }}</td>
+                    <td>
+                      <span class="badge" :class="moduleStatusClass(mod.status)">
+                        {{ mod.status || '—' }}
+                      </span>
+                    </td>
+                    <td class="small text-muted">{{ formatModuleDetails(mod) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="col-lg-6">
         <div class="card obiora-card h-100">
           <div class="card-body">
@@ -154,13 +253,23 @@
                 Δ score : <strong>{{ compareResult.score_delta }}</strong>
                 ({{ compareResult.left_score }}% → {{ compareResult.right_score }}%)
               </p>
-              <ul v-if="compareResult.modules?.length" class="mb-0">
+              <ul v-if="compareResult.modules?.length" class="mb-2">
                 <li v-for="(m, idx) in compareResult.modules" :key="idx">
                   {{ m.module }} — {{ m.change }}
                   <span v-if="m.score_delta"> ({{ m.score_delta > 0 ? '+' : '' }}{{ m.score_delta }})</span>
                 </li>
               </ul>
-              <p v-else class="text-muted mb-0">Aucune différence module détectée.</p>
+              <div v-if="compareResult.metrics?.length" class="mt-2">
+                <strong class="small">Métriques modifiées</strong>
+                <ul class="mb-0 mt-1">
+                  <li v-for="(m, idx) in compareResult.metrics" :key="'m'+idx">
+                    {{ m.module }}.{{ m.metric }} : {{ m.left ?? '—' }} → {{ m.right ?? '—' }}
+                  </li>
+                </ul>
+              </div>
+              <p v-if="!compareResult.modules?.length && !compareResult.metrics?.length" class="text-muted mb-0">
+                Aucune différence détectée.
+              </p>
             </div>
           </div>
         </div>
@@ -215,6 +324,7 @@ const props = defineProps({
   compareBase: { type: String, default: '' },
   alertsReadBase: { type: String, default: '' },
   installBase: { type: String, default: '' },
+  diagnosticsLatestBase: { type: String, default: '' },
   doctorUrl: { type: String, default: '' },
   realtimeEnabled: { type: Boolean, default: false },
   panelUrl: { type: String, default: '' },
@@ -239,6 +349,8 @@ const scoreReports = ref([]);
 const compareLeft = ref('');
 const compareRight = ref('');
 const compareResult = ref(null);
+const latestReport = ref(null);
+const latestReportLoading = ref(false);
 const pingChart = ref(null);
 const scoreChart = ref(null);
 let pingChartInstance = null;
@@ -248,6 +360,7 @@ let eventSource = null;
 const summaryCards = computed(() => {
   const online = servers.value.filter((s) => s.ping_success).length;
   const critical = servers.value.reduce((sum, s) => sum + (s.critical || 0), 0);
+  const warnings = servers.value.reduce((sum, s) => sum + (s.warnings || 0), 0);
   const avgScore = servers.value.filter((s) => s.score !== null);
   const mean = avgScore.length
     ? Math.round(avgScore.reduce((sum, s) => sum + s.score, 0) / avgScore.length)
@@ -257,8 +370,24 @@ const summaryCards = computed(() => {
     { label: 'Serveurs', value: servers.value.length },
     { label: 'En ligne (ping)', value: online },
     { label: 'Score moyen', value: mean === '—' ? mean : `${mean}%` },
-    { label: 'Alertes', value: alerts.value.length },
+    { label: 'Critiques / Avert.', value: `${critical} / ${warnings}` },
   ];
+});
+
+const moduleWarnings = computed(() => {
+  if (!latestReport.value?.results) return [];
+  const items = [];
+  for (const mod of latestReport.value.results) {
+    if (mod.status === 'warning') {
+      items.push(`${mod.module} : statut warning`);
+    }
+    for (const f of mod.findings ?? []) {
+      if (f.level === 'WARNING') {
+        items.push(`${mod.module} — ${f.title}${f.details ? ` (${f.details})` : ''}`);
+      }
+    }
+  }
+  return items;
 });
 
 function alertClass(severity) {
@@ -271,6 +400,57 @@ function scoreClass(score) {
   if (score >= 90) return 'text-bg-success';
   if (score >= 70) return 'text-bg-warning';
   return 'text-bg-danger';
+}
+
+function doctorStatusClass(status) {
+  if (status === 'ok') return 'text-bg-success';
+  if (status === 'warning') return 'text-bg-warning';
+  if (status === 'critical') return 'text-bg-danger';
+  return 'text-bg-secondary';
+}
+
+function doctorStatusLabel(status) {
+  if (status === 'ok') return 'OK';
+  if (status === 'warning') return 'Attention';
+  if (status === 'critical') return 'Critique';
+  return status;
+}
+
+function moduleStatusClass(status) {
+  if (status === 'ok') return 'text-bg-success';
+  if (status === 'warning') return 'text-bg-warning';
+  if (status === 'critical' || status === 'error') return 'text-bg-danger';
+  return 'text-bg-secondary';
+}
+
+function formatDate(iso) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleString('fr-FR');
+  } catch {
+    return iso;
+  }
+}
+
+function formatModuleDetails(mod) {
+  const parts = [];
+  if (mod.load) parts.push(`Charge ${mod.load}`);
+  if (mod.mem_kb != null && mod.mem_total_kb) {
+    const pct = Math.round((mod.mem_kb / mod.mem_total_kb) * 100);
+    parts.push(`RAM ${pct}%`);
+  }
+  if (mod.root_used_pct != null) parts.push(`Disque / ${mod.root_used_pct}%`);
+  if (mod.failed_units != null) parts.push(`systemd failed: ${mod.failed_units}`);
+  if (mod.score != null) parts.push(`score module ${mod.score}`);
+  if (mod.metrics && typeof mod.metrics === 'object') {
+    Object.entries(mod.metrics).forEach(([k, v]) => parts.push(`${k}: ${v}`));
+  }
+  for (const f of mod.findings ?? []) {
+    if (f.level !== 'CRITICAL') {
+      parts.push(`${f.level}: ${f.title}`);
+    }
+  }
+  return parts.join(' · ') || '—';
 }
 
 async function fetchFleet() {
@@ -337,9 +517,28 @@ async function selectServer(server) {
   compareLeft.value = '';
   compareRight.value = '';
   compareResult.value = null;
-  await loadInstallCommand(server.id, server.name);
+  latestReport.value = null;
+  await Promise.all([
+    loadInstallCommand(server.id, server.name),
+    loadLatestReport(server.id),
+  ]);
   await nextTick();
   await loadCharts(server.id);
+}
+
+async function loadLatestReport(serverId) {
+  if (!props.diagnosticsLatestBase) return;
+  latestReportLoading.value = true;
+  try {
+    const response = await fetch(`${props.diagnosticsLatestBase}/${serverId}/diagnostics/latest`, {
+      headers: { Accept: 'application/json' },
+    });
+    latestReport.value = response.ok ? await response.json() : null;
+  } catch {
+    latestReport.value = null;
+  } finally {
+    latestReportLoading.value = false;
+  }
 }
 
 async function loadInstallCommand(serverId, serverName) {

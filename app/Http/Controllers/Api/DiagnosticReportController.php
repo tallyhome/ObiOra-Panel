@@ -71,7 +71,21 @@ final class DiagnosticReportController extends Controller
             return response()->json(['error' => 'no reports'], 404);
         }
 
-        return response()->json($report->report_json);
+        $json = $report->report_json ?? [];
+
+        return response()->json([
+            'id' => $report->id,
+            'score' => $report->score,
+            'status' => $report->status,
+            'hostname' => $report->hostname,
+            'doctor_version' => $report->doctor_version,
+            'generated_at' => $report->generated_at?->toIso8601String(),
+            'signature_verified' => $report->signature_verified,
+            'critical_findings' => $report->critical_findings ?? [],
+            'results' => $json['results'] ?? [],
+            'host' => $json['host'] ?? [],
+            'support_mode' => (bool) ($json['support_mode'] ?? $json['host']['support_mode'] ?? false),
+        ]);
     }
 
     public function index(Server $server): JsonResponse

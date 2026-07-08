@@ -85,6 +85,7 @@ Route::middleware(['setup', 'auth', 'server'])->group(function () {
     Route::get('/ssl', \Modules\SSL\Livewire\SslIndex::class)->name('ssl.index');
     Route::get('/firewall', \Modules\Firewall\Livewire\FirewallIndex::class)->name('firewall.index');
     Route::get('/users', \Modules\Users\Livewire\UserIndex::class)->name('users.index');
+    Route::get('/profile', \Modules\Users\Livewire\ProfileIndex::class)->name('profile.index');
     Route::get('/nginx', \Modules\Nginx\Livewire\NginxIndex::class)->name('nginx.index');
     Route::get('/redis', \Modules\Redis\Livewire\RedisIndex::class)->name('redis.index');
     Route::get('/apache', \Modules\Apache\Livewire\ApacheIndex::class)->name('apache.index');

@@ -26,6 +26,7 @@ if (root) {
         compareBase: root.dataset.compareBaseUrl,
         alertsReadBase: root.dataset.alertsReadUrl,
         installBase: root.dataset.installBaseUrl,
+        diagnosticsLatestBase: root.dataset.diagnosticsLatestUrl,
         doctorUrl: root.dataset.doctorUrl,
         panelUrl: root.dataset.panelUrl,
         realtimeEnabled: root.dataset.realtimeEnabled === '1',
