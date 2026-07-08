@@ -23,34 +23,9 @@ WorkingDirectory=${OBIORA_INSTALL_DIR}
 WantedBy=multi-user.target
 SERVICE
 
-    # Scheduler
-    cat > /etc/systemd/system/obiora-scheduler.service <<SERVICE
-[Unit]
-Description=ObiOra Panel Scheduler
-After=network.target
-
-[Service]
-User=${OBIORA_USER}
-Group=${OBIORA_GROUP}
-Type=oneshot
-ExecStart=/usr/bin/php ${OBIORA_INSTALL_DIR}/artisan schedule:run
-WorkingDirectory=${OBIORA_INSTALL_DIR}
-SERVICE
-
-    cat > /etc/systemd/system/obiora-scheduler.timer <<TIMER
-[Unit]
-Description=ObiOra Panel Scheduler Timer
-Requires=obiora-scheduler.service
-
-[Timer]
-OnCalendar=minutely
-AccuracySec=1s
-Persistent=true
-Unit=obiora-scheduler.service
-
-[Install]
-WantedBy=timers.target
-TIMER
+    # shellcheck source=/dev/null
+    source "${OBIORA_INSTALL_DIR}/install/lib/scheduler.sh"
+    ensure_panel_scheduler || die "Impossible de démarrer obiora-scheduler.timer (vérifiez: systemctl status obiora-scheduler.timer)"
 
     # Agent
     if [[ -f "${OBIORA_INSTALL_DIR}/agent/systemd/obiOra-agent.service" ]]; then
@@ -62,8 +37,6 @@ TIMER
 
     systemctl daemon-reload
     systemctl_enable_start obiora-queue
-    systemctl enable obiora-scheduler.timer
-    systemctl start obiora-scheduler.timer || die "Impossible de démarrer obiora-scheduler.timer (vérifiez: systemctl status obiora-scheduler.timer)"
 
     if [[ -f /etc/systemd/system/obiora-agent.service ]]; then
         systemctl_enable_start obiora-agent

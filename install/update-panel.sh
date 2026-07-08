@@ -208,9 +208,12 @@ fi
 
 systemctl reload nginx 2>/dev/null || true
 
-if systemctl list-unit-files 2>/dev/null | grep -q '^obiora-scheduler\.timer'; then
-    systemctl enable obiora-scheduler.timer >/dev/null 2>&1 || true
-    systemctl start obiora-scheduler.timer >/dev/null 2>&1 || true
+if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/scheduler.sh" ]]; then
+    # shellcheck source=/dev/null
+    source "${OBIORA_INSTALL_DIR}/install/lib/common.sh"
+    # shellcheck source=/dev/null
+    source "${OBIORA_INSTALL_DIR}/install/lib/scheduler.sh"
+    ensure_panel_scheduler || true
 fi
 if systemctl list-unit-files 2>/dev/null | grep -q '^obiora-agent\.service'; then
     systemctl enable obiora-agent >/dev/null 2>&1 || true

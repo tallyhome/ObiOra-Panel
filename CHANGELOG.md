@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.17 - 2026-07-08
+
+- Scheduler panel : installation automatique via `obiora-scheduler.timer` à chaque MAJ (plus de crontab manuel)
+
 ## v2.1.16 - 2026-07-08
 
 - Fix critique : module Crash Analyzer manquant dans v2.1.14/v2.1.15 (erreur 500 `Invalid route action`)
