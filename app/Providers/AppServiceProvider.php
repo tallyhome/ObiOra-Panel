@@ -16,6 +16,7 @@ use App\Services\System\LocalExecutor;
 use App\Livewire\Modules\ModuleStubIndex;
 use App\Support\InfrastructureModuleRegistry;
 use App\Support\ModuleStubRegistry;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
 use Livewire\Livewire;
 use Illuminate\Support\ServiceProvider;
@@ -31,6 +32,14 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Gate::before(function ($user, string $ability) {
+            if ($user !== null && method_exists($user, 'hasRole') && $user->hasRole('super-admin')) {
+                return true;
+            }
+
+            return null;
+        });
+
         Livewire::component('modules.stub-index', ModuleStubIndex::class);
 
         View::composer('partials.sidebar', function ($view): void {

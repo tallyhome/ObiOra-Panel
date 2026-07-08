@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.13 - 2026-07-08
+
+- Fix super-admin sans lien Monitoring : bypass Gate + migration sync permissions RBAC
+
 ## v2.1.12 - 2026-07-08
 
 - Monitoring : bloc « Aide rapide » (systemd, disque, RAM, charge CPU) avec commandes de diagnostic
