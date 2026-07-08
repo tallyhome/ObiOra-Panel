@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Monitoring\Livewire;
 
+use App\Services\Monitoring\MonitoringFleetService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -22,8 +23,11 @@ final class MonitoringIndex extends Component
         $this->realtimeEnabled = \App\Support\Realtime::enabled();
     }
 
-    public function render()
+    public function render(MonitoringFleetService $fleet)
     {
-        return view('monitoring::livewire.monitoring-index');
+        return view('monitoring::livewire.monitoring-index', [
+            'initialFleet' => $fleet->fleetSnapshot(),
+            'initialAlerts' => $fleet->unreadAlerts(),
+        ]);
     }
 }

@@ -5,6 +5,15 @@ import MonitoringDashboard from './MonitoringDashboard.vue';
 
 const root = document.getElementById('monitoring-app');
 
+function parseJsonDataset(value, fallback) {
+    if (!value) return fallback;
+    try {
+        return JSON.parse(value);
+    } catch {
+        return fallback;
+    }
+}
+
 if (root) {
     window.obioraCopyText = obioraCopyText;
     window.obioraCopyFromButton = obioraCopyFromButton;
@@ -20,5 +29,7 @@ if (root) {
         doctorUrl: root.dataset.doctorUrl,
         panelUrl: root.dataset.panelUrl,
         realtimeEnabled: root.dataset.realtimeEnabled === '1',
+        initialFleet: parseJsonDataset(root.dataset.initialFleet, []),
+        initialAlerts: parseJsonDataset(root.dataset.initialAlerts, []),
     }).mount(root);
 }

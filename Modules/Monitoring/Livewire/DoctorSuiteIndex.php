@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Monitoring\Livewire;
 
+use App\Models\DiagnosticReport;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
 use App\Support\DoctorInstallHelper;
@@ -15,7 +16,7 @@ use Livewire\Component;
 #[Title('Doctor & Suite')]
 final class DoctorSuiteIndex extends Component
 {
-    public ?Server $server = null;
+    public ?int $serverId = null;
 
     public string $localInstall = '';
 
@@ -25,17 +26,35 @@ final class DoctorSuiteIndex extends Component
     {
         abort_unless(auth()->user()?->can('modules.view'), 403);
 
-        $this->server = $servers->getCurrentServer();
-        $this->localInstall = $doctor->localCommand($this->server);
-        $this->remoteInstall = $doctor->remoteCommand($this->server);
+        $current = $servers->getCurrentServer();
+        $this->serverId = $current?->id;
+        $this->localInstall = $doctor->localCommand($current);
+        $this->remoteInstall = $doctor->remoteCommand($current);
     }
 
     public function render()
     {
-        $report = $this->server?->latestDiagnosticReport;
+        $servers = Server::query()
+            ->with('latestDiagnosticReport')
+            ->orderByDesc('is_master')
+            ->orderBy('name')
+            ->get();
+
+        $server = $this->serverId !== null
+            ? $servers->firstWhere('id', $this->serverId)
+            : $servers->first();
+
+        $report = $server?->latestDiagnosticReport;
+
+        $reportCount = DiagnosticReport::query()->count();
+        $lastReportAt = DiagnosticReport::query()->max('generated_at');
 
         return view('monitoring::livewire.doctor-suite-index', [
+            'server' => $server,
             'report' => $report,
+            'doctorFleet' => $servers,
+            'reportCount' => $reportCount,
+            'lastReportAt' => $lastReportAt,
             'suiteUrl' => (string) config('obiora.suite.url', ''),
         ]);
     }

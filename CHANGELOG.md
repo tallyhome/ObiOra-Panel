@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.7 - 2026-07-08
+
+- Doctor & Suite : tableau tous serveurs + scores (rendu PHP direct)
+- Monitoring : données initiales côté serveur + alerte si API 502
+- MAJ : `php-fpm` redémarré en premier (évite Bad Gateway)
+
 ## v2.1.5 - 2026-07-08
 
 - Fix Doctor HTTP 500 : champ `doctor_version` trop court (panel-bootstrap-1.0 > 16 car.)

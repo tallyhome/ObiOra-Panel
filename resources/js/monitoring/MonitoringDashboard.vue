@@ -17,6 +17,11 @@
       </div>
     </div>
 
+    <div v-if="fetchError" class="alert alert-danger mb-4" role="alert">
+      {{ fetchError }}
+      <span class="small d-block mt-1">Les données ci-dessous proviennent du chargement serveur. Cliquez Actualiser après avoir corrigé le panel (php-fpm / nginx).</span>
+    </div>
+
     <div v-if="alerts.length" class="mb-4">
       <div
         v-for="alert in alerts"
@@ -213,7 +218,11 @@ const props = defineProps({
   doctorUrl: { type: String, default: '' },
   realtimeEnabled: { type: Boolean, default: false },
   panelUrl: { type: String, default: '' },
+  initialFleet: { type: Array, default: () => [] },
+  initialAlerts: { type: Array, default: () => [] },
 });
+
+const fetchError = ref('');
 
 const installLocal = ref('');
 const installRemote = ref('');
@@ -266,12 +275,21 @@ function scoreClass(score) {
 
 async function fetchFleet() {
   loading.value = true;
+  fetchError.value = '';
   try {
-    const response = await fetch(props.fleetUrl, { headers: { Accept: 'application/json' } });
-    if (!response.ok) return;
+    const response = await fetch(props.fleetUrl, {
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin',
+    });
+    if (!response.ok) {
+      fetchError.value = `API monitoring indisponible (HTTP ${response.status}).`;
+      return;
+    }
     const data = await response.json();
     servers.value = data.servers || [];
     alerts.value = data.alerts || [];
+  } catch {
+    fetchError.value = 'Impossible de joindre l\'API monitoring (panel en 502 ou réseau).';
   } finally {
     loading.value = false;
   }
@@ -411,11 +429,16 @@ function renderScoreChart(reports) {
 }
 
 onMounted(() => {
-  fetchFleet().then(() => {
-    if (servers.value.length > 0) {
-      loadInstallCommand(servers.value[0].id, servers.value[0].name);
-    }
-  });
+  if (props.initialFleet?.length) {
+    servers.value = props.initialFleet;
+  }
+  if (props.initialAlerts?.length) {
+    alerts.value = props.initialAlerts;
+  }
+  if (servers.value.length > 0) {
+    loadInstallCommand(servers.value[0].id, servers.value[0].name);
+  }
+  fetchFleet();
   connectStream();
 });
 

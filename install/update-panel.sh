@@ -194,7 +194,7 @@ fi
 
 echo "[8/8] rechargement des services..."
 progress 94 "Rechargement des services (PHP-FPM, Nginx, Reverb)…"
-systemctl reload-or-restart php8.3-fpm 2>/dev/null || systemctl reload-or-restart php-fpm 2>/dev/null || true
+systemctl reload-or-restart php-fpm 2>/dev/null || systemctl reload-or-restart php8.3-fpm 2>/dev/null || systemctl reload-or-restart php8.2-fpm 2>/dev/null || true
 
 # Reverb activé par défaut (sauf OBIORA_REALTIME_ENABLED=false dans .env)
 if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/reverb.sh" ]]; then
