@@ -1,0 +1,19 @@
+[project]
+name = "obiora-doctor"
+version = "0.4.0"
+description = "Professional Linux and Virtualizor diagnostic engine."
+requires-python = ">=3.10"
+readme = "README.md"
+
+[project.scripts]
+obiora-doctor = "core.cli:main"
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

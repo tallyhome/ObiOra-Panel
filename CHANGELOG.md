@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.23 - 2026-07-09
+
+- Monorepo : ajout du dépôt **ObiOra-Doctor** (moteur de diagnostic Linux, v0.4.0) + CI GitHub Actions
+
 ## v2.1.22 - 2026-07-09
 
 - Crash Analyzer : install distant via curl (archive `/install/crash-analyzer.tar.gz` depuis le panel)

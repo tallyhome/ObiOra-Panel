@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+cache/
+logs/
+reports/
+.tmp-reports/
+config/signing.key
+config/web.token
+*.log

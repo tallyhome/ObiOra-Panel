@@ -24,7 +24,5 @@ __pycache__/
 Homestead.json
 Homestead.yaml
 Thumbs.db
-/ObiOra-Doctor/
 /ObiOra-SiteWeb/
-.github/workflows/obiora-doctor.yml
 /obiora-report-*/

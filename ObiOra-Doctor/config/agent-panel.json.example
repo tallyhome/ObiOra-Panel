@@ -1,0 +1,6 @@
+{
+  "panel_url": "https://votre-panel-seedbox.example.com",
+  "server_id": 2,
+  "agent_token": "COLLER_LE_TOKEN_AGENT_DU_PANEL_ICI",
+  "signing_key": "COLLER_LA_CLE_HEX_64_CHARS_IDENTIQUE_AU_PANEL"
+}

@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <strong>Version actuelle : v2.1.21</strong>
+  <strong>Version actuelle : v2.1.23</strong>
 </p>
 
 ## Stack
@@ -19,7 +19,7 @@
 - Bootstrap 5.3 + ApexCharts
 - Laravel Reverb (temps réel, opt-in)
 - MySQL/MariaDB + Redis
-- API REST (Sanctum) + agent slave + ObiOra Doctor
+- API REST (Sanctum) + agent slave + **ObiOra Doctor** (`ObiOra-Doctor/`)
 
 ## OS supportés (installation)
 

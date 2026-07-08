@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "plugins": [
+    {
+      "id": "example-health",
+      "name": "Example Health Check",
+      "description": "Plugin exemple — verifie la presence de /etc/hostname.",
+      "version": "1.0.0",
+      "author": "Obiora",
+      "filename": "example_health.py",
+      "download_url": "https://raw.githubusercontent.com/tallyhome/ObiOra-Panel/main/ObiOra-Doctor/plugins/example_health.py"
+    }
+  ]
+}

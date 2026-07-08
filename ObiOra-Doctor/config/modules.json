@@ -1,0 +1,39 @@
+{
+  "enabled": {
+    "cpu": true,
+    "ram": true,
+    "swap": true,
+    "disk": true,
+    "smart": true,
+    "raid": true,
+    "network": true,
+    "kernel": true,
+    "reboot": true,
+    "docker": true,
+    "kvm": true,
+    "lxc": true,
+    "virtualizor": true,
+    "mysql": true,
+    "postgresql": true,
+    "php": true,
+    "apache": true,
+    "nginx": true,
+    "litespeed": true,
+    "laravel": true,
+    "cpanel": true,
+    "plesk": true,
+    "directadmin": true,
+    "firewall": true,
+    "security": true,
+    "benchmark": true,
+    "ssl": true,
+    "redis": true,
+    "memcached": true,
+    "whmcs": true
+  },
+  "timeouts": {
+    "smart": 10,
+    "virtualizor": 8,
+    "laravel": 15
+  }
+}
