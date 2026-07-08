@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.12 - 2026-07-08
+
+- Monitoring : bloc « Aide rapide » (systemd, disque, RAM, charge CPU) avec commandes de diagnostic
+- Agent Doctor bootstrap : noms des unités systemd en échec dans le rapport
+
 ## v2.1.11 - 2026-07-08
 
 - Fix lien Monitoring sidebar (affiché si permission `monitoring.view`, sans dépendre du flag module)

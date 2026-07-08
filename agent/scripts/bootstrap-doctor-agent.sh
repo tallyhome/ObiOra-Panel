@@ -47,6 +47,7 @@ mem_total="$(awk '/MemTotal/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)"
 mem_avail="$(awk '/MemAvailable/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)"
 disk_pct="$(df -P / 2>/dev/null | awk 'NR==2 {gsub(/%/,"",$5); print $5}' || echo 0)"
 failed_units="$(systemctl --failed --no-legend 2>/dev/null | wc -l | tr -d ' ')"
+failed_unit_names="$(systemctl --failed --no-legend --plain 2>/dev/null | awk '{print $1}' | head -10 | paste -sd ',' - || true)"
 score=100
 if [[ "${disk_pct}" -gt 90 ]]; then score=$((score - 20)); fi
 if [[ "${disk_pct}" -gt 95 ]]; then score=$((score - 15)); fi
@@ -71,7 +72,7 @@ payload="$(cat <<JSON
   "results": [
     {"module": "system", "status": "ok", "load": "${load}", "mem_kb": ${mem_avail}, "mem_total_kb": ${mem_total}},
     {"module": "disk", "status": "ok", "root_used_pct": ${disk_pct}},
-    {"module": "systemd", "status": "${systemd_status}", "failed_units": ${failed_units}}
+    {"module": "systemd", "status": "${systemd_status}", "failed_units": ${failed_units}, "failed_unit_names": "${failed_unit_names}"}
   ]
 }
 JSON

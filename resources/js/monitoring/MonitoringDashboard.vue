@@ -178,6 +178,19 @@
               </ul>
             </div>
 
+            <div v-if="quickHelpItems.length" class="card border-warning mb-3">
+              <div class="card-body py-3">
+                <h3 class="h6 mb-3">Aide rapide — que faire ?</h3>
+                <div v-for="(item, idx) in quickHelpItems" :key="'h'+idx" class="mb-3" :class="idx < quickHelpItems.length - 1 ? 'border-bottom border-secondary pb-3' : ''">
+                  <div class="fw-semibold small">{{ item.title }}</div>
+                  <p v-if="item.detail" class="small text-muted mb-2">{{ item.detail }}</p>
+                  <ul v-if="item.commands?.length" class="small mb-0 font-monospace">
+                    <li v-for="(cmd, cidx) in item.commands" :key="'c'+cidx" class="mb-1">{{ cmd }}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
             <div v-if="latestReport?.results?.length" class="table-responsive">
               <table class="table table-sm mb-0 align-middle">
                 <thead>
@@ -378,7 +391,12 @@ const moduleWarnings = computed(() => {
   if (!latestReport.value?.results) return [];
   const items = [];
   for (const mod of latestReport.value.results) {
-    if (mod.status === 'warning') {
+    if (mod.module === 'systemd' && (mod.failed_units ?? 0) > 0) {
+      const names = parseFailedUnitNames(mod.failed_unit_names);
+      items.push(names.length
+        ? `systemd — ${mod.failed_units} service(s) en échec : ${names.join(', ')}`
+        : `systemd — ${mod.failed_units} service(s) en échec`);
+    } else if (mod.status === 'warning') {
       items.push(`${mod.module} : statut warning`);
     }
     for (const f of mod.findings ?? []) {
@@ -389,6 +407,102 @@ const moduleWarnings = computed(() => {
   }
   return items;
 });
+
+const quickHelpItems = computed(() => {
+  if (!latestReport.value?.results) return [];
+  const items = [];
+
+  for (const mod of latestReport.value.results) {
+    if (mod.module === 'systemd' && ((mod.failed_units ?? 0) > 0 || mod.status === 'warning')) {
+      const names = parseFailedUnitNames(mod.failed_unit_names);
+      const sample = names[0] || '<service>';
+      items.push({
+        title: `Services systemd en échec (${mod.failed_units ?? names.length})`,
+        detail: names.length
+          ? `Unités détectées : ${names.join(', ')}. Un service failed empêche souvent le démarrage d'une app ou d'un daemon.`
+          : `${mod.failed_units} unité(s) en état failed. Listez-les sur le serveur pour identifier la cause.`,
+        commands: [
+          'systemctl --failed',
+          `systemctl status ${sample}`,
+          `journalctl -u ${sample} -n 50 --no-pager`,
+          'sudo systemctl reset-failed',
+          `sudo systemctl restart ${sample}`,
+        ],
+      });
+    }
+
+    if (mod.module === 'disk' && mod.root_used_pct != null) {
+      const pct = Number(mod.root_used_pct);
+      if (pct >= 80) {
+        items.push({
+          title: `Disque / utilisé à ${pct}%`,
+          detail: pct >= 95
+            ? 'Niveau critique : risque d\'erreurs écriture et services qui plantent.'
+            : pct >= 90
+              ? 'Espace faible : planifiez un nettoyage sous 48 h.'
+              : 'Surveillance recommandée au-delà de 80 %.',
+          commands: [
+            'df -h /',
+            'du -xh --max-depth=1 /var /home /opt 2>/dev/null | sort -h | tail -15',
+            'sudo journalctl --disk-usage',
+            'sudo apt clean   # Debian/Ubuntu',
+          ],
+        });
+      }
+    }
+
+    if (mod.module === 'system' && mod.mem_kb != null && mod.mem_total_kb) {
+      const usedPct = Math.round(((mod.mem_total_kb - mod.mem_kb) / mod.mem_total_kb) * 100);
+      if (usedPct >= 85) {
+        items.push({
+          title: `RAM utilisée à ~${usedPct}%`,
+          detail: 'Mémoire élevée : vérifiez les conteneurs Docker, PHP-FPM et les apps seedbox.',
+          commands: [
+            'free -h',
+            'ps aux --sort=-%mem | head -15',
+            'docker stats --no-stream 2>/dev/null || true',
+            'systemctl status php-fpm nginx obiora-queue',
+          ],
+        });
+      }
+
+      if (mod.load) {
+        const loads = String(mod.load).split(/\s+/).map(Number).filter((n) => !Number.isNaN(n));
+        const cores = mod.cpu_cores || 1;
+        const maxLoad = loads.length ? Math.max(...loads) : 0;
+        if (maxLoad > cores * 1.5) {
+          items.push({
+            title: `Charge CPU élevée (${mod.load})`,
+            detail: `Charge 1/5/15 min au-dessus de ${cores} cœur(s) — le serveur est sollicité.`,
+            commands: [
+              'uptime',
+              'ps aux --sort=-%cpu | head -15',
+              'top -bn1 | head -20',
+            ],
+          });
+        }
+      }
+    }
+
+    for (const f of mod.findings ?? []) {
+      if (['WARNING', 'CRITICAL'].includes(f.level)) {
+        items.push({
+          title: `${mod.module} — ${f.title}`,
+          detail: f.details || 'Consultez les logs du module concerné sur le serveur.',
+          commands: f.level === 'CRITICAL' ? ['journalctl -xe --no-pager | tail -40'] : [],
+        });
+      }
+    }
+  }
+
+  return items;
+});
+
+function parseFailedUnitNames(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter(Boolean);
+  return String(raw).split(',').map((s) => s.trim()).filter(Boolean);
+}
 
 function alertClass(severity) {
   if (severity === 'critical') return 'alert-danger';
@@ -440,7 +554,12 @@ function formatModuleDetails(mod) {
     parts.push(`RAM ${pct}%`);
   }
   if (mod.root_used_pct != null) parts.push(`Disque / ${mod.root_used_pct}%`);
-  if (mod.failed_units != null) parts.push(`systemd failed: ${mod.failed_units}`);
+  if (mod.failed_units != null) {
+    const names = parseFailedUnitNames(mod.failed_unit_names);
+    parts.push(names.length
+      ? `systemd failed: ${mod.failed_units} (${names.join(', ')})`
+      : `systemd failed: ${mod.failed_units}`);
+  }
   if (mod.score != null) parts.push(`score module ${mod.score}`);
   if (mod.metrics && typeof mod.metrics === 'object') {
     Object.entries(mod.metrics).forEach(([k, v]) => parts.push(`${k}: ${v}`));
