@@ -48,13 +48,16 @@ final class DoctorSuiteIndex extends Component
 
         $reportCount = DiagnosticReport::query()->count();
         $lastReportAt = DiagnosticReport::query()->max('generated_at');
+        $lastReportLabel = $lastReportAt
+            ? \Illuminate\Support\Carbon::parse($lastReportAt)->format('d/m/Y H:i')
+            : null;
 
         return view('monitoring::livewire.doctor-suite-index', [
             'server' => $server,
             'report' => $report,
             'doctorFleet' => $servers,
             'reportCount' => $reportCount,
-            'lastReportAt' => $lastReportAt,
+            'lastReportLabel' => $lastReportLabel,
             'suiteUrl' => (string) config('obiora.suite.url', ''),
         ]);
     }

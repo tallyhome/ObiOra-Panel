@@ -10,7 +10,12 @@
         <code>OBIORA_SERVER_ID</code> : ID serveur dans le panel ·
         <code>OBIORA_AGENT_TOKEN</code> : jeton secret du serveur.
         @if($reportCount > 0)
-            <span class="ms-2 text-success">· {{ $reportCount }} rapport(s) en base@if($lastReportAt) — dernier {{ \Illuminate\Support\Carbon::parse($lastReportAt)->format('d/m/Y H:i') }}@endif</span>
+            <span class="ms-2 text-success">
+                · {{ $reportCount }} rapport(s) en base
+                @if($lastReportLabel)
+                    — dernier {{ $lastReportLabel }}
+                @endif
+            </span>
         @endif
     </div>
 

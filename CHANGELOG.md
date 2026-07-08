@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.8 - 2026-07-08
+
+- Fix erreur 500 page Doctor & Suite (syntaxe Blade `@if` inline invalide)
+
 ## v2.1.7 - 2026-07-08
 
 - Doctor & Suite : tableau tous serveurs + scores (rendu PHP direct)
