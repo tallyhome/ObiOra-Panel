@@ -649,10 +649,27 @@ label {
     --bs-table-border-color: var(--obiora-border);
     --bs-table-hover-bg: var(--obiora-bg-card-hover);
     --bs-table-hover-color: var(--obiora-text);
+    --bs-table-active-bg: rgba(61, 214, 140, 0.12);
+    --bs-table-active-color: var(--obiora-text);
 
     &.table-hover > tbody > tr:hover > * {
         color: var(--obiora-text) !important;
         --bs-table-color-state: var(--obiora-text);
+    }
+
+    &.table-active > *,
+    > .table-active > * {
+        color: var(--obiora-text) !important;
+        --bs-table-color-state: var(--obiora-text);
+    }
+}
+
+.obiora-fleet-selected > td {
+    background-color: rgba(61, 214, 140, 0.12) !important;
+    color: var(--obiora-text) !important;
+
+    .text-muted {
+        color: var(--obiora-text-muted) !important;
     }
 }
 

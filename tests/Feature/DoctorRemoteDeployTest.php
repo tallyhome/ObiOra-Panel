@@ -51,6 +51,7 @@ final class DoctorRemoteDeployTest extends TestCase
             ->set('serverId', $server->id)
             ->set('sshHost', $server->ip_address)
             ->set('sshUser', 'root')
+            ->set('sshTestOk', true)
             ->call('deployRemote')
             ->assertSet('deployRunning', true);
 
@@ -79,9 +80,9 @@ final class DoctorRemoteDeployTest extends TestCase
 
         $response = $this->actingAs($user)->get(route('doctor.index'));
         $response->assertOk();
-        $response->assertSee('Générer clé SSH');
-        $response->assertSee('Tester connexion SSH');
-        $response->assertSee('Générer la clé');
+        $response->assertSee('Tester la connexion');
+        $response->assertSee('Installer sur le VPS');
+        $response->assertSee('Comment installer les agents');
     }
 
     public function test_deploy_progress_service_finish(): void

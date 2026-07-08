@@ -2,7 +2,7 @@
     <div class="mb-4 d-flex flex-wrap justify-content-between align-items-start gap-2">
         <div>
             <h1 class="h3 mb-1">ObiOra Doctor & Suite</h1>
-            <p class="text-muted mb-0">Diagnostic, Crash Analyzer et déploiement distant en un clic — sans stocker vos identifiants SSH.</p>
+            <p class="text-muted mb-0">Installez Doctor et Crash Analyzer sur vos VPS et consultez les diagnostics depuis le panel.</p>
         </div>
         @if($server)
         <div class="d-flex gap-2">
@@ -12,12 +12,16 @@
         @endif
     </div>
 
-    <div class="alert alert-secondary py-2 small mb-4">
-        <strong>Principe sécurisé</strong> — Le panel génère une <strong>clé SSH dédiée</strong> (privée chiffrée).
-        Le mot de passe n'est utilisé qu'<em>une fois</em> pour installer la clé publique sur le VPS.
-        Ensuite : clé SSH + <code>OBIORA_AGENT_TOKEN</code> (API), sans mot de passe stocké.
+    <div class="alert alert-info py-3 mb-4">
+        <p class="fw-semibold mb-2">Comment installer les agents sur un VPS ?</p>
+        <ol class="small mb-0 ps-3">
+            <li class="mb-1">Choisissez le <strong>serveur panel</strong> (ci-dessous) — c'est l'entrée qui recevra les rapports.</li>
+            <li class="mb-1">Renseignez l'<strong>IP</strong>, le <strong>port</strong>, l'<strong>utilisateur</strong> et le <strong>mot de passe SSH</strong> du VPS distant.</li>
+            <li class="mb-1">Cliquez <strong>Tester la connexion</strong>.</li>
+            <li>Si le test est OK, cliquez <strong>Installer sur le VPS</strong> : le panel se connecte, installe la clé API, envoie Doctor + Crash Analyzer, exécute les scripts et affiche les données ici.</li>
+        </ol>
         @if($reportCount > 0)
-            <span class="ms-2 text-success">· {{ $reportCount }} rapport(s) Doctor — dernier {{ $lastReportLabel }}</span>
+            <p class="small text-success mb-0 mt-2">{{ $reportCount }} rapport(s) Doctor en base — dernier {{ $lastReportLabel }}</p>
         @endif
     </div>
 
@@ -25,7 +29,7 @@
         <div class="card-body">
             <div class="row g-3 align-items-end">
                 <div class="col-md-4">
-                    <label class="form-label small">Serveur panel</label>
+                    <label class="form-label small fw-medium">Serveur panel (réception des données)</label>
                     <select wire:model.live="serverId" class="form-select">
                         @foreach($doctorFleet as $fleetServer)
                             <option value="{{ $fleetServer->id }}">{{ $fleetServer->name }} (ID {{ $fleetServer->id }})</option>
@@ -33,8 +37,8 @@
                     </select>
                 </div>
                 <div class="col-md-8 small text-muted">
-                    Token agent (API) : <code>{{ $server?->agent_token ? Str::limit($server->agent_token, 20).'…' : '—' }}</code>
-                    — utilisé après installation, à la place du mot de passe SSH.
+                    Jeton agent API : <code>{{ $server?->agent_token ? Str::limit($server->agent_token, 24).'…' : '—' }}</code>
+                    <span class="d-block mt-1">Utilisé par les agents installés sur le VPS pour envoyer les rapports au panel.</span>
                 </div>
             </div>
         </div>
@@ -43,23 +47,26 @@
     @if(!empty($fleetOverview))
     <div class="card obiora-card mb-4">
         <div class="card-body">
-            <h2 class="h6 mb-3">Vue flotte — Doctor & Crash Analyzer</h2>
+            <h2 class="h6 mb-3">Vue flotte</h2>
             <div class="table-responsive">
-                <table class="table table-sm align-middle mb-0">
-                    <thead>
+                <table class="table table-sm obiora-table align-middle mb-0">
+                    <thead class="obiora-table-head">
                         <tr>
                             <th>Serveur</th>
                             <th>Doctor</th>
-                            <th>Crash Analyzer</th>
+                            <th>Dernière métrique</th>
                             <th>Critiques 24h</th>
                             <th>Rapports crash</th>
-                            <th>Déployé</th>
+                            <th>Agents installés</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($fleetOverview as $row)
-                        <tr @class(['table-active' => $row['id'] === $server?->id])>
-                            <td>{{ $row['name'] }}<br><span class="small text-muted">{{ $row['hostname'] }}</span></td>
+                        <tr @class(['obiora-fleet-selected' => $row['id'] === $server?->id])>
+                            <td>
+                                <span class="fw-medium">{{ $row['name'] }}</span>
+                                <span class="small text-muted d-block">{{ $row['hostname'] }}</span>
+                            </td>
                             <td>
                                 @if($row['doctor_score'] !== null)
                                     <span class="badge text-bg-success">{{ $row['doctor_score'] }}%</span>
@@ -78,8 +85,14 @@
                                     <span class="text-muted">0</span>
                                 @endif
                             </td>
-                            <td>{{ $row['crash_reports'] }}</td>
-                            <td>{{ $row['deployed'] ? '✔' : '—' }}</td>
+                            <td>{{ $row['crash_reports'] ?: '—' }}</td>
+                            <td>
+                                @if($row['deployed'])
+                                    <span class="badge text-bg-success">Oui</span>
+                                @else
+                                    <span class="badge text-bg-secondary">Non</span>
+                                @endif
+                            </td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -93,89 +106,44 @@
     <div class="card obiora-card mb-4 border-primary">
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="small fw-medium">Déploiement Doctor & Suite en cours…</span>
+                <span class="small fw-medium">Installation en cours sur le VPS…</span>
                 <span class="small text-muted">{{ $deployProgress }}%</span>
             </div>
             <div class="obiora-progress info mb-2">
                 <div class="bar" style="width: {{ max(3, $deployProgress) }}%"></div>
             </div>
-            <p class="small text-muted mb-0">{{ $deployProgressMessage ?: 'Veuillez patienter…' }}</p>
+            <p class="small text-muted mb-0">{{ $deployProgressMessage ?: 'Connexion SSH, envoi des fichiers et démarrage des services…' }}</p>
         </div>
     </div>
     @endif
 
     <div class="row g-4 mb-4">
-        <div class="col-lg-6">
+        <div class="col-lg-7">
             <div class="card obiora-card h-100 border-primary">
-                <div class="card-header bg-primary bg-opacity-10">Déploiement automatique (SSH)</div>
+                <div class="card-header bg-primary bg-opacity-10 fw-medium">Installer sur un VPS distant</div>
                 <div class="card-body">
-                    <p class="small text-muted mb-3">
-                        <strong>1.</strong> Générer la clé SSH ·
-                        <strong>2.</strong> Installer la clé sur le VPS (mot de passe une fois) ·
-                        <strong>3.</strong> Tester la connexion ·
-                        <strong>4.</strong> Déployer Doctor &amp; Crash Analyzer
-                    </p>
-
-                    <div class="row g-2 mb-3">
-                        <div class="col-8">
-                            <label class="form-label small">Hôte</label>
-                            <input type="text" wire:model="sshHost" class="form-control form-control-sm" placeholder="IP ou hostname">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label small fw-medium">Adresse IP ou hostname</label>
+                            <input type="text" wire:model="sshHost" class="form-control" placeholder="Ex. 54.37.103.239">
                         </div>
-                        <div class="col-4">
-                            <label class="form-label small">Port</label>
-                            <input type="number" wire:model="sshPort" class="form-control form-control-sm">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-medium">Port SSH</label>
+                            <input type="number" wire:model="sshPort" class="form-control">
                         </div>
-                        <div class="col-6">
-                            <label class="form-label small">Utilisateur</label>
-                            <input type="text" wire:model="sshUser" class="form-control form-control-sm" placeholder="root">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-medium">Utilisateur</label>
+                            <input type="text" wire:model="sshUser" class="form-control" placeholder="root">
                         </div>
-                        <div class="col-6">
-                            <label class="form-label small">Mot de passe <span class="text-muted">(bootstrap uniquement)</span></label>
-                            <input type="password" wire:model="sshPassword" class="form-control form-control-sm" autocomplete="off">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-medium">Mot de passe SSH</label>
+                            <input type="password" wire:model="sshPassword" class="form-control" autocomplete="off" placeholder="Utilisé pour la connexion et la 1ère installation">
                             @error('sshPassword') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
-                    @can('servers.manage')
-                    <div class="d-flex flex-wrap gap-2 mb-3">
-                        <button type="button" wire:click="generateSshKey" wire:loading.attr="disabled" class="btn btn-outline-secondary btn-sm">
-                            1. Générer clé SSH
-                        </button>
-                        <button type="button" wire:click="bootstrapSshKey" wire:loading.attr="disabled" class="btn btn-outline-secondary btn-sm" @if(!$sshPublicKey) disabled @endif>
-                            2. Installer clé sur VPS
-                        </button>
-                        <button type="button" wire:click="testSshConnection" wire:loading.attr="disabled" class="btn btn-outline-info btn-sm">
-                            3. Tester connexion SSH
-                        </button>
-                    </div>
-                    @endcan
-
-                    @if($sshPublicKey)
                     <div class="mb-3">
-                        <label class="form-label small">Clé publique (panel)</label>
-                        <div class="obiora-copy-block">
-                            <pre class="small mb-0 obiora-copy-text text-break">{{ $sshPublicKey }}</pre>
-                            <button type="button" class="btn btn-outline-secondary btn-sm mt-1" onclick="obioraCopyFromButton(this)">Copier</button>
-                        </div>
-                        @if($sshKeyInstalled)
-                            <span class="badge text-bg-success mt-1">✔ Clé installée sur le VPS</span>
-                        @else
-                            <span class="badge text-bg-warning text-dark mt-1">Clé non installée sur le VPS</span>
-                        @endif
-                    </div>
-                    @endif
-
-                    @if($sshBootstrapResult)
-                    <div class="alert alert-info py-2 small">{{ $sshBootstrapResult }}</div>
-                    @endif
-
-                    @if($sshTestResult)
-                    <div class="alert py-2 small {{ $sshTestOk ? 'alert-success' : 'alert-danger' }}">
-                        <pre class="small mb-0" style="white-space:pre-wrap">{{ $sshTestResult }}</pre>
-                    </div>
-                    @endif
-
-                    <div class="mb-3">
+                        <span class="small fw-medium d-block mb-2">Composants à installer</span>
                         <div class="form-check form-check-inline">
                             <input class="form-check-input" type="checkbox" wire:model="deployDoctor" id="deployDoctor">
                             <label class="form-check-label small" for="deployDoctor">ObiOra Doctor</label>
@@ -186,25 +154,39 @@
                         </div>
                     </div>
 
-                    @can('servers.manage')
-                    @php($canDeploy = $sshKeyInstalled || ($sshPublicKey && $sshTestOk))
-                    <button type="button" wire:click="deployRemote" wire:loading.attr="disabled" class="btn btn-primary btn-sm"
-                            @if($deployRunning || !$canDeploy) disabled @endif
-                            title="{{ !$canDeploy ? 'Générez une clé, testez la connexion SSH, puis déployez (la clé sera installée automatiquement si besoin).' : '' }}">
-                        <span wire:loading.remove wire:target="deployRemote">4. Installer à distance</span>
-                        <span wire:loading wire:target="deployRemote">Lancement…</span>
-                    </button>
-                    @if(!$canDeploy)
-                        <p class="small text-muted mt-2 mb-0">
-                            Générez une clé (étape 1), saisissez le mot de passe, puis testez la connexion (étape 3).
-                            L'étape 2 est optionnelle : le déploiement peut installer la clé automatiquement.
-                        </p>
-                    @elseif(!$sshKeyInstalled)
-                        <p class="small text-muted mt-2 mb-0">Connexion OK — le mot de passe sera utilisé une dernière fois pour installer la clé, puis le déploiement démarre.</p>
+                    @if($canManageServers)
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <button type="button" wire:click="testSshConnection" wire:loading.attr="disabled" class="btn btn-outline-info">
+                            <span wire:loading.remove wire:target="testSshConnection">Tester la connexion</span>
+                            <span wire:loading wire:target="testSshConnection">Test en cours…</span>
+                        </button>
+                        <button type="button" wire:click="deployRemote" wire:loading.attr="disabled" class="btn btn-primary"
+                                @if($deployRunning || !$sshTestOk) disabled @endif>
+                            <span wire:loading.remove wire:target="deployRemote">Installer sur le VPS</span>
+                            <span wire:loading wire:target="deployRemote">Installation…</span>
+                        </button>
+                    </div>
+
+                    @if(!$sshTestOk)
+                        <p class="small text-muted mb-0">Le bouton d'installation s'active après un test de connexion réussi.</p>
+                    @elseif($sshKeyInstalled)
+                        <p class="small text-success mb-0">Connexion OK — clé SSH déjà installée sur ce VPS. L'installation va utiliser la clé dédiée du panel.</p>
+                    @else
+                        <p class="small text-success mb-0">Connexion OK — le panel va installer sa clé SSH, déployer les agents et récupérer les données automatiquement.</p>
                     @endif
                     @else
-                    <p class="small text-muted mb-0">Permission <code>servers.manage</code> requise.</p>
-                    @endcan
+                    <div class="alert alert-warning py-2 small mb-0">Permission <code>servers.manage</code> requise pour installer sur un VPS distant.</div>
+                    @endif
+
+                    @if($sshTestResult)
+                    <div class="alert py-2 small mt-3 mb-0 {{ $sshTestOk ? 'alert-success' : 'alert-danger' }}">
+                        {{ $sshTestResult }}
+                    </div>
+                    @endif
+
+                    @if($sshBootstrapResult)
+                    <div class="alert alert-info py-2 small mt-3 mb-0">{{ $sshBootstrapResult }}</div>
+                    @endif
 
                     @if($deployError)
                     <div class="alert alert-danger py-2 small mt-3 mb-0">{{ $deployError }}</div>
@@ -218,15 +200,29 @@
                         <pre class="small bg-dark text-light p-2 rounded mt-1 mb-0" style="max-height:120px;overflow:auto">{{ $step['output'] }}</pre>
                     </div>
                     @endforeach
+
+                    @if($sshPublicKey && $canManageServers)
+                    <details class="mt-4 small">
+                        <summary class="text-muted" style="cursor:pointer">Détails techniques (clé SSH)</summary>
+                        <div class="mt-2 obiora-copy-block">
+                            <pre class="small mb-0 obiora-copy-text text-break">{{ $sshPublicKey }}</pre>
+                            <button type="button" class="btn btn-outline-secondary btn-sm mt-1" onclick="obioraCopyFromButton(this)">Copier la clé publique</button>
+                        </div>
+                        @if($sshKeyInstalled)
+                            <span class="badge text-bg-success mt-2">Clé installée sur le VPS</span>
+                        @endif
+                    </details>
+                    @endif
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-6">
+        <div class="col-lg-5">
             <div class="card obiora-card h-100">
-                <div class="card-header">Installation manuelle</div>
+                <div class="card-header">Installation manuelle (SSH)</div>
                 <div class="card-body">
-                    <h3 class="h6">Tout-en-un (Doctor + Crash Analyzer)</h3>
+                    <p class="small text-muted">Alternative : copiez cette commande et exécutez-la directement sur le VPS.</p>
+                    <h3 class="h6">Doctor + Crash Analyzer</h3>
                     <div class="obiora-copy-block mb-3">
                         <pre class="small mb-0 obiora-copy-text">{{ $remoteSuiteInstall }}</pre>
                         <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="obioraCopyFromButton(this)">Copier</button>
@@ -271,8 +267,8 @@
                         @if(!empty($overview['doctor']['modules']))
                         <h3 class="h6">Modules</h3>
                         <div class="table-responsive">
-                            <table class="table table-sm mb-0">
-                                <thead><tr><th>Module</th><th>Statut</th><th>Findings</th></tr></thead>
+                            <table class="table table-sm obiora-table mb-0">
+                                <thead class="obiora-table-head"><tr><th>Module</th><th>Statut</th><th>Findings</th></tr></thead>
                                 <tbody>
                                     @foreach($overview['doctor']['modules'] as $mod)
                                     <tr>
@@ -286,7 +282,7 @@
                         </div>
                         @endif
                     @else
-                        <div class="alert alert-warning py-2 small mb-0">Aucun rapport Doctor. Installez l'agent ci-dessus.</div>
+                        <div class="alert alert-warning py-2 small mb-0">Aucun rapport Doctor pour ce serveur. Installez les agents ci-dessus.</div>
                     @endif
                 </div>
             </div>
@@ -311,8 +307,8 @@
                     @if(!empty($overview['crash_analyzer']['events']))
                     <h3 class="h6">Derniers événements</h3>
                     <div class="table-responsive mb-3">
-                        <table class="table table-sm mb-0">
-                            <thead><tr><th>Date</th><th>Type</th><th>Titre</th></tr></thead>
+                        <table class="table table-sm obiora-table mb-0">
+                            <thead class="obiora-table-head"><tr><th>Date</th><th>Type</th><th>Titre</th></tr></thead>
                             <tbody>
                                 @foreach(array_slice($overview['crash_analyzer']['events'], 0, 8) as $event)
                                 <tr>

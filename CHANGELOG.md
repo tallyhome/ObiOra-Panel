@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.26 - 2026-07-09
+
+- Doctor & Suite : workflow simplifié (test connexion → installer), clé SSH auto, vue flotte lisible
+
 ## v2.1.25 - 2026-07-09
 
 - Doctor & Suite : mot de passe conservé après test SSH, déploiement activé après test réussi (clé auto-installée)
