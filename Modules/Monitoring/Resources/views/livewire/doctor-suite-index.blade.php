@@ -110,10 +110,10 @@
                 <div class="card-header bg-primary bg-opacity-10">Déploiement automatique (SSH)</div>
                 <div class="card-body">
                     <p class="small text-muted mb-3">
-                        <strong>Étape 1</strong> — Générer la clé ·
-                        <strong>Étape 2</strong> — Installer la clé (mot de passe une fois) ·
-                        <strong>Étape 3</strong> — Tester ·
-                        <strong>Étape 4</strong> — Déployer
+                        <strong>1.</strong> Générer la clé SSH ·
+                        <strong>2.</strong> Installer la clé sur le VPS (mot de passe une fois) ·
+                        <strong>3.</strong> Tester la connexion ·
+                        <strong>4.</strong> Déployer Doctor &amp; Crash Analyzer
                     </p>
 
                     <div class="row g-2 mb-3">
@@ -139,13 +139,13 @@
                     @can('servers.manage')
                     <div class="d-flex flex-wrap gap-2 mb-3">
                         <button type="button" wire:click="generateSshKey" wire:loading.attr="disabled" class="btn btn-outline-secondary btn-sm">
-                            ① Générer clé SSH
+                            1. Générer clé SSH
                         </button>
                         <button type="button" wire:click="bootstrapSshKey" wire:loading.attr="disabled" class="btn btn-outline-secondary btn-sm" @if(!$sshPublicKey) disabled @endif>
-                            ② Installer clé sur VPS
+                            2. Installer clé sur VPS
                         </button>
                         <button type="button" wire:click="testSshConnection" wire:loading.attr="disabled" class="btn btn-outline-info btn-sm">
-                            Tester connexion SSH
+                            3. Tester connexion SSH
                         </button>
                     </div>
                     @endcan
@@ -187,13 +187,20 @@
                     </div>
 
                     @can('servers.manage')
+                    @php($canDeploy = $sshKeyInstalled || ($sshPublicKey && $sshTestOk))
                     <button type="button" wire:click="deployRemote" wire:loading.attr="disabled" class="btn btn-primary btn-sm"
-                            @if($deployRunning || !$sshKeyInstalled) disabled @endif>
-                        <span wire:loading.remove wire:target="deployRemote">④ Installer à distance</span>
+                            @if($deployRunning || !$canDeploy) disabled @endif
+                            title="{{ !$canDeploy ? 'Générez une clé, testez la connexion SSH, puis déployez (la clé sera installée automatiquement si besoin).' : '' }}">
+                        <span wire:loading.remove wire:target="deployRemote">4. Installer à distance</span>
                         <span wire:loading wire:target="deployRemote">Lancement…</span>
                     </button>
-                    @if(!$sshKeyInstalled)
-                        <p class="small text-muted mt-2 mb-0">Installez la clé SSH sur le VPS avant le déploiement automatique.</p>
+                    @if(!$canDeploy)
+                        <p class="small text-muted mt-2 mb-0">
+                            Générez une clé (étape 1), saisissez le mot de passe, puis testez la connexion (étape 3).
+                            L'étape 2 est optionnelle : le déploiement peut installer la clé automatiquement.
+                        </p>
+                    @elseif(!$sshKeyInstalled)
+                        <p class="small text-muted mt-2 mb-0">Connexion OK — le mot de passe sera utilisé une dernière fois pour installer la clé, puis le déploiement démarre.</p>
                     @endif
                     @else
                     <p class="small text-muted mb-0">Permission <code>servers.manage</code> requise.</p>

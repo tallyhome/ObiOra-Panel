@@ -129,7 +129,9 @@ final class DoctorSuiteIndex extends Component
             $deploy,
         );
 
-        $this->sshPassword = '';
+        if ($result['success']) {
+            $this->sshPassword = '';
+        }
         $this->sshBootstrapResult = $result['output'];
         $this->refreshSshState($server->fresh(), $sshKeys);
 
@@ -158,21 +160,49 @@ final class DoctorSuiteIndex extends Component
         $result = $deploy->testConnection($ssh);
         $this->sshTestOk = $result['success'];
         $this->sshTestResult = $result['message']."\n".$result['output'];
-        $this->sshPassword = '';
     }
 
-    public function deployRemote(DoctorDeployProgressService $progress): void
-    {
+    public function deployRemote(
+        DoctorDeployProgressService $progress,
+        ServerSshKeyService $sshKeys,
+        DoctorRemoteDeployService $deploy,
+    ): void {
         $this->authorizeDeploy();
         $this->validateSshForm();
 
         $server = Server::query()->findOrFail($this->serverId);
 
-        if (! app(ServerSshKeyService::class)->isInstalledOnRemote($server)) {
-            $this->deployError = 'Installez d\'abord la clé SSH dédiée sur le serveur distant.';
-            $this->dispatch('notify', type: 'warning', message: $this->deployError);
+        if (! $sshKeys->isInstalledOnRemote($server)) {
+            if ($this->sshPassword === '') {
+                $this->deployError = 'Installez la clé SSH sur le VPS (étape 2) ou saisissez le mot de passe pour l\'installation automatique.';
+                $this->dispatch('notify', type: 'warning', message: $this->deployError);
 
-            return;
+                return;
+            }
+
+            if (! $sshKeys->hasKey($server)) {
+                $this->deployError = 'Générez d\'abord une clé SSH dédiée (étape 1).';
+                $this->dispatch('notify', type: 'warning', message: $this->deployError);
+
+                return;
+            }
+
+            $bootstrap = $sshKeys->installPublicKeyOnRemote(
+                $server,
+                $this->bootstrapConnection(),
+                $deploy,
+            );
+
+            if (! $bootstrap['success']) {
+                $this->deployError = $bootstrap['output'] ?: 'Échec installation clé SSH sur le VPS.';
+                $this->dispatch('notify', type: 'danger', message: $this->deployError);
+
+                return;
+            }
+
+            $server = $server->fresh();
+            $this->refreshSshState($server, $sshKeys);
+            $this->sshBootstrapResult = 'Clé SSH installée automatiquement avant déploiement.';
         }
 
         $progress->start($server->id);
@@ -327,6 +357,10 @@ final class DoctorSuiteIndex extends Component
 
     private function resolveConnection(Server $server, ServerSshKeyService $sshKeys): ?SshConnection
     {
+        if (! $sshKeys->isInstalledOnRemote($server) && $this->sshPassword !== '') {
+            return $this->bootstrapConnection();
+        }
+
         if ($sshKeys->hasKey($server)) {
             return $sshKeys->connection($server, $this->sshHost, $this->sshPort, $this->sshUser);
         }

@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.25 - 2026-07-09
+
+- Doctor & Suite : mot de passe conservé après test SSH, déploiement activé après test réussi (clé auto-installée)
+
 ## v2.1.24 - 2026-07-09
 
 - Doctor & Suite : auth SSH par mot de passe via phpseclib (plus besoin de sshpass sur le panel)
