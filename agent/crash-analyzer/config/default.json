@@ -1,0 +1,14 @@
+{
+  "interval_seconds": 5,
+  "history_minutes": 60,
+  "storage_backend": "sqlite",
+  "sqlite_path": "/var/lib/obiora/crash-analyzer/metrics.db",
+  "push_interval_seconds": 30,
+  "reports_dir": "/var/lib/obiora/crash-analyzer/reports",
+  "state_file": "/var/lib/obiora/crash-analyzer/state.json",
+  "enabled_collectors": [
+    "cpu", "memory", "swap", "psi", "disk", "network", "thermal",
+    "smart", "edac", "rasdaemon", "journal", "dmesg", "virtualizor",
+    "libvirt", "docker", "systemd", "processes", "irq", "ssh", "load"
+  ]
+}

@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.16 - 2026-07-08
+
+- Fix critique : module Crash Analyzer manquant dans v2.1.14/v2.1.15 (erreur 500 `Invalid route action`)
+- Agent Python, API ingest, dashboard Livewire, exports et migrations inclus
+
 ## v2.1.15 - 2026-07-08
 
 - Compte client démo : accès lecture Licence & MAJ, maintenance système grisée (badge « Compte démo »)

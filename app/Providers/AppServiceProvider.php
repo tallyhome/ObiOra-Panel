@@ -6,6 +6,9 @@ namespace App\Providers;
 
 use App\Contracts\LicenseValidatorInterface;
 use App\Contracts\SystemExecutorInterface;
+use App\Events\CrashAnalyzer\CrashDetected;
+use App\Events\CrashAnalyzer\UnexpectedRebootDetected;
+use App\Listeners\CrashAnalyzer\DispatchCrashNotifications;
 use App\Services\Core\LicenseManager;
 use App\Services\Core\ServerManager;
 use App\Services\Core\ModuleManager;
@@ -17,6 +20,7 @@ use App\Livewire\Modules\ModuleStubIndex;
 use App\Support\InfrastructureModuleRegistry;
 use App\Support\ModuleStubRegistry;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Livewire\Livewire;
 use Illuminate\Support\ServiceProvider;
@@ -41,6 +45,9 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Livewire::component('modules.stub-index', ModuleStubIndex::class);
+
+        Event::listen(CrashDetected::class, [DispatchCrashNotifications::class, 'handleCrash']);
+        Event::listen(UnexpectedRebootDetected::class, [DispatchCrashNotifications::class, 'handleReboot']);
 
         View::composer('partials.sidebar', function ($view): void {
             if (auth()->check()) {

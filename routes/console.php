@@ -6,6 +6,7 @@ use App\Console\Commands\BroadcastDashboardMetricsCommand;
 use App\Console\Commands\ExpireDemoAccountsCommand;
 use App\Console\Commands\MonitorServersPingCommand;
 use App\Console\Commands\SendMonitoringAlertsCommand;
+use App\Jobs\CrashAnalyzer\PruneOldMetricsJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -27,6 +28,8 @@ if (config('obiora.diagnostics.alerts_email', true)) {
 }
 
 Schedule::command(ExpireDemoAccountsCommand::class)->hourly();
+
+Schedule::job(new PruneOldMetricsJob)->dailyAt('03:30');
 
 if ((bool) config('obiora.realtime.enabled', false)) {
     $metricsInterval = max(3, (int) config('obiora.realtime.metrics_interval_seconds', 5));

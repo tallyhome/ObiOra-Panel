@@ -1,0 +1,15 @@
+{
+  "migrations": true,
+  "description": "Surveillance pré/post crash système",
+  "permissions": [
+    "monitoring.view"
+  ],
+  "dependencies": [
+    "monitoring"
+  ],
+  "routes": true,
+  "slug": "crash-analyzer",
+  "name": "Crash Analyzer",
+  "default_enabled": true,
+  "version": "1.0.0"
+}

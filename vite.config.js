@@ -9,6 +9,7 @@ export default defineConfig({
                 'resources/scss/obiora.scss',
                 'resources/js/app.js',
                 'resources/js/monitoring/main.js',
+                'resources/js/crash-analyzer/main.js',
             ],
             refresh: true,
         }),

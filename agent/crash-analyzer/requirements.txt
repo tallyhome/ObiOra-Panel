@@ -1,0 +1,5 @@
+# Dépendances optionnelles — le daemon fonctionne sans elles (stdlib uniquement)
+# reportlab : génération PDF locale
+# psycopg2-binary : backend PostgreSQL
+reportlab>=4.0
+psycopg2-binary>=2.9

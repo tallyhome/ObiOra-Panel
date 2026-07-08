@@ -28,6 +28,16 @@ final class DoctorInstallHelper
         );
     }
 
+    public function suiteUrl(): string
+    {
+        return url('/install/doctor-suite.sh');
+    }
+
+    public function crashAnalyzerUrl(): string
+    {
+        return url('/install/crash-analyzer.sh');
+    }
+
     public function remoteCommand(?Server $server): string
     {
         if ($server === null) {
@@ -37,6 +47,36 @@ final class DoctorInstallHelper
         return sprintf(
             'curl -fsSL %s | sudo OBIORA_PANEL_URL=%s OBIORA_SERVER_ID=%d OBIORA_AGENT_TOKEN=%s bash',
             $this->bootstrapUrl(),
+            rtrim((string) config('app.url'), '/'),
+            $server->id,
+            $server->agent_token,
+        );
+    }
+
+    public function remoteSuiteCommand(?Server $server): string
+    {
+        if ($server === null) {
+            return '# Aucun serveur sélectionné';
+        }
+
+        return sprintf(
+            'curl -fsSL %s | sudo OBIORA_PANEL_URL=%s OBIORA_SERVER_ID=%d OBIORA_AGENT_TOKEN=%s bash',
+            $this->suiteUrl(),
+            rtrim((string) config('app.url'), '/'),
+            $server->id,
+            $server->agent_token,
+        );
+    }
+
+    public function remoteCrashAnalyzerCommand(?Server $server): string
+    {
+        if ($server === null) {
+            return '# Aucun serveur sélectionné';
+        }
+
+        return sprintf(
+            'curl -fsSL %s | sudo OBIORA_PANEL_URL=%s OBIORA_SERVER_ID=%d OBIORA_AGENT_TOKEN=%s bash',
+            $this->crashAnalyzerUrl(),
             rtrim((string) config('app.url'), '/'),
             $server->id,
             $server->agent_token,

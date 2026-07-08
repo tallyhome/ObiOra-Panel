@@ -79,4 +79,19 @@ class Server extends Model
     {
         return $this->hasOne(DiagnosticReport::class)->latestOfMany('generated_at');
     }
+
+    public function crashAnalyzerMetrics(): HasMany
+    {
+        return $this->hasMany(CrashAnalyzerMetric::class);
+    }
+
+    public function crashAnalyzerEvents(): HasMany
+    {
+        return $this->hasMany(CrashAnalyzerEvent::class);
+    }
+
+    public function crashAnalyzerReports(): HasMany
+    {
+        return $this->hasMany(CrashAnalyzerReport::class);
+    }
 }

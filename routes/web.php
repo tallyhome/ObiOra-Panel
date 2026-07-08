@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Livewire\Modules\ModuleStubIndex;
 use App\Support\ModuleStubRegistry;
 use App\Http\Controllers\Api\DiagnosticReportController;
+use App\Http\Controllers\Api\CrashAnalyzerController;
 use App\Http\Controllers\ApplicationIconController;
 use App\Http\Controllers\MarketplaceInstallSetupController;
 use App\Http\Controllers\CrashAnalyzerExportController;
@@ -119,6 +120,10 @@ Route::middleware(['setup', 'auth', 'demo.active', 'server'])->group(function ()
             Route::get('/servers/{server}/install-command', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'installCommand'])->name('install-command');
             Route::get('/servers/{server}/diagnostics/latest', [DiagnosticReportController::class, 'latest'])->name('diagnostics.latest');
             Route::get('/servers/{server}/diagnostics', [DiagnosticReportController::class, 'index'])->name('diagnostics.index');
+        });
+
+        Route::prefix('api/crash-analyzer')->name('crash-analyzer.api.')->group(function () {
+            Route::get('/servers/{server}/dashboard', [CrashAnalyzerController::class, 'dashboard'])->name('dashboard');
         });
     });
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Monitoring;
 
+use App\Models\CrashAnalyzerEvent;
 use App\Models\DiagnosticReport;
 use App\Models\MonitoringAlert;
 use App\Models\Server;
@@ -47,6 +48,21 @@ final class MonitoringAlertService
                 ? "Certificat expire ou expire aujourd'hui ({$notAfter})."
                 : "Certificat expire dans {$daysLeft} jour(s) ({$notAfter}).",
             payload: ['host' => $host, 'days_left' => $daysLeft, 'not_after' => $notAfter],
+        );
+    }
+
+    public function recordCrashEvent(Server $server, CrashAnalyzerEvent $event): void
+    {
+        $this->createAlert(
+            server: $server,
+            type: 'crash_analyzer',
+            severity: $event->severity === 'critical' ? 'critical' : 'warning',
+            title: $event->title,
+            message: $event->details ?? '',
+            payload: [
+                'event_type' => $event->event_type,
+                'event_id' => $event->id,
+            ],
         );
     }
 

@@ -14,6 +14,10 @@ Broadcast::channel('obiora.monitoring', function ($user) {
     return $user !== null;
 });
 
+Broadcast::channel('obiora.crash-analyzer', function ($user) {
+    return $user !== null && $user->can('monitoring.view');
+});
+
 Broadcast::channel('obiora.progress.{serverId}.{scope}', function ($user, int $serverId, string $scope) {
     return $user !== null;
 });
