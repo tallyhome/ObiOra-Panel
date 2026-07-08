@@ -41,7 +41,7 @@ final class DiagnosticReportManager
                 ? (string) $payload['id']
                 : (isset($payload['report_id']) ? (string) $payload['report_id'] : null),
             'schema_version' => (string) ($payload['host']['schema_version'] ?? '1.0'),
-            'doctor_version' => (string) ($payload['version'] ?? ''),
+            'doctor_version' => mb_substr((string) ($payload['version'] ?? ''), 0, 64),
             'score' => (int) ($payload['score'] ?? 0),
             'status' => $status,
             'hostname' => (string) ($payload['host']['hostname'] ?? $server->hostname),

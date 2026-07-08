@@ -66,4 +66,25 @@ final class DiagnosticReportApiTest extends TestCase
 
         $response->assertForbidden();
     }
+
+    public function test_agent_can_push_bootstrap_version_string(): void
+    {
+        $server = Server::factory()->create(['agent_token' => str_repeat('e', 64)]);
+
+        $response = $this->postJson("/api/v1/servers/{$server->id}/diagnostics/reports", [
+            'score' => 95,
+            'version' => 'bootstrap-1.0',
+            'generated_at' => now()->toIso8601String(),
+            'host' => ['hostname' => 'obiora', 'schema_version' => '1.0'],
+            'results' => [['module' => 'disk', 'status' => 'ok']],
+        ], [
+            'Authorization' => 'Bearer '.$server->agent_token,
+        ]);
+
+        $response->assertOk()->assertJsonPath('ok', true);
+        $this->assertDatabaseHas('diagnostic_reports', [
+            'server_id' => $server->id,
+            'doctor_version' => 'bootstrap-1.0',
+        ]);
+    }
 }

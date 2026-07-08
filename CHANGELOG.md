@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.5 - 2026-07-08
+
+- Fix Doctor HTTP 500 : champ `doctor_version` trop court (panel-bootstrap-1.0 > 16 car.)
+- Agent bootstrap : version raccourcie `bootstrap-1.0`, migration colonne élargie
+- Fix MAJ bloquée : suppression `artisan down` (cassait Livewire + poll), détection auto à 58 %
+- Bannière erreur MAJ visible au-dessus de la barre de progression
+
 ## v2.1.4 - 2026-07-08
 
 - Fix agent Doctor : bug bash `set -e` sur `(( score < 0 ))` qui faisait échouer le scan systemd

@@ -50,10 +50,6 @@ fi
 
 cd "${OBIORA_INSTALL_DIR}"
 
-# Mode maintenance : évite les erreurs 500 pendant git checkout / npm build
-echo "[0/8] mode maintenance…"
-sudo -u "${OBIORA_USER}" php artisan down --retry=60 --refresh=15 >/dev/null 2>&1 || true
-
 # Récupération d'urgence : un drop-in bind-address ObiOra peut avoir empêché
 # MariaDB de redémarrer (panel en 500 / Connection refused sur 127.0.0.1:3306).
 if [[ -f "${OBIORA_INSTALL_DIR}/agent/scripts/mysql-docker-recover.sh" ]]; then

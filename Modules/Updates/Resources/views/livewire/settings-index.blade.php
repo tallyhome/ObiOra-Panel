@@ -10,8 +10,20 @@
         <div class="alert alert-{{ $licenseSuccess ? 'success' : 'danger' }}">{{ $licenseMessage }}</div>
     @endif
 
+    @if(!$updateSuccess && $updateMessage && $updateRunning)
+        <div class="alert alert-danger mb-4 obiora-update-error-banner" role="alert">
+            <strong>Problème détecté</strong> — {{ $updateMessage }}
+            @can('updates.manage')
+                <button type="button" class="btn btn-outline-danger btn-sm ms-2"
+                    onclick="obioraConfirmWire(this, 'cancelBlockedUpdate', 'Débloquer la MAJ', 'Marquer la mise à jour comme échouée et purger les caches ?')">
+                    Débloquer
+                </button>
+            @endcan
+        </div>
+    @endif
+
     @if($updateRunning)
-        <div class="card obiora-card mb-4 border-info">
+        <div class="card obiora-card mb-4 border-info obiora-update-progress-card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <strong class="small text-uppercase">Mise à jour en cours</strong>
@@ -27,7 +39,7 @@
             </div>
         </div>
     @elseif($updateMessage)
-        <div class="alert alert-{{ $updateSuccess ? 'success' : 'warning' }}">{{ $updateMessage }}</div>
+        <div class="alert alert-{{ $updateSuccess ? 'success' : 'danger' }} mb-4">{{ $updateMessage }}</div>
     @endif
 
     <div class="row g-4">

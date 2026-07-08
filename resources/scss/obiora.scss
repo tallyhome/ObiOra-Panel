@@ -489,6 +489,16 @@ body {
     overflow-y: auto;
 }
 
+.obiora-update-error-banner {
+    position: relative;
+    z-index: 1060;
+}
+
+.obiora-update-progress-card {
+    position: relative;
+    z-index: 1;
+}
+
 // Service badge
 .obiora-svc-badge {
     font-size: 0.7rem;

@@ -65,7 +65,7 @@ response_file="/tmp/obiora-doctor-last.json"
 payload="$(cat <<JSON
 {
   "score": ${score},
-  "version": "panel-bootstrap-1.0",
+  "version": "bootstrap-1.0",
   "generated_at": "${generated_at}",
   "host": {"hostname": "${hostname}", "schema_version": "1.0"},
   "results": [

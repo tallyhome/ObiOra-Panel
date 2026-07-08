@@ -9,6 +9,8 @@ use App\Models\Server;
 use App\Services\Diagnostics\DiagnosticReportManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 final class DiagnosticReportController extends Controller
 {
@@ -25,15 +27,27 @@ final class DiagnosticReportController extends Controller
             return response()->json(['error' => 'Invalid report payload'], 422);
         }
 
-        $report = $manager->ingest($server, $payload);
+        try {
+            $report = $manager->ingest($server, $payload);
 
-        return response()->json([
-            'ok' => true,
-            'id' => $report->id,
-            'score' => $report->score,
-            'status' => $report->status,
-            'signature_verified' => $report->signature_verified,
-        ]);
+            return response()->json([
+                'ok' => true,
+                'id' => $report->id,
+                'score' => $report->score,
+                'status' => $report->status,
+                'signature_verified' => $report->signature_verified,
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Diagnostic report ingest failed', [
+                'server_id' => $server->id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'error' => 'Report ingest failed',
+                'message' => config('app.debug') ? $e->getMessage() : 'Server Error',
+            ], 500);
+        }
     }
 
     public function heartbeat(Request $request, Server $server, DiagnosticReportManager $manager): JsonResponse

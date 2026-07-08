@@ -70,6 +70,13 @@ final class SettingsIndex extends Component
         UpdateRecovery $updateRecovery,
     ): void {
         $updateRecovery->recoverStale(20);
+
+        try {
+            Artisan::call('up');
+        } catch (\Throwable) {
+            // best-effort — sortir du mode maintenance si une MAJ précédente l'a laissé actif
+        }
+
         $this->loadLicense($licenseService);
         $this->updateInfo = $updateManager->checkForUpdates();
         $this->lastCheckedAt = now()->format('d/m/Y H:i:s');
@@ -173,6 +180,27 @@ final class SettingsIndex extends Component
                 $this->updateMessage .= ' — …'.$tail;
             }
             $this->dispatch('notify', type: 'danger', message: 'La mise à jour a échoué. Consultez le détail dans l\'historique ci-dessous.');
+
+            return;
+        }
+
+        // Détection progression bloquée (ex. npm build à 58 %)
+        $stuckMinutes = 25;
+        if ($history->status === 'running'
+            && (int) ($history->progress ?? 0) >= 50
+            && $history->updated_at?->lt(now()->subMinutes($stuckMinutes))) {
+            $stuckProgress = (int) ($history->progress ?? 0);
+            $history->update([
+                'status' => 'failed',
+                'progress_message' => 'Mise à jour bloquée (progression inchangée depuis '.$stuckMinutes.' min)',
+                'output' => trim((string) $history->output."\n\n[auto] Progression bloquée à {$stuckProgress}%."),
+                'completed_at' => now(),
+            ]);
+            $this->updateRunning = false;
+            $this->pendingHistoryId = null;
+            $this->updateSuccess = false;
+            $this->updateMessage = 'Mise à jour bloquée à '.$stuckProgress.' %. Cliquez sur Débloquer puis relancez, ou mettez à jour en SSH.';
+            $this->dispatch('notify', type: 'danger', message: $this->updateMessage);
 
             return;
         }
