@@ -1,66 +1,87 @@
-# Déploiement API démo sur le VPS Panel
+# Déploiement API démo — Panel ↔ SiteWeb
 
-Le VPS n'a **pas encore le code** (commande `obiora:site-api-status` absente = ancienne version).
-Il faut **déployer** puis configurer le `.env`.
+## Le code EST intégré dans le dépôt Git
 
-## 1. Depuis votre PC — pousser le code
+Routes Panel (`routes/api.php`) :
+- `GET /api/v1/site-api/ping`
+- `POST /api/v1/demo-accounts`
+- `DELETE /api/v1/demo-accounts/{id}`
+
+Le **404** sur le VPS signifie seulement que le serveur n'a **pas encore** ce code (pas de `git pull` / pas de MAJ panel).
+
+---
+
+## Option A — Automatique (recommandé sur le VPS)
+
+Une seule commande après `git pull` :
 
 ```bash
-cd "I:\Adev\Obiora Panel"
-git add routes/api.php app/Http/Middleware/AuthenticateSiteApi.php app/Http/Controllers/Api/DemoAccountController.php app/Services/Demo/ app/Console/Commands/SiteApiStatusCommand.php app/Console/Commands/ExpireDemoAccountsCommand.php app/Models/User.php config/obiora.php routes/console.php database/migrations/2026_07_08_020000_add_demo_fields_to_users_table.php
-git commit -m "feat: API démo SiteWeb (comptes temporaires panel)"
-git push origin main
-```
-
-## 2. Sur le VPS (SSH root@Obiora)
-
-```bash
-cd /chemin/vers/obiora-panel    # ex. /var/www/obiora-panel
+cd /opt/obiora-panel
 git pull origin main
-composer install --no-dev --optimize-autoloader
+bash install/setup-site-api.sh
 ```
 
-## 3. Éditer le `.env` du Panel sur le VPS
+Ce script fait tout :
+1. `migrate --force`
+2. Génère `OBIORA_SITE_API_KEY` dans `.env` si absent (`obiora:setup-site-api --ensure`)
+3. `config:clear` + `route:clear`
+4. Affiche la clé à copier dans SiteWeb
 
-Ouvrir le fichier `.env` et **ajouter ces 2 lignes** (copier-coller) :
+---
+
+## Option B — MAJ depuis le panel admin
+
+**Administration → Mises à jour → Mettre à jour**
+
+Le script `install/update-panel.sh` appelle automatiquement `obiora:setup-site-api --ensure` après les migrations.
+
+Après la MAJ, récupérez la clé :
+```bash
+php artisan obiora:setup-site-api
+```
+
+---
+
+## `.env` VPS Panel — quoi mettre ?
+
+**Normalement rien à faire à la main** : `--ensure` écrit la clé automatiquement.
+
+Si vous préférez une clé fixe partagée avec le SiteWeb local :
 
 ```env
 OBIORA_SITE_API_KEY=cfb88d90d8f7bfa73d8734190f7f5ecb197c91355de1ca872c373ab8f6f3f39b
 OBIORA_SITE_DEMO_TTL_HOURS=24
 ```
 
-> Même clé que `OBIORA_PANEL_API_KEY` dans ObiOra-SiteWeb/.env
+---
 
-## 4. Sur le VPS — finaliser
+## SiteWeb (PC) — après déploiement Panel
 
-```bash
-php artisan migrate --force
-php artisan config:clear
-php artisan route:clear
-php artisan obiora:site-api-status
+Dans `ObiOra-SiteWeb/.env` :
+```env
+OBIORA_PANEL_URL=http://obiora.obi2.net
+OBIORA_PANEL_API_KEY=<même clé que OBIORA_SITE_API_KEY du panel>
 ```
 
-Résultat attendu : `OBIORA_SITE_API_KEY : configurée`
-
-## 5. Sur votre PC (ObiOra-SiteWeb)
-
 ```bash
-cd ObiOra-SiteWeb
+cd "I:\Adev\Obiora Panel\ObiOra-SiteWeb"
 php artisan config:clear
 php artisan obiora:check-panel
 ```
 
-Résultat attendu : `Clé API valide — démo Panel opérationnelle.`
+---
 
 ## Connexion SiteWeb (local)
 
-- URL : **http://127.0.0.1:8099/connexion** (doit correspondre à `APP_URL` dans `.env`)
-- Admin : `admin@obiora.io` / `password` → `/admin`
-- Client : `client@obiora.io` / `password` → `/client`
+URL : **http://127.0.0.1:8099/connexion** (identique à `APP_URL`)
 
-Si login échoue :
 ```bash
 php artisan obiora:reset-seed-passwords
 ```
 
-Ne pas confondre avec la connexion **Panel** (obiora.obi2.net) — ce sont des comptes différents.
+| Rôle | Email | Mot de passe |
+|------|-------|--------------|
+| Admin | admin@obiora.io | password |
+| Client | client@obiora.io | password |
+
+⚠️ Ne pas faire `cd ObiOra-SiteWeb` si vous y êtes déjà (erreur chemin doublé).

@@ -158,6 +158,7 @@ fi
 echo "[5/8] artisan migrate..."
 progress 72 "Migrations de base de données…"
 sudo -u "${OBIORA_USER}" php artisan migrate --force
+sudo -u "${OBIORA_USER}" php artisan obiora:setup-site-api --ensure --quiet-output 2>/dev/null || true
 clear_panel_caches
 
 echo "[6/8] purge caches finales…"
