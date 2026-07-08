@@ -158,45 +158,6 @@
         </div>
     </div>
 
-    @if(!empty($changelogSections))
-        <div class="card obiora-card mt-4">
-            <div class="card-body">
-                <h2 class="h5 mb-3">Journal des versions</h2>
-                <p class="text-muted small mb-3">Changelog intégré depuis <code>CHANGELOG.md</code> du panel.</p>
-                <div class="accordion accordion-flush" id="changelogAccordion">
-                    @foreach($changelogSections as $index => $section)
-                        <div class="accordion-item bg-transparent border-secondary">
-                            <h3 class="accordion-header">
-                                <button class="accordion-button collapsed bg-transparent text-light shadow-none py-2"
-                                    type="button"
-                                    data-bs-toggle="collapse"
-                                    data-bs-target="#changelog-{{ $index }}">
-                                    v{{ $section['version'] }}
-                                    @if($section['date'])
-                                        <span class="text-muted small ms-2">{{ $section['date'] }}</span>
-                                    @endif
-                                </button>
-                            </h3>
-                            <div id="changelog-{{ $index }}" class="accordion-collapse collapse" data-bs-parent="#changelogAccordion">
-                                <div class="accordion-body pt-0">
-                                    @if(!empty($section['items']))
-                                        <ul class="small mb-0">
-                                            @foreach($section['items'] as $item)
-                                                <li>{{ $item }}</li>
-                                            @endforeach
-                                        </ul>
-                                    @else
-                                        <pre class="small text-muted mb-0" style="white-space: pre-wrap; font-family: inherit;">{{ $section['body'] }}</pre>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-    @endif
-
     @can('updates.manage')
         @if(($systemInfo['can_update'] ?? false) || ($systemInfo['can_reboot'] ?? false))
             <div class="card obiora-card mt-4">
@@ -239,69 +200,125 @@
         @endif
     @endcan
 
-    @if($history->isNotEmpty())
-        <div class="card obiora-card mt-4">
-            <div class="card-body">
-                <h2 class="h6 mb-3">Historique des mises à jour</h2>
-                <p class="text-muted small mb-3">
-                    Les entrées <span class="badge bg-danger">failed</span> correspondent à d'anciennes tentatives (ex. avant v1.9.6).
-                    Elles restent en historique à titre informatif et n'empêchent pas les mises à jour suivantes.
-                </p>
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>De</th>
-                                <th>Vers</th>
-                                <th>Statut</th>
-                                <th>Date</th>
-                                <th class="text-end">Log</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($history as $entry)
-                                <tr>
-                                    <td>v{{ $entry->from_version }}</td>
-                                    <td>v{{ $entry->to_version }}</td>
-                                    <td>
-                                        @php
-                                            $badgeColor = match($entry->status) {
-                                                'completed' => 'success',
-                                                'failed' => 'danger',
-                                                'running' => 'info',
-                                                'queued' => 'warning',
-                                                default => 'secondary',
-                                            };
-                                        @endphp
-                                        <span class="badge bg-{{ $badgeColor }}{{ $badgeColor === 'warning' ? ' text-dark' : '' }}">
-                                            {{ $entry->status }}
-                                        </span>
-                                    </td>
-                                    <td class="text-muted small">{{ $entry->completed_at?->format('d/m/Y H:i') ?? '—' }}</td>
-                                    <td class="text-end">
-                                        @if (! empty($entry->output))
-                                            <button type="button" wire:click="showHistoryOutput({{ $entry->id }})" class="btn btn-outline-secondary btn-sm py-0">Voir le log</button>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-
-                @if ($viewingOutputId)
-                    <div class="obiora-log-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="log-modal-title">
-                        <div class="obiora-log-modal" wire:click.stop>
-                            <div class="obiora-log-modal-header">
-                                <span id="log-modal-title" class="small fw-medium">Log complet — MAJ #{{ $viewingOutputId }}</span>
-                                <button type="button" class="btn-close btn-close-white btn-sm" wire:click="closeHistoryOutput" aria-label="Fermer"></button>
+    @if($history->isNotEmpty() || !empty($changelogSections))
+        <div class="row g-4 mt-4">
+            @if($history->isNotEmpty())
+                <div class="col-lg-6">
+                    <div class="card obiora-card h-100">
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+                                <div>
+                                    <h2 class="h6 mb-1">Historique des mises à jour</h2>
+                                    <p class="text-muted small mb-0">
+                                        Les entrées <span class="badge bg-danger">failed</span> restent visibles à titre informatif.
+                                    </p>
+                                </div>
+                                @if($updateRunning)
+                                    <button type="button" class="btn btn-outline-warning btn-sm"
+                                        onclick="obioraConfirmWire(this, 'cancelBlockedUpdate', 'Réinitialiser la MAJ', 'Marquer la mise à jour bloquée comme échouée et purger les caches ?')">
+                                        Débloquer
+                                    </button>
+                                @endif
                             </div>
-                            <div class="obiora-log-modal-body">
-                                <pre class="small mb-0 obiora-log-pre">{{ $viewingOutput }}</pre>
+                            <div class="table-responsive flex-grow-1">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>De</th>
+                                            <th>Vers</th>
+                                            <th>Statut</th>
+                                            <th>Date</th>
+                                            <th class="text-end">Log</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($history as $entry)
+                                            <tr>
+                                                <td>v{{ $entry->from_version }}</td>
+                                                <td>v{{ $entry->to_version }}</td>
+                                                <td>
+                                                    @php
+                                                        $badgeColor = match($entry->status) {
+                                                            'completed' => 'success',
+                                                            'failed' => 'danger',
+                                                            'running' => 'info',
+                                                            'queued' => 'warning',
+                                                            default => 'secondary',
+                                                        };
+                                                    @endphp
+                                                    <span class="badge bg-{{ $badgeColor }}{{ $badgeColor === 'warning' ? ' text-dark' : '' }}">
+                                                        {{ $entry->status }}
+                                                    </span>
+                                                </td>
+                                                <td class="text-muted small">{{ $entry->completed_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                                                <td class="text-end">
+                                                    @if (! empty($entry->output))
+                                                        <button type="button" wire:click="showHistoryOutput({{ $entry->id }})" class="btn btn-outline-secondary btn-sm py-0">Log</button>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
-                @endif
+                </div>
+            @endif
+
+            @if(!empty($changelogSections))
+                <div class="col-lg-6">
+                    <div class="card obiora-card h-100">
+                        <div class="card-body">
+                            <h2 class="h6 mb-1">Journal des versions</h2>
+                            <p class="text-muted small mb-3">Changelog intégré depuis <code>CHANGELOG.md</code>.</p>
+                            <div class="accordion accordion-flush obiora-changelog-accordion" id="changelogAccordion">
+                                @foreach($changelogSections as $index => $section)
+                                    <div class="accordion-item bg-transparent border-secondary">
+                                        <h3 class="accordion-header">
+                                            <button class="accordion-button collapsed bg-transparent text-light shadow-none py-2"
+                                                type="button"
+                                                data-bs-toggle="collapse"
+                                                data-bs-target="#changelog-{{ $index }}">
+                                                v{{ $section['version'] }}
+                                                @if($section['date'])
+                                                    <span class="text-muted small ms-2">{{ $section['date'] }}</span>
+                                                @endif
+                                            </button>
+                                        </h3>
+                                        <div id="changelog-{{ $index }}" class="accordion-collapse collapse" data-bs-parent="#changelogAccordion">
+                                            <div class="accordion-body pt-0">
+                                                @if(!empty($section['items']))
+                                                    <ul class="small mb-0">
+                                                        @foreach($section['items'] as $item)
+                                                            <li>{{ $item }}</li>
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <pre class="small text-muted mb-0" style="white-space: pre-wrap; font-family: inherit;">{{ $section['body'] }}</pre>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+        </div>
+    @endif
+
+    @if ($viewingOutputId)
+        <div class="obiora-log-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="log-modal-title">
+            <div class="obiora-log-modal" wire:click.stop>
+                <div class="obiora-log-modal-header">
+                    <span id="log-modal-title" class="small fw-medium">Log complet — MAJ #{{ $viewingOutputId }}</span>
+                    <button type="button" class="btn-close btn-close-white btn-sm" wire:click="closeHistoryOutput" aria-label="Fermer"></button>
+                </div>
+                <div class="obiora-log-modal-body">
+                    <pre class="small mb-0 obiora-log-pre">{{ $viewingOutput }}</pre>
+                </div>
             </div>
         </div>
     @endif

@@ -35,7 +35,7 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('partials.sidebar', function ($view): void {
             if (auth()->check()) {
-                $this->app->make(UpdateRecovery::class)->recoverStale(40);
+                $this->app->make(UpdateRecovery::class)->recoverStale(20);
             }
 
             $updateAvailable = false;

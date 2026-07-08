@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.3 - 2026-07-08
+
+- Licence & MAJ : historique (gauche) + journal des versions (droite) en 50/50
+- Fix MAJ bloquée / erreur 500 : mode maintenance pendant update, purge caches au lieu de `optimize`, recovery plus rapide, bouton Débloquer
+- Fix restart obiora-queue déplacé après succès du job (évite d'interrompre la MAJ en cours)
+
 ## v2.1.2 - 2026-07-08
 
 - Modal logs MAJ responsive (92 % largeur viewport, max 78 % hauteur)

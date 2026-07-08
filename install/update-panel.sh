@@ -50,6 +50,10 @@ fi
 
 cd "${OBIORA_INSTALL_DIR}"
 
+# Mode maintenance : évite les erreurs 500 pendant git checkout / npm build
+echo "[0/8] mode maintenance…"
+sudo -u "${OBIORA_USER}" php artisan down --retry=60 --refresh=15 >/dev/null 2>&1 || true
+
 # Récupération d'urgence : un drop-in bind-address ObiOra peut avoir empêché
 # MariaDB de redémarrer (panel en 500 / Connection refused sur 127.0.0.1:3306).
 if [[ -f "${OBIORA_INSTALL_DIR}/agent/scripts/mysql-docker-recover.sh" ]]; then
@@ -160,9 +164,9 @@ progress 72 "Migrations de base de données…"
 sudo -u "${OBIORA_USER}" php artisan migrate --force
 clear_panel_caches
 
-echo "[6/8] artisan optimize..."
-progress 82 "Optimisation du panel…"
-sudo -u "${OBIORA_USER}" php artisan optimize
+echo "[6/8] purge caches finales…"
+progress 82 "Purge des caches Laravel…"
+clear_panel_caches
 
 echo "[7/8] sudoers agent + répertoire web..."
 progress 88 "Configuration des permissions et sudoers…"
@@ -216,15 +220,14 @@ if systemctl list-unit-files 2>/dev/null | grep -q '^obiora-agent\.service'; the
     systemctl is-active --quiet obiora-agent || systemctl start obiora-agent >/dev/null 2>&1 || true
 fi
 
-# Redémarrage différé du worker (ce script tourne DANS obiora-queue).
-if systemctl list-unit-files 2>/dev/null | grep -q '^obiora-queue\.service'; then
-    setsid bash -c 'sleep 20; systemctl --no-block restart obiora-queue' >/dev/null 2>&1 </dev/null &
-    disown 2>/dev/null || true
-fi
+# Redémarrage différé du worker — géré par PanelUpdater après succès du job
+# (un restart ici tuait le job MAJ en cours dans obiora-queue).
 
 if systemctl list-unit-files 2>/dev/null | grep -q '^obiora-reverb\.service'; then
     systemctl restart obiora-reverb >/dev/null 2>&1 || true
 fi
+
+sudo -u "${OBIORA_USER}" php artisan up >/dev/null 2>&1 || true
 
 trap - ERR
 progress 100 "Mise à jour terminée avec succès"

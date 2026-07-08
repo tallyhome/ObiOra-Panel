@@ -484,6 +484,11 @@ body {
     margin-top: 0.35rem;
 }
 
+.obiora-changelog-accordion {
+    max-height: min(52vh, 480px);
+    overflow-y: auto;
+}
+
 // Service badge
 .obiora-svc-badge {
     font-size: 0.7rem;

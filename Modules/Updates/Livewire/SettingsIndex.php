@@ -12,6 +12,7 @@ use App\Services\Core\PanelUpdater;
 use App\Services\Core\SystemMaintenance;
 use App\Services\Core\UpdateManager;
 use App\Services\Core\UpdateRecovery;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -68,7 +69,7 @@ final class SettingsIndex extends Component
         SystemMaintenance $systemMaintenance,
         UpdateRecovery $updateRecovery,
     ): void {
-        $updateRecovery->recoverStale();
+        $updateRecovery->recoverStale(20);
         $this->loadLicense($licenseService);
         $this->updateInfo = $updateManager->checkForUpdates();
         $this->lastCheckedAt = now()->format('d/m/Y H:i:s');
@@ -257,6 +258,47 @@ final class SettingsIndex extends Component
             : ($pending->status === 'running'
                 ? 'Mise à jour en cours d\'exécution (composer, migrations, build)…'
                 : 'Mise à jour en file d\'attente, démarrage imminent…');
+    }
+
+    public function cancelBlockedUpdate(UpdateRecovery $updateRecovery): void
+    {
+        abort_unless(auth()->user()?->can('updates.manage'), 403);
+
+        $ids = UpdateHistory::query()
+            ->whereIn('status', ['queued', 'running'])
+            ->pluck('id');
+
+        foreach ($ids as $id) {
+            $history = UpdateHistory::query()->find($id);
+            if ($history === null) {
+                continue;
+            }
+
+            $history->update([
+                'status' => 'failed',
+                'progress' => max((int) $history->progress, 5),
+                'progress_message' => 'Mise à jour annulée manuellement',
+                'output' => trim((string) $history->output."\n\n[manual] Réinitialisation depuis le panel."),
+                'completed_at' => now(),
+            ]);
+        }
+
+        try {
+            Artisan::call('optimize:clear');
+            Artisan::call('up');
+        } catch (\Throwable) {
+            // best-effort
+        }
+
+        $this->updateRunning = false;
+        $this->pendingHistoryId = null;
+        $this->updateProgress = 0;
+        $this->updateProgressMessage = '';
+        $this->updateSuccess = false;
+        $this->updateMessage = 'Mise à jour bloquée réinitialisée. Purgez le cache navigateur (Ctrl+F5) puis relancez si besoin.';
+        $updateRecovery->recoverStale(0);
+
+        $this->dispatch('notify', type: 'warning', message: $this->updateMessage);
     }
 
     public function showHistoryOutput(int $historyId): void

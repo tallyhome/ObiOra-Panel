@@ -12,15 +12,28 @@ final class UpdateRecovery
     /**
      * Marque comme échouées les MAJ bloquées (worker tué, timeout, cache incohérent).
      */
-    public function recoverStale(int $maxAgeMinutes = 40): int
+    public function recoverStale(int $maxAgeMinutes = 20): int
     {
+        if ($maxAgeMinutes <= 0) {
+            return 0;
+        }
+
         $cutoff = now()->subMinutes($maxAgeMinutes);
+        $stuckProgressCutoff = now()->subMinutes(min(25, max(10, (int) ($maxAgeMinutes * 0.75))));
 
         $stale = UpdateHistory::query()
             ->whereIn('status', ['queued', 'running'])
-            ->where(function ($query) use ($cutoff): void {
+            ->where(function ($query) use ($cutoff, $stuckProgressCutoff): void {
                 $query->where('updated_at', '<', $cutoff)
-                    ->orWhere('created_at', '<', $cutoff);
+                    ->orWhere('created_at', '<', $cutoff)
+                    ->orWhere(function ($inner) use ($stuckProgressCutoff): void {
+                        $inner->where('status', 'running')
+                            ->where('updated_at', '<', $stuckProgressCutoff);
+                    })
+                    ->orWhere(function ($inner) use ($stuckProgressCutoff): void {
+                        $inner->where('status', 'queued')
+                            ->where('created_at', '<', $stuckProgressCutoff);
+                    });
             })
             ->get();
 

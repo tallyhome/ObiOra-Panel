@@ -157,6 +157,8 @@ final class PanelUpdater
                 'output' => $output,
                 'completed_at' => now(),
             ]);
+
+            $this->restartQueueWorkerDeferred();
         } catch (Throwable $exception) {
             Log::error('Panel update exception', ['message' => $exception->getMessage()]);
 
@@ -229,6 +231,24 @@ final class PanelUpdater
             $this->executor->run('sudo -n systemctl start obiora-queue', ['timeout' => 15]);
         } catch (Throwable $exception) {
             Log::info('Impossible de vérifier/démarrer obiora-queue automatiquement', [
+                'message' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    private function restartQueueWorkerDeferred(): void
+    {
+        if (PHP_OS_FAMILY !== 'Linux') {
+            return;
+        }
+
+        try {
+            $this->executor->run(
+                'sudo -n systemctl restart obiora-queue',
+                ['timeout' => 30],
+            );
+        } catch (Throwable $exception) {
+            Log::info('Redémarrage obiora-queue après MAJ ignoré', [
                 'message' => $exception->getMessage(),
             ]);
         }
