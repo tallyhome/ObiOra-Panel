@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.11 - 2026-07-08
+
+- Fix lien Monitoring sidebar (affiché si permission `monitoring.view`, sans dépendre du flag module)
+- Fix désinstallation Marketplace bloquée (recovery progression stale + reset état)
+- Doc `docs/architecture/RBAC-MATRIX.md` — scope client multi-tenant en suspens (AdminLicence)
+
 ## v2.1.10 - 2026-07-08
 
 - RBAC complet : matrice permissions admin / technicien / client (seeder + middleware routes + sidebar)

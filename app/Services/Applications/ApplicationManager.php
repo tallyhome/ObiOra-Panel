@@ -15,6 +15,7 @@ use App\Services\Database\DatabaseProvisioner;
 use App\Support\Realtime;
 use App\Support\ServerAccessHost;
 use App\Services\System\PrivilegedScriptRunner;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -688,6 +689,59 @@ final class ApplicationManager
         $status = Cache::get($this->progressCacheKey($serverId, $slug));
 
         return is_array($status) ? $status : null;
+    }
+
+    public function recoverStaleMarketplaceProgress(int $serverId, int $maxAgeMinutes = 20): void
+    {
+        $apps = InstalledApplication::query()
+            ->where('server_id', $serverId)
+            ->whereIn('status', [ApplicationStatus::Installing, ApplicationStatus::Removing])
+            ->get();
+
+        foreach ($apps as $app) {
+            $status = $this->installProgressStatus($serverId, $app->slug);
+
+            if (! is_array($status)) {
+                $this->resetStuckApplication($app);
+
+                continue;
+            }
+
+            $updatedAt = isset($status['updated_at'])
+                ? Carbon::parse((string) $status['updated_at'])
+                : null;
+
+            $isStale = ($status['running'] ?? false)
+                && ($updatedAt === null || $updatedAt->lt(now()->subMinutes($maxAgeMinutes)));
+
+            if ($isStale) {
+                $this->finishProgress(
+                    $serverId,
+                    $app->slug,
+                    false,
+                    'Opération expirée — vérifiez que obiora-queue est actif.',
+                );
+                $this->resetStuckApplication($app);
+            }
+        }
+    }
+
+    private function resetStuckApplication(InstalledApplication $application): void
+    {
+        if ($application->status === ApplicationStatus::Removing) {
+            $application->update(['status' => ApplicationStatus::Installed]);
+
+            return;
+        }
+
+        if ($application->status === ApplicationStatus::Installing) {
+            $application->update([
+                'status' => ApplicationStatus::Error,
+                'metadata' => array_merge($application->metadata ?? [], [
+                    'error' => 'Installation interrompue ou file d\'attente inactive.',
+                ]),
+            ]);
+        }
     }
 
     private function finishProgress(int $serverId, string $slug, bool $success, string $message, string $log = ''): void

@@ -25,14 +25,12 @@
         </a>
         @endcan
         @can('monitoring.view')
-        @if(!empty($monitoringEnabled))
         <a href="{{ route('monitoring.index') }}" class="nav-link {{ request()->routeIs('monitoring.*') ? 'active' : '' }}">
             <span class="obiora-nav-icon" aria-hidden="true">◉</span> Monitoring
             @if(!empty($realtimeEnabled))
                 <span class="badge bg-primary ms-1" style="font-size:0.6rem;">WS</span>
             @endif
         </a>
-        @endif
         @endcan
         @can('ai.view')
         <a href="{{ route('ai.index') }}" class="nav-link {{ request()->routeIs('ai.*') ? 'active' : '' }}">

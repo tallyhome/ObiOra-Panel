@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Plugins\Livewire;
 
+use App\Enums\ApplicationStatus;
 use App\Livewire\Concerns\AuthorizesPanelAccess;
 use App\Models\InstalledApplication;
 use App\Services\Applications\ApplicationCatalog;
@@ -64,6 +65,11 @@ final class PluginMarketplace extends Component
 
         if (session('error')) {
             $this->dispatch('notify', type: 'danger', message: (string) session('error'));
+        }
+
+        $server = $serverManager->getCurrentServer();
+        if ($server !== null) {
+            $manager->recoverStaleMarketplaceProgress($server->id);
         }
 
         $this->resumeInstall($manager, $serverManager);
@@ -273,16 +279,27 @@ final class PluginMarketplace extends Component
         $server = $serverManager->getCurrentServer();
 
         if ($server === null || $this->installingSlug === null) {
-            $this->installRunning = false;
+            $this->resetInstallState();
 
             return;
         }
 
         $status = Cache::get($manager->progressCacheKey($server->id, $this->installingSlug));
+        $app = InstalledApplication::query()
+            ->where('server_id', $server->id)
+            ->where('slug', $this->installingSlug)
+            ->first();
 
         if (! is_array($status)) {
-            $this->installRunning = false;
-            $this->installingSlug = null;
+            if ($app === null) {
+                $this->resetInstallState();
+
+                return;
+            }
+
+            $this->resetInstallState();
+            $manager->recoverStaleMarketplaceProgress($server->id);
+            $this->resumeInstall($manager, $serverManager);
 
             return;
         }
@@ -291,6 +308,13 @@ final class PluginMarketplace extends Component
         $this->installProgressMessage = (string) ($status['message'] ?? '');
         $this->installRunning = (bool) ($status['running'] ?? false);
 
+        if ($app === null && ($status['action'] ?? '') === 'uninstall' && ($status['success'] ?? false)) {
+            $this->dispatch('notify', type: 'success', message: $this->installProgressMessage ?: 'Application désinstallée.');
+            $this->resetInstallState();
+
+            return;
+        }
+
         if (! $this->installRunning && ($status['success'] ?? null) !== null) {
             $type = ($status['success'] ?? false) ? 'success' : 'danger';
             $this->dispatch('notify', type: $type, message: $this->installProgressMessage);
@@ -298,8 +322,16 @@ final class PluginMarketplace extends Component
                 $this->failedInstallSlug = $this->installingSlug;
                 $this->failedInstallLog = (string) ($status['log'] ?? $this->installProgressMessage);
             }
-            $this->installingSlug = null;
+            $this->resetInstallState();
         }
+    }
+
+    private function resetInstallState(): void
+    {
+        $this->installRunning = false;
+        $this->installingSlug = null;
+        $this->installProgress = 0;
+        $this->installProgressMessage = '';
     }
 
     public function showInstallLogModal(string $slug, ApplicationManager $manager, ServerManager $serverManager): void
@@ -429,6 +461,10 @@ final class PluginMarketplace extends Component
         }
 
         foreach ($manager->installed($server) as $app) {
+            if (! in_array($app->status, [ApplicationStatus::Installing, ApplicationStatus::Removing, ApplicationStatus::Installed], true)) {
+                continue;
+            }
+
             $status = Cache::get($manager->progressCacheKey($server->id, $app->slug));
 
             if (is_array($status) && ($status['running'] ?? false)) {
