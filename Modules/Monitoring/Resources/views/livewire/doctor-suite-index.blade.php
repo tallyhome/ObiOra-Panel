@@ -4,6 +4,13 @@
         <p class="text-muted mb-0">Agent de diagnostic léger — fonctionne sans dépôt ObiOra-Doctor sur le serveur cible.</p>
     </div>
 
+    <div class="alert alert-secondary py-2 small mb-4">
+        <strong>Variables d'installation</strong> —
+        <code>OBIORA_PANEL_URL</code> : adresse du panel (où envoyer les rapports, ex. <code>http://54.37.103.239</code>) ·
+        <code>OBIORA_SERVER_ID</code> : numéro du serveur dans le panel ·
+        <code>OBIORA_AGENT_TOKEN</code> : jeton secret lié à ce serveur (généré automatiquement en BDD).
+    </div>
+
     <div class="row g-4">
         <div class="col-lg-7">
             <div class="card obiora-card h-100">
@@ -30,17 +37,17 @@
                     <a href="{{ route('monitoring.index') }}" class="btn btn-outline-primary btn-sm mb-4">Ouvrir Monitoring</a>
 
                     <h3 class="h6">1. Sur ce serveur (panel local)</h3>
-                    <p class="small text-muted">Copiez-collez en SSH root sur la machine où tourne le panel :</p>
+                    <p class="small text-muted">En SSH root sur la machine où tourne le panel :</p>
                     <div class="obiora-copy-block mb-3">
                         <pre class="small mb-0 obiora-copy-text">{{ $localInstall }}</pre>
-                        <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="navigator.clipboard.writeText(@js($localInstall))">Copier</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="obioraCopyFromButton(this)">Copier</button>
                     </div>
 
                     <h3 class="h6">2. Sur un autre VPS (serveur distant)</h3>
-                    <p class="small text-muted">À exécuter en root sur le serveur à monitorer (le token est lié au serveur #{{ $server?->id }}) :</p>
+                    <p class="small text-muted">En root sur le serveur à monitorer (token lié au serveur #{{ $server?->id }}) :</p>
                     <div class="obiora-copy-block">
                         <pre class="small mb-0 obiora-copy-text">{{ $remoteInstall }}</pre>
-                        <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="navigator.clipboard.writeText(@js($remoteInstall))">Copier</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="obioraCopyFromButton(this)">Copier</button>
                     </div>
                 </div>
             </div>

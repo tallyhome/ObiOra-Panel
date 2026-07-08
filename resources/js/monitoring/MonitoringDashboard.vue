@@ -178,14 +178,14 @@
           <p class="small fw-medium mb-1">Sur un VPS distant (root) :</p>
           <div class="obiora-copy-block mb-3">
             <pre class="small mb-0 obiora-copy-text">{{ installRemote }}</pre>
-            <button type="button" class="btn btn-outline-secondary btn-sm mt-2" @click="copyInstall(installRemote)">
+            <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="obioraCopyFromButton(this)">
               Copier
             </button>
           </div>
           <p class="small fw-medium mb-1">Sur le serveur du panel (local) :</p>
           <div class="obiora-copy-block">
             <pre class="small mb-0 obiora-copy-text">{{ installLocal }}</pre>
-            <button type="button" class="btn btn-outline-secondary btn-sm mt-2" @click="copyInstall(installLocal)">
+            <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="obioraCopyFromButton(this)">
               Copier
             </button>
           </div>
@@ -342,11 +342,6 @@ async function loadInstallCommand(serverId, serverName) {
   } finally {
     installLoading.value = false;
   }
-}
-
-function copyInstall(text) {
-  if (!text) return;
-  navigator.clipboard.writeText(text);
 }
 
 async function loadCharts(serverId) {

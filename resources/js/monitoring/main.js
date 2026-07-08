@@ -1,10 +1,14 @@
 import '../echo.js';
 import { createApp } from 'vue';
+import { obioraCopyFromButton, obioraCopyText } from '../copy.js';
 import MonitoringDashboard from './MonitoringDashboard.vue';
 
 const root = document.getElementById('monitoring-app');
 
 if (root) {
+    window.obioraCopyText = obioraCopyText;
+    window.obioraCopyFromButton = obioraCopyFromButton;
+
     createApp(MonitoringDashboard, {
         fleetUrl: root.dataset.fleetUrl,
         streamUrl: root.dataset.streamUrl,

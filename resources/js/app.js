@@ -4,12 +4,15 @@ import './realtime';
 import './sidebar';
 import ApexCharts from 'apexcharts';
 import { obioraConfirm, obioraConfirmWire, obioraSubmitInstallSetup, obioraToast } from './obiora-swal';
+import { obioraCopyFromButton, obioraCopyText } from './copy';
 
 window.ApexCharts = ApexCharts;
 window.obioraToast = obioraToast;
 window.obioraConfirm = obioraConfirm;
 window.obioraConfirmWire = obioraConfirmWire;
 window.obioraSubmitInstallSetup = obioraSubmitInstallSetup;
+window.obioraCopyText = obioraCopyText;
+window.obioraCopyFromButton = obioraCopyFromButton;
 
 document.addEventListener('livewire:init', () => {
     Livewire.on('notify', ({ type, message }) => {

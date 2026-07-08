@@ -17,17 +17,28 @@ if [[ "${EUID}" -ne 0 ]]; then
 fi
 
 INSTALL_DIR="/opt/obiora-doctor-agent"
-API="${PANEL_URL%/}/api/v1/servers/${SERVER_ID}"
+ENV_FILE="${INSTALL_DIR}/agent.env"
 
 mkdir -p "${INSTALL_DIR}"
+
+cat > "${ENV_FILE}" <<ENV
+OBIORA_PANEL_URL=${PANEL_URL}
+OBIORA_SERVER_ID=${SERVER_ID}
+OBIORA_AGENT_TOKEN=${AGENT_TOKEN}
+ENV
+chmod 600 "${ENV_FILE}"
 
 cat > "${INSTALL_DIR}/run-scan.sh" << 'SCAN'
 #!/usr/bin/env bash
 set -euo pipefail
 
-PANEL_URL="${OBIORA_PANEL_URL:?}"
-SERVER_ID="${OBIORA_SERVER_ID:?}"
-AGENT_TOKEN="${OBIORA_AGENT_TOKEN:?}"
+ENV_FILE="/opt/obiora-doctor-agent/agent.env"
+# shellcheck source=/dev/null
+[[ -f "${ENV_FILE}" ]] && source "${ENV_FILE}"
+
+PANEL_URL="${OBIORA_PANEL_URL:?OBIORA_PANEL_URL manquant}"
+SERVER_ID="${OBIORA_SERVER_ID:?OBIORA_SERVER_ID manquant}"
+AGENT_TOKEN="${OBIORA_AGENT_TOKEN:?OBIORA_AGENT_TOKEN manquant}"
 API="${PANEL_URL%/}/api/v1/servers/${SERVER_ID}"
 
 hostname="$(hostname -f 2>/dev/null || hostname)"
@@ -37,12 +48,19 @@ mem_avail="$(awk '/MemAvailable/ {print $2}' /proc/meminfo 2>/dev/null || echo 0
 disk_pct="$(df -P / 2>/dev/null | awk 'NR==2 {gsub(/%/,"",$5); print $5}' || echo 0)"
 failed_units="$(systemctl --failed --no-legend 2>/dev/null | wc -l | tr -d ' ')"
 score=100
-[[ "${disk_pct}" -gt 90 ]] && score=$((score - 20))
-[[ "${disk_pct}" -gt 95 ]] && score=$((score - 15))
-[[ "${failed_units}" -gt 0 ]] && score=$((score - failed_units * 5))
-(( score < 0 )) && score=0
+if [[ "${disk_pct}" -gt 90 ]]; then score=$((score - 20)); fi
+if [[ "${disk_pct}" -gt 95 ]]; then score=$((score - 15)); fi
+if [[ "${failed_units}" -gt 0 ]]; then score=$((score - failed_units * 5)); fi
+if (( score < 0 )); then score=0; fi
+
+if [[ "${failed_units}" -eq 0 ]]; then
+    systemd_status="ok"
+else
+    systemd_status="warning"
+fi
 
 generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+response_file="/tmp/obiora-doctor-last.json"
 
 payload="$(cat <<JSON
 {
@@ -53,20 +71,24 @@ payload="$(cat <<JSON
   "results": [
     {"module": "system", "status": "ok", "load": "${load}", "mem_kb": ${mem_avail}, "mem_total_kb": ${mem_total}},
     {"module": "disk", "status": "ok", "root_used_pct": ${disk_pct}},
-    {"module": "systemd", "status": "$([[ "${failed_units}" -eq 0 ]] && echo ok || echo warning)", "failed_units": ${failed_units}}
+    {"module": "systemd", "status": "${systemd_status}", "failed_units": ${failed_units}}
   ]
 }
 JSON
 )"
 
-http_code="$(curl -fsS -o /tmp/obiora-doctor-last.json -w '%{http_code}' \
+http_code="$(curl -sS -o "${response_file}" -w '%{http_code}' \
     -X POST "${API}/diagnostics/reports" \
     -H "Authorization: Bearer ${AGENT_TOKEN}" \
     -H "Content-Type: application/json" \
+    -H "Accept: application/json" \
     -d "${payload}" 2>/dev/null || echo "000")"
 
 if [[ "${http_code}" != "200" ]]; then
-    echo "ERREUR: envoi rapport HTTP ${http_code}" >&2
+    echo "ERREUR: envoi rapport HTTP ${http_code} vers ${API}/diagnostics/reports" >&2
+    if [[ -f "${response_file}" ]]; then
+        cat "${response_file}" >&2
+    fi
     exit 1
 fi
 
@@ -79,20 +101,22 @@ cat > /etc/systemd/system/obiora-doctor-agent.service << UNIT
 [Unit]
 Description=ObiOra Doctor agent scan
 After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot
-Environment=OBIORA_PANEL_URL=${PANEL_URL}
-Environment=OBIORA_SERVER_ID=${SERVER_ID}
-Environment=OBIORA_AGENT_TOKEN=${AGENT_TOKEN}
+EnvironmentFile=${ENV_FILE}
 ExecStart=${INSTALL_DIR}/run-scan.sh
+StandardOutput=journal
+StandardError=journal
 UNIT
 
-cat > /etc/systemd/system/obiora-doctor-agent.timer << 'TIMER'
+cat > /etc/systemd/system/obiora-doctor-agent.timer << TIMER
 [Unit]
 Description=ObiOra Doctor agent — scan periodique
 
 [Timer]
+Unit=obiora-doctor-agent.service
 OnBootSec=2min
 OnUnitActiveSec=5min
 Persistent=true
@@ -103,6 +127,12 @@ TIMER
 
 systemctl daemon-reload
 systemctl enable --now obiora-doctor-agent.timer
-systemctl start obiora-doctor-agent.service || true
+
+echo "Test du premier scan…"
+if ! "${INSTALL_DIR}/run-scan.sh"; then
+    echo "ERREUR: le premier scan a echoue. Details :" >&2
+    journalctl -u obiora-doctor-agent.service -n 15 --no-pager >&2 || true
+    exit 1
+fi
 
 echo "OK: agent Doctor installe — timer obiora-doctor-agent actif (scan / 5 min)"

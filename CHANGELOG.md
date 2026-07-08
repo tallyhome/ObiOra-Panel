@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.4 - 2026-07-08
+
+- Fix agent Doctor : bug bash `set -e` sur `(( score < 0 ))` qui faisait échouer le scan systemd
+- Agent : meilleurs logs HTTP, test du premier scan obligatoire, fichier `agent.env`
+- Boutons Copier (Monitoring + Doctor) : fallback HTTP sans API clipboard sécurisée
+- Page Doctor : explication des variables OBIORA_PANEL_URL / SERVER_ID / AGENT_TOKEN
+
 ## v2.1.3 - 2026-07-08
 
 - Licence & MAJ : historique (gauche) + journal des versions (droite) en 50/50
