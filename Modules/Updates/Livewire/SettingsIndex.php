@@ -390,6 +390,7 @@ final class SettingsIndex extends Component
             'systemInfo' => $systemMaintenance->detectPackageManager(),
             'changelogSections' => $changelog->sections(6),
             'availableReleaseNotes' => $availableNotes,
+            'isDemoAccount' => (bool) auth()->user()?->is_demo,
         ]);
     }
 }

@@ -36,9 +36,9 @@ Seeder : `Database\Seeders\RolePermissionSeeder`
 | Utilisateurs panel (gérer) | `users.manage` | ✓ | ✗ | ✗ | ✗ |
 | Infrastructure (voir) | `modules.view` | ✓ | ✓ | ✓ | ✗ |
 | Infrastructure (actions) | `modules.manage` | ✓ | ✓ | ✗ | ✗ |
-| Licence & MAJ (voir) | `updates.view` | ✓ | ✓ | ✗ | ✗ |
+| Licence & MAJ (voir) | `updates.view` | ✓ | ✓ | ✗ | ✓ |
 | Lancer MAJ panel | `updates.manage` | ✓ | ✗ | ✗ | ✗ |
-| Licence (voir) | `license.view` | ✓ | ✓ | ✗ | ✗ |
+| Licence (voir) | `license.view` | ✓ | ✓ | ✗ | ✓ |
 | Licence (gérer) | `license.manage` | ✓ | ✗ | ✗ | ✗ |
 | Assistant IA | `ai.view` | ✓ | ✓ | ✓ | ✓ |
 | Config IA | `ai.manage` | ✓ | ✓ | ✗ | ✗ |

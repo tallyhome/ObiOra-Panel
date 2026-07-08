@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.15 - 2026-07-08
+
+- Compte client démo : accès lecture Licence & MAJ, maintenance système grisée (badge « Compte démo »)
+- Rôle client : permissions `updates.view` et `license.view`
+
 ## v2.1.14 - 2026-07-08
 
 - Rôle client : accès Docker (marketplace / installation apps)

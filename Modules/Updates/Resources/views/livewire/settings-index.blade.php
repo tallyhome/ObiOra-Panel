@@ -210,6 +210,22 @@
                 </div>
             </div>
         @endif
+    @elseif($isDemoAccount)
+        <div class="card obiora-card mt-4 obiora-card-disabled">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                    <h2 class="h5 mb-0 text-muted">Maintenance système</h2>
+                    <span class="badge bg-secondary">Compte démo</span>
+                </div>
+                <p class="text-muted small mb-3">
+                    La maintenance du système d'exploitation (mises à jour paquets, redémarrage serveur) n'est pas disponible sur un compte démo.
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" disabled>Mettre à jour le système</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" disabled>Redémarrer</button>
+                </div>
+            </div>
+        </div>
     @endcan
 
     @if($history->isNotEmpty() || !empty($changelogSections))

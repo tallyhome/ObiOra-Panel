@@ -36,6 +36,8 @@ final class RolePermissionsTest extends TestCase
         $this->assertTrue($client->hasPermissionTo('plugins.manage'));
         $this->assertTrue($client->hasPermissionTo('docker.view'));
         $this->assertTrue($client->hasPermissionTo('docker.manage'));
+        $this->assertTrue($client->hasPermissionTo('updates.view'));
+        $this->assertTrue($client->hasPermissionTo('license.view'));
         $this->assertFalse($client->hasPermissionTo('servers.view'));
         $this->assertFalse($client->hasPermissionTo('monitoring.view'));
     }
@@ -49,6 +51,20 @@ final class RolePermissionsTest extends TestCase
         $this->actingAs($user)->get(route('plugins.index'))->assertOk();
         $this->actingAs($user)->get(route('docker.index'))->assertOk();
         $this->actingAs($user)->get(route('profile.index'))->assertOk();
+        $this->actingAs($user)->get(route('settings.index'))->assertOk();
+    }
+
+    public function test_demo_client_can_view_settings_but_not_manage_updates(): void
+    {
+        $user = User::factory()->create([
+            'is_demo' => true,
+            'demo_expires_at' => now()->addDay(),
+        ]);
+        $user->assignRole('client');
+
+        $this->actingAs($user)->get(route('settings.index'))->assertOk();
+        $this->assertFalse($user->can('updates.manage'));
+        $this->assertFalse($user->can('license.manage'));
     }
 
     public function test_technician_can_monitor_but_not_manage_servers(): void

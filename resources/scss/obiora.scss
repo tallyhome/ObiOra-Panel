@@ -182,6 +182,12 @@ body {
     }
 }
 
+.obiora-card-disabled {
+    opacity: 0.55;
+    pointer-events: none;
+    filter: grayscale(0.35);
+}
+
 .obiora-widget-title {
     font-size: 0.8rem;
     font-weight: 600;

@@ -89,6 +89,8 @@ final class PanelPermissions
                 'websites.manage',
                 'databases.view',
                 'ai.view',
+                'updates.view',
+                'license.view',
             ],
             default => [],
         };
