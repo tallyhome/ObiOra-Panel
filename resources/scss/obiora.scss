@@ -381,6 +381,107 @@ body {
     border: 1px solid var(--obiora-border);
     max-height: 320px;
     overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.obiora-log-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1055;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3vh 4vw;
+    background: rgba(0, 0, 0, 0.72);
+}
+
+.obiora-log-modal {
+    display: flex;
+    flex-direction: column;
+    width: min(94vw, 920px);
+    max-height: min(78vh, 720px);
+    background: var(--obiora-bg-card);
+    border: 1px solid var(--obiora-border);
+    border-radius: 0.5rem;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+}
+
+.obiora-log-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--obiora-border);
+    background: var(--obiora-bg-card-hover);
+}
+
+.obiora-log-modal-body {
+    flex: 1;
+    min-height: 0;
+    padding: 0.75rem 1rem 1rem;
+}
+
+.obiora-log-modal-body .obiora-log-pre {
+    max-height: calc(min(78vh, 720px) - 3.25rem);
+    margin: 0;
+    padding: 0.75rem;
+}
+
+.obiora-copy-block {
+    background: #0d0d14;
+    border: 1px solid var(--obiora-border);
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+}
+
+.obiora-copy-text {
+    color: #e8e8f0;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.obiora-ai-chat {
+    min-height: 420px;
+}
+
+.obiora-ai-messages {
+    max-height: min(52vh, 420px);
+    overflow-y: auto;
+}
+
+.obiora-ai-bubble {
+    display: inline-block;
+    max-width: min(92%, 640px);
+    padding: 0.65rem 0.9rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.obiora-ai-bubble--user {
+    background: var(--obiora-primary);
+    color: #0f172a;
+}
+
+.obiora-ai-bubble--assistant {
+    background: var(--obiora-bg-card-hover);
+    color: var(--obiora-text);
+    border: 1px solid var(--obiora-border);
+}
+
+.obiora-ai-bubble--offline {
+    border-left: 3px solid var(--obiora-warning);
+}
+
+.obiora-ai-offline-tag {
+    font-size: 0.68rem;
+    color: var(--obiora-text-muted);
+    margin-top: 0.35rem;
 }
 
 // Service badge

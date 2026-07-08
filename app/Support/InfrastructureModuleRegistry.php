@@ -25,7 +25,16 @@ final class InfrastructureModuleRegistry
             'applications' => ['route' => 'applications.index', 'name' => 'Applications', 'icon' => '📦'],
             'virtualizor' => ['route' => 'virtualizor.index', 'name' => 'Virtualizor', 'icon' => '☁'],
             'cluster' => ['route' => 'cluster.index', 'name' => 'Cluster', 'icon' => '⬡'],
-            'doctor' => ['route' => 'doctor.index', 'name' => 'Doctor & Suite', 'icon' => '🩺'],
+        ];
+    }
+
+    /** Lien principal sidebar (hors section Infrastructure). */
+    public static function sidebarPrimary(): array
+    {
+        return [
+            'route' => 'doctor.index',
+            'name' => 'Doctor & Suite',
+            'icon' => '🩺',
         ];
     }
 

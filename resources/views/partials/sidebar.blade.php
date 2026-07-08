@@ -39,6 +39,12 @@
         <a href="{{ route('backups.index') }}" class="nav-link {{ request()->routeIs('backups.*') ? 'active' : '' }}">
             <span class="obiora-nav-icon" aria-hidden="true">⬚</span> Sauvegardes
         </a>
+        @php($doctorLink = \App\Support\InfrastructureModuleRegistry::sidebarPrimary())
+        @if(\Illuminate\Support\Facades\Route::has($doctorLink['route']))
+        <a href="{{ route($doctorLink['route']) }}" class="nav-link {{ request()->routeIs('doctor.*') ? 'active' : '' }}">
+            <span class="obiora-nav-icon" aria-hidden="true">{{ $doctorLink['icon'] }}</span> {{ $doctorLink['name'] }}
+        </a>
+        @endif
         @if(!empty($infraModules) || !empty($stubModules))
         <hr class="border-secondary opacity-25 my-2">
         <button type="button"
@@ -46,11 +52,11 @@
                 class="nav-link w-100 text-start border-0 bg-transparent text-white d-flex align-items-center justify-content-between py-2 px-2 small"
                 aria-expanded="false"
                 aria-controls="infra-nav"
-                data-force-open="{{ request()->routeIs('modules.stub') || request()->routeIs('ssl.*', 'firewall.*', 'users.*', 'nginx.*', 'redis.*', 'apache.*', 'ftp.*', 'dns.*', 'applications.*', 'virtualizor.*', 'cluster.*', 'doctor.*') ? '1' : '0' }}">
+                data-force-open="{{ request()->routeIs('modules.stub') || request()->routeIs('ssl.*', 'firewall.*', 'users.*', 'nginx.*', 'redis.*', 'apache.*', 'ftp.*', 'dns.*', 'applications.*', 'virtualizor.*', 'cluster.*') ? '1' : '0' }}">
             <span>Infrastructure</span>
             <span class="infra-chevron opacity-75" aria-hidden="true">▸</span>
         </button>
-        <div class="collapse {{ request()->routeIs('modules.stub') || request()->routeIs('ssl.*', 'firewall.*', 'users.*', 'nginx.*', 'redis.*', 'apache.*', 'ftp.*', 'dns.*', 'applications.*', 'virtualizor.*', 'cluster.*', 'doctor.*') ? 'show' : '' }}" id="infra-nav">
+        <div class="collapse {{ request()->routeIs('modules.stub') || request()->routeIs('ssl.*', 'firewall.*', 'users.*', 'nginx.*', 'redis.*', 'apache.*', 'ftp.*', 'dns.*', 'applications.*', 'virtualizor.*', 'cluster.*') ? 'show' : '' }}" id="infra-nav">
             @foreach($infraModules ?? [] as $slug => $module)
             @if(\Illuminate\Support\Facades\Route::has($module['route']))
             <a href="{{ route($module['route']) }}" class="nav-link small py-1 ps-4 {{ request()->routeIs($module['route']) ? 'active' : '' }}">

@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.2 - 2026-07-08
+
+- Modal logs MAJ responsive (92 % largeur viewport, max 78 % hauteur)
+- Doctor & Suite : lien sidebar sous Sauvegardes (hors Infrastructure)
+- Agent Doctor : bootstrap autonome + route publique `/install/doctor-agent.sh`, commandes copiables (local + distant)
+- Monitoring : commandes d'installation dynamiques par serveur (token réel)
+- Assistant IA : bulles lisibles, activé par défaut, mode local sans clé, providers DeepSeek / Kimi (Moonshot)
+- Dashboard : poll désactivé par défaut si Reverb actif (temps réel WebSocket)
+
 ## v2.1.1 - 2026-07-08
 
 - Fix MAJ panel bloquée à 58 % : purge caches routes/vues après git checkout, timeout npm build, recovery MAJ stale

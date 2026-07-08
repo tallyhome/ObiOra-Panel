@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MonitoringAlert;
 use App\Models\Server;
 use App\Services\Monitoring\MonitoringFleetService;
+use App\Support\DoctorInstallHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -53,5 +54,16 @@ final class MonitoringFleetController extends Controller
         $alert->forceFill(['read_at' => now()])->save();
 
         return response()->json(['ok' => true]);
+    }
+
+    public function installCommand(Server $server, DoctorInstallHelper $doctor): JsonResponse
+    {
+        return response()->json([
+            'server_id' => $server->id,
+            'server_name' => $server->name,
+            'local' => $doctor->localCommand($server),
+            'remote' => $doctor->remoteCommand($server),
+            'bootstrap_url' => $doctor->bootstrapUrl(),
+        ]);
     }
 }

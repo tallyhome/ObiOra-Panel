@@ -75,15 +75,15 @@ return [
     'realtime' => [
         'enabled' => (bool) env('OBIORA_REALTIME_ENABLED', true),
         'metrics_interval_seconds' => (int) env('OBIORA_REALTIME_METRICS_INTERVAL', 5),
-        'fallback_poll_seconds' => (int) env('OBIORA_REALTIME_FALLBACK_POLL', 10),
+        'fallback_poll_seconds' => (int) env('OBIORA_REALTIME_FALLBACK_POLL', 0),
     ],
 
     'ai' => [
-        'enabled' => (bool) env('OBIORA_AI_ENABLED', false),
-        'provider' => env('OBIORA_AI_PROVIDER', 'openai'),
+        'enabled' => (bool) env('OBIORA_AI_ENABLED', true),
+        'provider' => env('OBIORA_AI_PROVIDER', 'deepseek'),
         'api_key' => env('OBIORA_AI_API_KEY'),
         'base_url' => env('OBIORA_AI_BASE_URL'),
-        'model' => env('OBIORA_AI_MODEL', 'gpt-4o-mini'),
+        'model' => env('OBIORA_AI_MODEL', 'deepseek-chat'),
         'max_tokens' => (int) env('OBIORA_AI_MAX_TOKENS', 2048),
     ],
 

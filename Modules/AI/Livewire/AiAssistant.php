@@ -30,6 +30,10 @@ final class AiAssistant extends Component
 
     public bool $planAllowed = true;
 
+    public bool $hasApiKey = false;
+
+    public string $providerLabel = 'local';
+
     public ?int $conversationId = null;
 
     public function mount(
@@ -39,6 +43,14 @@ final class AiAssistant extends Component
     ): void {
         $this->enabled = $ai->isEnabled();
         $this->planAllowed = $ai->isAllowedForCurrentPlan();
+        $this->hasApiKey = (string) config('obiora.ai.api_key', '') !== '';
+        $this->providerLabel = match ((string) config('obiora.ai.provider', 'openai')) {
+            'deepseek' => 'DeepSeek',
+            'ollama' => 'Ollama',
+            'anthropic' => 'Anthropic',
+            'moonshot', 'kimi' => 'Kimi / Moonshot',
+            default => 'OpenAI',
+        };
         $this->suggestions = $context->suggestedActions($context->build());
 
         $conversation = $store->loadOrCreate($this->conversationId);

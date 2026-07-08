@@ -20,12 +20,15 @@
             </p>
         </div>
         <div class="d-flex gap-2 align-items-center flex-wrap">
-            @if ($realtimeEnabled)
-                <span class="badge rounded-pill text-bg-primary" style="font-size: 0.7rem;" title="WebSocket Reverb actif">
-                    ⚡ Reverb
+            @if ($realtimeEnabled && $pollInterval === 0)
+                <span class="badge rounded-pill text-bg-primary" style="font-size: 0.7rem;" title="Mises à jour via WebSocket Reverb">
+                    ⚡ Temps réel
                 </span>
-            @endif
-            @if ($pollInterval > 0)
+            @elseif ($realtimeEnabled && $pollInterval > 0)
+                <span class="badge rounded-pill text-bg-primary" style="font-size: 0.7rem;" title="WebSocket Reverb + polling de secours">
+                    ⚡ Reverb · {{ $pollInterval }}s
+                </span>
+            @elseif ($pollInterval > 0)
                 <span class="badge rounded-pill" style="background: rgba(61,214,140,0.15); color: var(--obiora-primary); font-size: 0.7rem;">
                     <span class="obiora-status-dot ok me-1" style="width:6px;height:6px;"></span> Live · {{ $pollInterval }}s
                 </span>

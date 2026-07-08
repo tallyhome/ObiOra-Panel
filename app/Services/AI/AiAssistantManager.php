@@ -17,7 +17,7 @@ final class AiAssistantManager
 
     public function isEnabled(): bool
     {
-        return (bool) config('obiora.ai.enabled', false);
+        return (bool) config('obiora.ai.enabled', true);
     }
 
     public function isAllowedForCurrentPlan(): bool
@@ -38,11 +38,11 @@ final class AiAssistantManager
     public function chat(string $userMessage, array $history = []): array
     {
         if (! $this->isEnabled()) {
-            return $this->offlineReply('Assistant IA desactive (OBIORA_AI_ENABLED=false).');
+            return $this->offlineReply('Assistant IA désactivé (OBIORA_AI_ENABLED=false).');
         }
 
         if (! $this->isAllowedForCurrentPlan()) {
-            return $this->offlineReply('Assistant IA reserve aux plans Pro et Enterprise.');
+            return $this->offlineReply('Assistant IA réservé aux plans Pro et Enterprise.');
         }
 
         $apiKey = (string) config('obiora.ai.api_key', '');
@@ -74,7 +74,10 @@ final class AiAssistantManager
         } catch (\Throwable $e) {
             Log::warning('AI assistant provider error', ['message' => $e->getMessage()]);
 
-            return $this->offlineReply('Provider IA indisponible : '.$e->getMessage());
+            $fallback = $this->localFallback($userMessage);
+            $fallback['content'] = "Provider IA indisponible ({$e->getMessage()}).\n\n".$fallback['content'];
+
+            return $fallback;
         }
     }
 
@@ -87,8 +90,22 @@ final class AiAssistantManager
 
         return match ($provider) {
             'anthropic' => $this->callAnthropic($messages),
-            'ollama' => $this->callOpenAiCompatible($messages, (string) config('obiora.ai.base_url', 'http://127.0.0.1:11434/v1')),
-            default => $this->callOpenAiCompatible($messages, (string) config('obiora.ai.base_url', 'https://api.openai.com/v1')),
+            'ollama' => $this->callOpenAiCompatible(
+                $messages,
+                (string) (config('obiora.ai.base_url') ?: 'http://127.0.0.1:11434/v1'),
+            ),
+            'deepseek' => $this->callOpenAiCompatible(
+                $messages,
+                (string) (config('obiora.ai.base_url') ?: 'https://api.deepseek.com/v1'),
+            ),
+            'moonshot', 'kimi' => $this->callOpenAiCompatible(
+                $messages,
+                (string) (config('obiora.ai.base_url') ?: 'https://api.moonshot.cn/v1'),
+            ),
+            default => $this->callOpenAiCompatible(
+                $messages,
+                (string) (config('obiora.ai.base_url') ?: 'https://api.openai.com/v1'),
+            ),
         };
     }
 
@@ -155,23 +172,25 @@ final class AiAssistantManager
     {
         $ctx = $this->context->build();
         $hints = $this->context->suggestedActions($ctx);
-        $links = collect($hints)->map(fn ($h) => '- '.$h['label'].': '.$h['route'])->implode("\n");
+        $links = collect($hints)->map(fn ($h) => '• '.$h['label'].' → '.$h['route'])->implode("\n");
 
         $doctor = $ctx['doctor']
-            ? "Score Doctor actuel : {$ctx['doctor']['score']}% ({$ctx['doctor']['critical_count']} critique(s))."
-            : 'Pas encore de rapport Doctor sur ce serveur.';
+            ? "Score Doctor : {$ctx['doctor']['score']}% ({$ctx['doctor']['critical_count']} alerte(s) critique(s))."
+            : 'Aucun rapport Doctor — installez l\'agent depuis Doctor & Suite ou Monitoring.';
 
         $content = <<<TEXT
-Mode local (sans cle API configuree).
+Mode local (sans clé API cloud).
 
 {$doctor}
 Alertes non lues : {$ctx['alerts_unread']}.
 
-Suggestions panel :
+Raccourcis utiles :
 {$links}
 
-Votre question : « {$userMessage} »
-Configurez OBIORA_AI_API_KEY pour des reponses generees par un modele.
+Pour votre question « {$userMessage} » :
+1. Vérifiez le monitoring et les services systemd concernés.
+2. Consultez les logs dans Licence & MAJ ou Services.
+3. Ajoutez OBIORA_AI_API_KEY + provider deepseek/ollama/openai pour des réponses générées par un modèle.
 TEXT;
 
         return [

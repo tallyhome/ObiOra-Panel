@@ -164,12 +164,35 @@
 
     <div class="card obiora-card mt-4">
       <div class="card-body">
-        <h2 class="h6">Installation agent</h2>
-        <pre class="small bg-dark text-light p-3 rounded mb-0"><code>OBIORA_PANEL_URL={{ panelUrl }} \
-OBIORA_SERVER_ID=&lt;id&gt; \
-OBIORA_AGENT_TOKEN=&lt;token&gt; \
-OBIORA_SIGNING_KEY=&lt;cle_hex_64&gt; \
-bash ObiOra-Doctor/install/install-agent.sh</code></pre>
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+          <h2 class="h6 mb-0">Installation agent Doctor</h2>
+          <a v-if="doctorUrl" :href="doctorUrl" class="btn btn-outline-secondary btn-sm">Page Doctor & Suite</a>
+        </div>
+        <p class="small text-muted mb-3">
+          Commande prête à copier pour le serveur
+          <strong>{{ installServerName || 'sélectionné' }}</strong>
+          — sans dépôt ObiOra-Doctor sur la machine cible.
+        </p>
+        <div v-if="installLoading" class="text-muted small">Chargement…</div>
+        <template v-else-if="installRemote">
+          <p class="small fw-medium mb-1">Sur un VPS distant (root) :</p>
+          <div class="obiora-copy-block mb-3">
+            <pre class="small mb-0 obiora-copy-text">{{ installRemote }}</pre>
+            <button type="button" class="btn btn-outline-secondary btn-sm mt-2" @click="copyInstall(installRemote)">
+              Copier
+            </button>
+          </div>
+          <p class="small fw-medium mb-1">Sur le serveur du panel (local) :</p>
+          <div class="obiora-copy-block">
+            <pre class="small mb-0 obiora-copy-text">{{ installLocal }}</pre>
+            <button type="button" class="btn btn-outline-secondary btn-sm mt-2" @click="copyInstall(installLocal)">
+              Copier
+            </button>
+          </div>
+        </template>
+        <p v-else class="small text-muted mb-0">
+          Sélectionnez un serveur dans le tableau ou ajoutez-en un dans Serveurs.
+        </p>
       </div>
     </div>
   </div>
@@ -186,9 +209,16 @@ const props = defineProps({
   scoreHistoryBase: { type: String, required: true },
   compareBase: { type: String, default: '' },
   alertsReadBase: { type: String, default: '' },
+  installBase: { type: String, default: '' },
+  doctorUrl: { type: String, default: '' },
   realtimeEnabled: { type: Boolean, default: false },
   panelUrl: { type: String, default: '' },
 });
+
+const installLocal = ref('');
+const installRemote = ref('');
+const installServerName = ref('');
+const installLoading = ref(false);
 
 const servers = ref([]);
 const alerts = ref([]);
@@ -289,8 +319,34 @@ async function selectServer(server) {
   compareLeft.value = '';
   compareRight.value = '';
   compareResult.value = null;
+  await loadInstallCommand(server.id, server.name);
   await nextTick();
   await loadCharts(server.id);
+}
+
+async function loadInstallCommand(serverId, serverName) {
+  if (!props.installBase) return;
+  installLoading.value = true;
+  installLocal.value = '';
+  installRemote.value = '';
+  installServerName.value = serverName || '';
+  try {
+    const response = await fetch(`${props.installBase}/${serverId}/install-command`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!response.ok) return;
+    const data = await response.json();
+    installLocal.value = data.local || '';
+    installRemote.value = data.remote || '';
+    installServerName.value = data.server_name || serverName || '';
+  } finally {
+    installLoading.value = false;
+  }
+}
+
+function copyInstall(text) {
+  if (!text) return;
+  navigator.clipboard.writeText(text);
 }
 
 async function loadCharts(serverId) {
@@ -360,7 +416,11 @@ function renderScoreChart(reports) {
 }
 
 onMounted(() => {
-  fetchFleet();
+  fetchFleet().then(() => {
+    if (servers.value.length > 0) {
+      loadInstallCommand(servers.value[0].id, servers.value[0].name);
+    }
+  });
   connectStream();
 });
 

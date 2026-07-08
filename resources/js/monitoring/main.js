@@ -12,6 +12,8 @@ if (root) {
         scoreHistoryBase: root.dataset.scoreHistoryUrl,
         compareBase: root.dataset.compareBaseUrl,
         alertsReadBase: root.dataset.alertsReadUrl,
+        installBase: root.dataset.installBaseUrl,
+        doctorUrl: root.dataset.doctorUrl,
         panelUrl: root.dataset.panelUrl,
         realtimeEnabled: root.dataset.realtimeEnabled === '1',
     }).mount(root);

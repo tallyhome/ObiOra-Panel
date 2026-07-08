@@ -33,7 +33,7 @@ final class DashboardIndex extends Component
     /** @var array<string, mixed> */
     public array $network = [];
 
-  /** Intervalle de rafraîchissement auto (secondes). 0 = désactivé. */
+  /** Intervalle de rafraîchissement auto (secondes). 0 = désactivé (WebSocket Reverb). */
     public int $pollInterval = 10;
 
     public bool $realtimeEnabled = false;
@@ -45,12 +45,9 @@ final class DashboardIndex extends Component
     ): void {
         $this->realtimeEnabled = Realtime::enabled();
         $defaultPoll = (int) session('dashboard_poll_interval', $this->realtimeEnabled
-            ? (int) config('obiora.realtime.fallback_poll_seconds', 10)
+            ? (int) config('obiora.realtime.fallback_poll_seconds', 0)
             : 10);
         $this->pollInterval = $defaultPoll;
-        if ($this->realtimeEnabled && $this->pollInterval === 0) {
-            $this->pollInterval = (int) config('obiora.realtime.fallback_poll_seconds', 10);
-        }
         session(['dashboard_poll_interval' => $this->pollInterval]);
         $this->loadData($collector, $serverManager, $serviceManager);
     }

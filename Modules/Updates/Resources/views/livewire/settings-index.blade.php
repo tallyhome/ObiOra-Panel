@@ -290,13 +290,15 @@
                 </div>
 
                 @if ($viewingOutputId)
-                    <div class="card obiora-card mt-3">
-                        <div class="card-header d-flex justify-content-between align-items-center py-2">
-                            <span class="small fw-medium">Log complet — MAJ #{{ $viewingOutputId }}</span>
-                            <button type="button" class="btn-close btn-close-white btn-sm" wire:click="closeHistoryOutput"></button>
-                        </div>
-                        <div class="card-body p-0">
-                            <pre class="small mb-0 p-3 obiora-log-pre">{{ $viewingOutput }}</pre>
+                    <div class="obiora-log-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="log-modal-title">
+                        <div class="obiora-log-modal" wire:click.stop>
+                            <div class="obiora-log-modal-header">
+                                <span id="log-modal-title" class="small fw-medium">Log complet — MAJ #{{ $viewingOutputId }}</span>
+                                <button type="button" class="btn-close btn-close-white btn-sm" wire:click="closeHistoryOutput" aria-label="Fermer"></button>
+                            </div>
+                            <div class="obiora-log-modal-body">
+                                <pre class="small mb-0 obiora-log-pre">{{ $viewingOutput }}</pre>
+                            </div>
                         </div>
                     </div>
                 @endif
