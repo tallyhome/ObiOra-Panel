@@ -1,0 +1,109 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Diagnostics;
+
+use App\Models\CrashAnalyzerEvent;
+use App\Models\CrashAnalyzerMetric;
+use App\Models\CrashAnalyzerReport;
+use App\Models\DiagnosticReport;
+use App\Models\Server;
+use App\Services\CrashAnalyzer\CrashAnalyzerMetricsService;
+use Illuminate\Support\Collection;
+
+/**
+ * Agrège les résultats Doctor + Crash Analyzer pour la page Doctor & Suite.
+ */
+final class DoctorSuiteService
+{
+    public function __construct(
+        private readonly CrashAnalyzerMetricsService $crashMetrics,
+    ) {}
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function serverOverview(Server $server, int $historyMinutes = 60): array
+    {
+        $report = $server->latestDiagnosticReport;
+        $crashDashboard = $this->crashMetrics->dashboardData($server, $historyMinutes);
+
+        return [
+            'doctor' => $this->formatDoctorReport($report),
+            'crash_analyzer' => [
+                'summary' => $crashDashboard['summary'] ?? [],
+                'events' => array_slice($crashDashboard['events'] ?? [], 0, 20),
+                'reports' => $crashDashboard['reports'] ?? [],
+                'charts' => $crashDashboard['charts'] ?? [],
+            ],
+        ];
+    }
+
+    /**
+     * @param  Collection<int, Server>  $servers
+     * @return list<array<string, mixed>>
+     */
+    public function fleetOverview(Collection $servers): array
+    {
+        return $servers->map(function (Server $server) {
+            $report = $server->latestDiagnosticReport;
+            $lastMetric = CrashAnalyzerMetric::query()
+                ->where('server_id', $server->id)
+                ->latest('sampled_at')
+                ->first();
+            $criticalEvents = CrashAnalyzerEvent::query()
+                ->where('server_id', $server->id)
+                ->where('severity', 'critical')
+                ->where('detected_at', '>=', now()->subDay())
+                ->count();
+            $reportsCount = CrashAnalyzerReport::query()
+                ->where('server_id', $server->id)
+                ->count();
+
+            return [
+                'id' => $server->id,
+                'name' => $server->name,
+                'hostname' => $server->hostname,
+                'doctor_score' => $report?->score,
+                'doctor_status' => $report?->status,
+                'doctor_last_at' => $report?->generated_at?->toIso8601String(),
+                'crash_last_metric_at' => $lastMetric?->sampled_at?->toIso8601String(),
+                'crash_critical_24h' => $criticalEvents,
+                'crash_reports' => $reportsCount,
+                'deployed' => isset(($server->metadata ?? [])['doctor_deploy']),
+            ];
+        })->values()->all();
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function formatDoctorReport(?DiagnosticReport $report): ?array
+    {
+        if ($report === null) {
+            return null;
+        }
+
+        $json = $report->report_json ?? [];
+        $modules = [];
+        foreach ($json['results'] ?? [] as $result) {
+            $modules[] = [
+                'module' => $result['module'] ?? 'unknown',
+                'status' => $result['status'] ?? 'ok',
+                'findings' => $result['findings'] ?? [],
+            ];
+        }
+
+        return [
+            'id' => $report->id,
+            'score' => $report->score,
+            'status' => $report->status,
+            'doctor_version' => $report->doctor_version,
+            'generated_at' => $report->generated_at?->toIso8601String(),
+            'critical_findings' => $report->critical_findings ?? [],
+            'modules' => $modules,
+            'signature_verified' => $report->signature_verified,
+        ];
+    }
+}

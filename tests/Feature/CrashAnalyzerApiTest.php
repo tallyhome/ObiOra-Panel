@@ -119,5 +119,27 @@ final class CrashAnalyzerApiTest extends TestCase
         $response = $this->get(route('install.crash-analyzer'));
         $response->assertOk();
         $this->assertStringContainsString('obiora-crash-analyzer', $response->getContent());
+        $this->assertStringContainsString('crash-analyzer.tar.gz', $response->getContent());
+    }
+
+    public function test_crash_analyzer_agent_bundle_is_public(): void
+    {
+        if (! is_executable('/usr/bin/tar') && ! is_executable('/bin/tar')) {
+            $this->markTestSkipped('tar non disponible sur cette plateforme.');
+        }
+
+        $response = $this->get(route('install.crash-analyzer.bundle'));
+
+        $response->assertOk();
+        $response->assertHeader('Content-Type', 'application/gzip');
+        $this->assertStringStartsWith("\x1f\x8b", $response->getContent());
+    }
+
+    public function test_doctor_suite_install_script_is_public(): void
+    {
+        $response = $this->get(route('install.doctor-suite'));
+        $response->assertOk();
+        $this->assertStringContainsString('Doctor & Suite', $response->getContent());
+        $this->assertStringContainsString('crash-analyzer', $response->getContent());
     }
 }

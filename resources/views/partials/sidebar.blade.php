@@ -58,12 +58,13 @@
         </a>
         @endcan
         @can('modules.view')
-        @php($doctorLink = \App\Support\InfrastructureModuleRegistry::sidebarPrimary())
-        @if(\Illuminate\Support\Facades\Route::has($doctorLink['route']))
-        <a href="{{ route($doctorLink['route']) }}" class="nav-link {{ request()->routeIs('doctor.*') ? 'active' : '' }}">
-            <span class="obiora-nav-icon" aria-hidden="true">{{ $doctorLink['icon'] }}</span> {{ $doctorLink['name'] }}
+        @foreach(\App\Support\InfrastructureModuleRegistry::diagnostics() as $slug => $diag)
+        @if(\Illuminate\Support\Facades\Route::has($diag['route']))
+        <a href="{{ route($diag['route']) }}" class="nav-link {{ \App\Support\InfrastructureModuleRegistry::isDiagnosticRouteActive($slug) ? 'active' : '' }}">
+            <span class="obiora-nav-icon" aria-hidden="true">{{ $diag['icon'] }}</span> {{ $diag['name'] }}
         </a>
         @endif
+        @endforeach
         @endcan
         @if(auth()->user()?->can('modules.view') || auth()->user()?->can('users.view'))
         @if(!empty($infraModules) || !empty($stubModules))

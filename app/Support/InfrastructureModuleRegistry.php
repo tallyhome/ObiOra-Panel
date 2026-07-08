@@ -31,11 +31,47 @@ final class InfrastructureModuleRegistry
     /** Lien principal sidebar (hors section Infrastructure). */
     public static function sidebarPrimary(): array
     {
+        return self::diagnostics()['doctor'];
+    }
+
+    /**
+     * Diagnostics : Doctor & Suite + Crash Analyzer (sidebar).
+     *
+     * @return array<string, array{route: string, name: string, icon: string, active: list<string>}>
+     */
+    public static function diagnostics(): array
+    {
         return [
-            'route' => 'doctor.index',
-            'name' => 'Doctor & Suite',
-            'icon' => '🩺',
+            'doctor' => [
+                'route' => 'doctor.index',
+                'name' => 'Doctor & Suite',
+                'icon' => '🩺',
+                'active' => ['doctor.*'],
+            ],
+            'crash-analyzer' => [
+                'route' => 'crash-analyzer.index',
+                'name' => 'Crash Analyzer',
+                'icon' => '💥',
+                'active' => ['crash-analyzer.*'],
+            ],
         ];
+    }
+
+    public static function isDiagnosticRouteActive(string $slug): bool
+    {
+        $item = self::diagnostics()[$slug] ?? null;
+
+        if ($item === null) {
+            return false;
+        }
+
+        foreach ($item['active'] as $pattern) {
+            if (request()->routeIs($pattern)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static function isImplemented(string $slug): bool

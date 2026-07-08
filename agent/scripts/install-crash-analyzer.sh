@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # ObiOra Crash Analyzer — installation agent
-# Usage: sudo OBIORA_PANEL_URL=... OBIORA_SERVER_ID=... OBIORA_AGENT_TOKEN=... bash install-crash-analyzer.sh
+# Usage local  : sudo OBIORA_PANEL_URL=... OBIORA_SERVER_ID=... OBIORA_AGENT_TOKEN=... bash install-crash-analyzer.sh
+# Usage distant: curl -fsSL https://panel/install/crash-analyzer.sh | sudo OBIORA_... bash
 set -euo pipefail
 
 PANEL_URL="${OBIORA_PANEL_URL:?OBIORA_PANEL_URL requis}"
@@ -15,7 +16,7 @@ if [[ "${EUID}" -ne 0 ]]; then
         bash "$0" "$@"
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "/tmp")"
 INSTALL_DIR="/opt/obiora-crash-analyzer"
 CONFIG_DIR="/etc/obiora"
 DATA_DIR="/var/lib/obiora/crash-analyzer"
@@ -36,27 +37,41 @@ install_deps() {
     case "${os}" in
         debian|ubuntu)
             apt-get update -qq
-            apt-get install -y -qq python3 python3-venv smartmontools iproute2 systemd
+            apt-get install -y -qq python3 python3-venv smartmontools iproute2 systemd curl tar rsync
             ;;
         almalinux|rocky|centos|rhel)
-            dnf install -y -q python3 python3-pip smartmontools iproute systemd
+            dnf install -y -q python3 python3-pip smartmontools iproute systemd curl tar rsync
             ;;
         *)
-            echo "OS ${os} — installation manuelle des dépendances requise" >&2
+            echo "OS ${os} — installez python3, curl, tar et rsync manuellement si besoin" >&2
             ;;
     esac
 }
 
-install_deps
-mkdir -p "${INSTALL_DIR}" "${CONFIG_DIR}" "${DATA_DIR}/reports"
+install_agent_source() {
+    mkdir -p "${INSTALL_DIR}"
 
-if [[ -d "${SCRIPT_DIR}/../crash-analyzer" ]]; then
-    rsync -a --delete "${SCRIPT_DIR}/../crash-analyzer/" "${INSTALL_DIR}/" \
-        --exclude '__pycache__' --exclude '*.pyc' --exclude 'tests'
-else
-    echo "ERREUR: répertoire crash-analyzer introuvable" >&2
-    exit 1
-fi
+    if [[ -d "${SCRIPT_DIR}/../crash-analyzer" ]]; then
+        rsync -a --delete "${SCRIPT_DIR}/../crash-analyzer/" "${INSTALL_DIR}/" \
+            --exclude '__pycache__' --exclude '*.pyc' --exclude 'tests'
+        return 0
+    fi
+
+    local tmp_tar
+    tmp_tar="$(mktemp /tmp/obiora-crash-analyzer.XXXXXX.tar.gz)"
+    echo "Téléchargement de l'agent Crash Analyzer depuis ${PANEL_URL}…"
+    if ! curl -fsSL "${PANEL_URL%/}/install/crash-analyzer.tar.gz" -o "${tmp_tar}"; then
+        rm -f "${tmp_tar}"
+        echo "ERREUR: impossible de télécharger /install/crash-analyzer.tar.gz depuis le panel" >&2
+        exit 1
+    fi
+    tar -xzf "${tmp_tar}" -C "${INSTALL_DIR}"
+    rm -f "${tmp_tar}"
+}
+
+install_deps
+mkdir -p "${CONFIG_DIR}" "${DATA_DIR}/reports"
+install_agent_source
 
 python3 -m venv "${INSTALL_DIR}/venv"
 "${INSTALL_DIR}/venv/bin/pip" install -q -r "${INSTALL_DIR}/requirements.txt" 2>/dev/null || true

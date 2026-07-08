@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.22 - 2026-07-09
+
+- Crash Analyzer : install distant via curl (archive `/install/crash-analyzer.tar.gz` depuis le panel)
+- Sidebar : liens Doctor & Suite + Crash Analyzer
+- Doctor & Suite : déploiement SSH distant, vue flotte, script `/install/doctor-suite.sh`
+
 ## v2.1.21 - 2026-07-09
 
 - Fix MAJ panel : `update-panel.sh` introuvable (bit +x git, helper setuid lit R_OK, fallback sudo bash, restauration git auto)

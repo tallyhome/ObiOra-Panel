@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\CrashAnalyzerController;
 use App\Http\Controllers\ApplicationIconController;
 use App\Http\Controllers\MarketplaceInstallSetupController;
 use App\Http\Controllers\CrashAnalyzerExportController;
+use App\Support\AgentBundlePublisher;
 use App\Livewire\Auth\Login;
 use App\Livewire\Setup\CreateAdmin;
 use Illuminate\Support\Facades\Auth;
@@ -54,6 +55,25 @@ Route::get('/install/crash-analyzer.sh', function () {
         ['Content-Type' => 'text/x-shellscript; charset=utf-8'],
     );
 })->name('install.crash-analyzer');
+
+Route::get('/install/crash-analyzer.tar.gz', function () {
+    return AgentBundlePublisher::streamTarGz(
+        base_path('agent/crash-analyzer'),
+        'obiora-crash-analyzer.tar.gz',
+    );
+})->name('install.crash-analyzer.bundle');
+
+Route::get('/install/doctor-suite.sh', function () {
+    $path = base_path('agent/scripts/install-doctor-suite.sh');
+
+    abort_unless(is_readable($path), 404);
+
+    return response(
+        (string) file_get_contents($path),
+        200,
+        ['Content-Type' => 'text/x-shellscript; charset=utf-8'],
+    );
+})->name('install.doctor-suite');
 
 Route::middleware(['setup', 'auth', 'demo.active', 'server'])->group(function () {
     Route::get('/', fn () => redirect()->route('dashboard'));
