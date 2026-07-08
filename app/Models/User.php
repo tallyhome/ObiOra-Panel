@@ -21,6 +21,8 @@ class User extends Authenticatable
         'email',
         'password',
         'is_active',
+        'is_demo',
+        'demo_expires_at',
         'last_login_at',
     ];
 
@@ -36,6 +38,8 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'is_demo' => 'boolean',
+            'demo_expires_at' => 'datetime',
         ];
     }
 }
