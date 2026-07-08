@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <strong>Version actuelle : v2.1.20</strong>
+  <strong>Version actuelle : v2.1.21</strong>
 </p>
 
 ## Stack

@@ -26,6 +26,7 @@ setup_sudoers() {
 # ObiOra Panel — exécution scripts agent, marketplace et mise à jour panel
 ${OBIORA_USER} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/agent/scripts/*.sh
 ${OBIORA_USER} ALL=(root) NOPASSWD: ${update_script}
+${OBIORA_USER} ALL=(root) NOPASSWD: /bin/bash ${update_script}
 ${OBIORA_USER} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/packages/*/install.sh
 ${OBIORA_USER} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/packages/*/uninstall.sh
 SUDOERS
@@ -36,6 +37,7 @@ SUDOERS
             cat >> "${sudoers_file}" <<SUDOERS
 ${web_user} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/agent/scripts/*.sh
 ${web_user} ALL=(root) NOPASSWD: ${update_script}
+${web_user} ALL=(root) NOPASSWD: /bin/bash ${update_script}
 ${web_user} ALL=(root) NOPASSWD: /usr/bin/systemctl start obiora-queue
 ${web_user} ALL=(root) NOPASSWD: /usr/bin/systemctl restart obiora-queue
 ${web_user} ALL=(root) NOPASSWD: /usr/bin/systemctl is-active obiora-queue

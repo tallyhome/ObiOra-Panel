@@ -50,6 +50,11 @@ fi
 
 cd "${OBIORA_INSTALL_DIR}"
 
+# Git ne conserve pas toujours le bit +x : réappliquer avant toute opération
+chmod +x "${OBIORA_INSTALL_DIR}/install/update-panel.sh" 2>/dev/null || true
+chmod +x "${OBIORA_INSTALL_DIR}"/install/*.sh 2>/dev/null || true
+chmod +x "${OBIORA_INSTALL_DIR}"/install/lib/*.sh 2>/dev/null || true
+
 # Récupération d'urgence : un drop-in bind-address ObiOra peut avoir empêché
 # MariaDB de redémarrer (panel en 500 / Connection refused sur 127.0.0.1:3306).
 if [[ -f "${OBIORA_INSTALL_DIR}/agent/scripts/mysql-docker-recover.sh" ]]; then

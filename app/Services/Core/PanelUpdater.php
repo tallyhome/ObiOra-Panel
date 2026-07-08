@@ -110,6 +110,18 @@ final class PanelUpdater
         $helper = '/usr/local/bin/obiora-panel-update';
         $targetVersion = ltrim((string) $history->to_version, 'v');
 
+        if (! $this->ensureUpdateScriptReady($panelRoot)) {
+            $history->update([
+                'status' => 'failed',
+                'progress' => 100,
+                'progress_message' => 'Échec de la mise à jour',
+                'output' => 'Script install/update-panel.sh absent ou illisible. Vérifiez les permissions du dépôt git.',
+                'completed_at' => now(),
+            ]);
+
+            return;
+        }
+
         try {
             // IMPORTANT : on fusionne stdout+stderr avec "2>&1" au niveau shell
             // (et non en concaténant $result->output puis $result->errorOutput
@@ -126,10 +138,20 @@ final class PanelUpdater
                     escapeshellarg($helper).' '.escapeshellarg((string) $historyId).' '.$versionArg.' 2>&1',
                     ['timeout' => 1500],
                 );
+
+                $output = trim($result->output !== '' ? $result->output : $result->errorOutput);
+
+                if (! $result->successful && str_contains($output, 'script de mise à jour introuvable')) {
+                    Log::warning('Helper MAJ obsolète ou script sans +x — fallback sudo bash', ['output' => $output]);
+                    $result = $this->executor->run(
+                        'sudo -n /bin/bash '.escapeshellarg($updateScript).' '.escapeshellarg((string) $historyId).' '.$versionArg.' 2>&1',
+                        ['timeout' => 1500],
+                    );
+                }
             } else {
                 // Fallback sudo (obiora-queue tourne sous l'utilisateur obiora)
                 $result = $this->executor->run(
-                    'sudo -n '.escapeshellarg($updateScript).' '.escapeshellarg((string) $historyId).' '.$versionArg.' 2>&1',
+                    'sudo -n /bin/bash '.escapeshellarg($updateScript).' '.escapeshellarg((string) $historyId).' '.$versionArg.' 2>&1',
                     ['timeout' => 1500],
                 );
             }
@@ -181,7 +203,44 @@ final class PanelUpdater
         $panelRoot = base_path();
 
         return File::isDirectory($panelRoot.'/.git')
-            && is_file($panelRoot.'/install/update-panel.sh');
+            && is_readable($panelRoot.'/install/update-panel.sh');
+    }
+
+    /**
+     * Restaure update-panel.sh depuis git si absent et garantit qu'il est lisible/exécutable.
+     */
+    private function ensureUpdateScriptReady(string $panelRoot): bool
+    {
+        $updateScript = $panelRoot.'/install/update-panel.sh';
+
+        if (! is_file($updateScript) && File::isDirectory($panelRoot.'/.git')) {
+            try {
+                $this->executor->run(
+                    'git -C '.escapeshellarg($panelRoot).' checkout HEAD -- install/update-panel.sh install/lib/panel-update-helper.c install/lib/panel-update-helper.sh 2>&1',
+                    ['timeout' => 120],
+                );
+            } catch (Throwable $exception) {
+                Log::warning('Impossible de restaurer update-panel.sh depuis git', [
+                    'message' => $exception->getMessage(),
+                ]);
+            }
+        }
+
+        if (! is_file($updateScript)) {
+            return false;
+        }
+
+        if (! is_executable($updateScript)) {
+            @chmod($updateScript, 0755);
+
+            try {
+                $this->executor->run('chmod +x '.escapeshellarg($updateScript).' 2>&1', ['timeout' => 10]);
+            } catch (Throwable) {
+                // bash peut lancer un script lisible sans +x
+            }
+        }
+
+        return is_readable($updateScript);
     }
 
     /**

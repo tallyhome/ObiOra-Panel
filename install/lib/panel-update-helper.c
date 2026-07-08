@@ -33,8 +33,9 @@ int main(int argc, char *argv[])
 
     snprintf(script, sizeof(script), "%s/install/update-panel.sh", OBIORA_INSTALL_DIR);
 
-    if (access(script, X_OK) != 0) {
-        fprintf(stderr, "ERREUR: script de mise à jour introuvable: %s\n", script);
+    /* bash lit le script : exécution (+x) non requise, seule la lecture suffit */
+    if (access(script, R_OK) != 0) {
+        fprintf(stderr, "ERREUR: script de mise à jour introuvable ou illisible: %s\n", script);
         return 1;
     }
 
