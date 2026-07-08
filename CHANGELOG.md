@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.18 - 2026-07-09
+
+- Fix build Vite : dépendance `chart.js` pour le dashboard Crash Analyzer
+
 ## v2.1.17 - 2026-07-08
 
 - Scheduler panel : installation automatique via `obiora-scheduler.timer` à chaque MAJ (plus de crontab manuel)
