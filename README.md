@@ -1,8 +1,16 @@
-# ObiOra Panel
+<p align="center">
+  <img src="docs/assets/obiora-logo-banner.svg" alt="ObiOra Panel" width="640">
+</p>
 
-Plateforme moderne de gestion de serveurs Linux (seedbox) — Laravel 12, Livewire 3, Bootstrap 5.3.
+<h1 align="center">ObiOra Panel</h1>
 
-**Version actuelle : v2.0.1**
+<p align="center">
+  Plateforme moderne de gestion de serveurs Linux (seedbox) — Laravel 12, Livewire 3, Bootstrap 5.3.
+</p>
+
+<p align="center">
+  <strong>Version actuelle : v2.1.19</strong>
+</p>
 
 ## Stack
 

@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.19 - 2026-07-09
+
+- README GitHub : bannière logo SVG professionnelle (`docs/assets/obiora-logo-banner.svg`)
+
 ## v2.1.18 - 2026-07-09
 
 - Fix build Vite : dépendance `chart.js` pour le dashboard Crash Analyzer
