@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/obiora-logo-banner.svg" alt="ObiOra Panel" width="640">
+  <img src="docs/assets/obiora-logo-banner.png" alt="ObiOra Panel" width="640">
 </p>
 
 <h1 align="center">ObiOra Panel</h1>
@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <strong>Version actuelle : v2.1.19</strong>
+  <strong>Version actuelle : v2.1.20</strong>
 </p>
 
 ## Stack

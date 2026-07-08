@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.20 - 2026-07-09
+
+- README : logo bannière en PNG (GitHub ne prend pas en charge les SVG dans les `<img>`)
+
 ## v2.1.19 - 2026-07-09
 
 - README GitHub : bannière logo SVG professionnelle (`docs/assets/obiora-logo-banner.svg`)
