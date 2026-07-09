@@ -67,6 +67,8 @@ match (true) {
     )),
     $method === 'POST' && $uri === '/api/v1/docker/containers/action' => respond(agentContainerAction($body)),
     $method === 'POST' && $uri === '/api/v1/docker/containers/run' => respond(agentRunContainer($body)),
+    $method === 'POST' && $uri === '/api/v1/docker/install' => respond(agentDockerInstall()),
+    $method === 'POST' && $uri === '/api/v1/docker/uninstall' => respond(agentDockerUninstall()),
     $method === 'DELETE' && $uri === '/api/v1/docker/images' => respond(agentRemoveImage($body)),
     $method === 'POST' && $uri === '/api/v1/backups' => respond(agentCreateBackup($body)),
     $method === 'DELETE' && $uri === '/api/v1/backups' => respond(agentDeleteBackup($body)),

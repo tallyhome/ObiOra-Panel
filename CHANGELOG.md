@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.36 - 2026-07-09
+
+- Slave : installation / désinstallation Docker à distance via l'agent (menu Docker)
+- Slave : marketplace transmet les options wizard (Nextcloud, mots de passe, BDD) à l'agent distant
+- Vérification Docker sur serveur distant avant install d'apps conteneurisées
+- Assistant IA : message explicite solde DeepSeek insuffisant (HTTP 402) et guide monitoring en secours
+
 ## v2.1.35 - 2026-07-09
 
 - Serveurs : grille responsive, panneau SSH compact (%), fermeture auto après install slave

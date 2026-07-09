@@ -587,7 +587,7 @@ final class ApplicationManager
             ];
         }
 
-        return $this->remoteRun($server, $package->slug, $action);
+        return $this->remoteRun($server, $package->slug, $action, $installOptions);
     }
 
     /**
@@ -668,6 +668,22 @@ final class ApplicationManager
      * @param  array<string, string>  $installOptions
      * @return array<string, string>
      */
+    /**
+     * @param  array<string, string>  $installOptions
+     * @return array<string, string>
+     */
+    public function encodeRemoteInstallEnv(array $installOptions): array
+    {
+        $env = $this->installOptionsToEnv($installOptions);
+        $encoded = [];
+
+        foreach ($env as $key => $value) {
+            $encoded[$key] = base64_encode($value);
+        }
+
+        return $encoded;
+    }
+
     private function installOptionsToEnv(array $installOptions): array
     {
         $env = [];
@@ -828,23 +844,55 @@ final class ApplicationManager
 
     private function assertDockerAvailable(Server $server): void
     {
-        if (! $this->isLocal($server) || PHP_OS_FAMILY !== 'Linux') {
+        if ($this->isLocal($server)) {
+            if (PHP_OS_FAMILY !== 'Linux') {
+                return;
+            }
+
+            $result = $this->scripts->run(base_path('agent/scripts/docker-info.sh'));
+
+            if (! $result->successful || ! str_starts_with(trim($result->output), 'OK:')) {
+                throw new InvalidArgumentException(
+                    'Docker est requis pour installer cette application. Allez dans le menu Docker et installez-le d\'abord.'
+                );
+            }
+
             return;
         }
 
-        $result = $this->scripts->run(base_path('agent/scripts/docker-info.sh'));
+        $node = $server->primaryNode;
 
-        if (! $result->successful || ! str_starts_with(trim($result->output), 'OK:')) {
+        if ($node === null) {
+            throw new InvalidArgumentException('Agent slave non configuré — impossible de vérifier Docker.');
+        }
+
+        try {
+            $host = $node->host ?? $server->ip_address;
+            $port = $node->port ?? 9100;
+
+            $response = Http::timeout(15)
+                ->withToken($server->agent_token)
+                ->get("http://{$host}:{$port}/api/v1/docker/info");
+
+            if (! $response->successful() || ! (bool) $response->json('data.installed', false)) {
+                throw new InvalidArgumentException(
+                    'Docker est requis sur ce serveur distant. Allez dans le menu Docker (avec ce serveur sélectionné) et installez-le d\'abord.'
+                );
+            }
+        } catch (InvalidArgumentException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
             throw new InvalidArgumentException(
-                'Docker est requis pour installer cette application. Allez dans le menu Docker et installez-le d\'abord.'
+                'Impossible de vérifier Docker sur le serveur distant : '.$e->getMessage()
             );
         }
     }
 
     /**
+     * @param  array<string, string>  $installOptions
      * @return array{success: bool, output: string}
      */
-    private function remoteRun(Server $server, string $slug, string $action): array
+    private function remoteRun(Server $server, string $slug, string $action, array $installOptions = []): array
     {
         $node = $server->primaryNode;
 
@@ -855,12 +903,16 @@ final class ApplicationManager
         try {
             $host = $node->host ?? $server->ip_address;
             $port = $node->port ?? 9100;
+            $payload = ['slug' => $slug];
+            $env = $this->encodeRemoteInstallEnv($installOptions);
+
+            if ($env !== []) {
+                $payload['env'] = $env;
+            }
 
             $response = Http::timeout(600)
                 ->withToken($server->agent_token)
-                ->post("http://{$host}:{$port}/api/v1/applications/{$action}", [
-                    'slug' => $slug,
-                ]);
+                ->post("http://{$host}:{$port}/api/v1/applications/{$action}", $payload);
         } catch (\Throwable $e) {
             return ['success' => false, 'output' => $e->getMessage()];
         }

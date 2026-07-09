@@ -20,23 +20,31 @@ final class DockerUninstallJob implements ShouldQueue
 
     public int $timeout = 600;
 
+    public function __construct(
+        private readonly int $serverId,
+    ) {}
+
     public function handle(DockerManager $dockerManager): void
     {
-        Cache::put('obiora_progress:docker_uninstall', [
+        $cacheKey = $dockerManager->progressCacheKey($this->serverId, 'uninstall');
+
+        Cache::put($cacheKey, [
             'progress' => 3,
             'message' => 'Démarrage de la désinstallation Docker…',
             'running' => true,
             'success' => null,
+            'server_id' => $this->serverId,
             'updated_at' => now()->toIso8601String(),
         ], 3600);
 
-        $result = $dockerManager->runUninstallScript();
+        $result = $dockerManager->runUninstallScript($this->serverId);
 
-        Cache::put('obiora_progress:docker_uninstall', [
+        Cache::put($cacheKey, [
             'progress' => 100,
             'message' => $result['message'],
             'running' => false,
             'success' => $result['success'],
+            'server_id' => $this->serverId,
             'updated_at' => now()->toIso8601String(),
         ], 3600);
     }

@@ -73,4 +73,23 @@ final class ApplicationManagerInstallOptionsTest extends TestCase
         $this->assertSame('nextcloud', $package->databaseNamePrefix());
         $this->assertTrue($package->needsInstallWizard());
     }
+
+    public function test_encode_remote_install_env_for_slave_marketplace(): void
+    {
+        $encoded = $this->manager()->encodeRemoteInstallEnv([
+            'username' => 'admin',
+            'pass' => 'secret123456',
+            'db_name' => 'nextcloud',
+            'db_user' => 'nc_user',
+            'db_pass' => 'dbpass',
+            'db_host' => 'host.docker.internal',
+        ]);
+
+        $this->assertSame(base64_encode('admin'), $encoded['OBIORA_APP_USERNAME']);
+        $this->assertSame(base64_encode('secret123456'), $encoded['OBIORA_APP_PASS']);
+        $this->assertSame(base64_encode('nextcloud'), $encoded['OBIORA_APP_DB_NAME']);
+        $this->assertSame(base64_encode('nc_user'), $encoded['OBIORA_APP_DB_USER']);
+        $this->assertSame(base64_encode('dbpass'), $encoded['OBIORA_APP_DB_PASS']);
+        $this->assertSame(base64_encode('host.docker.internal'), $encoded['OBIORA_APP_DB_HOST']);
+    }
 }

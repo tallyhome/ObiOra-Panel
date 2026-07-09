@@ -54,7 +54,7 @@ final class DockerIndex extends Component
     public function mount(DockerManager $dockerManager, ServerManager $serverManager): void
     {
         $this->loadData($dockerManager, $serverManager);
-        $this->resumeDockerInstall();
+        $this->resumeDockerInstall($dockerManager, $serverManager);
     }
 
     #[On('server-changed')]
@@ -63,6 +63,7 @@ final class DockerIndex extends Component
         $this->loadData($dockerManager, $serverManager);
         $this->logContainer = null;
         $this->logOutput = '';
+        $this->resumeDockerInstall($dockerManager, $serverManager);
     }
 
     public function refresh(DockerManager $dockerManager, ServerManager $serverManager): void
@@ -110,8 +111,16 @@ final class DockerIndex extends Component
 
     public function pollDockerInstall(DockerManager $dockerManager, ServerManager $serverManager): void
     {
-        $cacheKey = $this->uninstallingDocker ? 'docker_uninstall' : 'docker_install';
-        $status = \Illuminate\Support\Facades\Cache::get("obiora_progress:{$cacheKey}");
+        $server = $serverManager->getCurrentServer();
+        if ($server === null) {
+            $this->installingDocker = false;
+            $this->uninstallingDocker = false;
+
+            return;
+        }
+
+        $operation = $this->uninstallingDocker ? 'uninstall' : 'install';
+        $status = \Illuminate\Support\Facades\Cache::get($dockerManager->progressCacheKey($server->id, $operation));
 
         if (! is_array($status)) {
             $this->installingDocker = false;
@@ -125,7 +134,7 @@ final class DockerIndex extends Component
         $running = (bool) ($status['running'] ?? false);
 
         if ($running) {
-            if ($cacheKey === 'docker_uninstall') {
+            if ($operation === 'uninstall') {
                 $this->uninstallingDocker = true;
                 $this->installingDocker = false;
             } else {
@@ -142,10 +151,15 @@ final class DockerIndex extends Component
         }
     }
 
-    private function resumeDockerInstall(): void
+    private function resumeDockerInstall(DockerManager $dockerManager, ServerManager $serverManager): void
     {
-        foreach (['docker_install', 'docker_uninstall'] as $key) {
-            $status = \Illuminate\Support\Facades\Cache::get("obiora_progress:{$key}");
+        $server = $serverManager->getCurrentServer();
+        if ($server === null) {
+            return;
+        }
+
+        foreach (['install', 'uninstall'] as $operation) {
+            $status = \Illuminate\Support\Facades\Cache::get($dockerManager->progressCacheKey($server->id, $operation));
 
             if (! is_array($status) || ! ($status['running'] ?? false)) {
                 continue;
@@ -154,7 +168,7 @@ final class DockerIndex extends Component
             $this->dockerProgress = (int) ($status['progress'] ?? 0);
             $this->dockerProgressMessage = (string) ($status['message'] ?? '');
 
-            if ($key === 'docker_uninstall') {
+            if ($operation === 'uninstall') {
                 $this->uninstallingDocker = true;
             } else {
                 $this->installingDocker = true;

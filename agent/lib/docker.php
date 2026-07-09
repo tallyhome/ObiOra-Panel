@@ -180,3 +180,47 @@ function agentRemoveImage(array $body): array
 
     return ['success' => true, 'output' => trim($output)];
 }
+
+/**
+ * @return array<string, mixed>
+ */
+function agentDockerInstall(): array
+{
+    $output = agentRunDockerScript(dirname(__DIR__).'/scripts/docker-install.sh');
+
+    if (! str_contains($output, 'OK:')) {
+        http_response_code(422);
+
+        return ['success' => false, 'message' => trim($output) ?: 'Échec installation Docker'];
+    }
+
+    if (preg_match('/^OK:(.+)$/m', $output, $matches)) {
+        $message = trim($matches[1]);
+
+        return ['success' => true, 'message' => $message !== '' ? $message : 'Docker installé'];
+    }
+
+    return ['success' => true, 'message' => 'Docker installé'];
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function agentDockerUninstall(): array
+{
+    $output = agentRunDockerScript(dirname(__DIR__).'/scripts/docker-uninstall.sh');
+
+    if (! str_contains($output, 'OK:')) {
+        http_response_code(422);
+
+        return ['success' => false, 'message' => trim($output) ?: 'Échec désinstallation Docker'];
+    }
+
+    if (preg_match('/^OK:(.+)$/m', $output, $matches)) {
+        $message = trim($matches[1]);
+
+        return ['success' => true, 'message' => $message !== '' ? $message : 'Docker désinstallé'];
+    }
+
+    return ['success' => true, 'message' => 'Docker désinstallé'];
+}

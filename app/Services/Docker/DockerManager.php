@@ -62,28 +62,30 @@ final class DockerManager
             return ['success' => false, 'message' => 'Aucun serveur sélectionné.'];
         }
 
-        if (! $this->isLocal($server)) {
-            return ['success' => false, 'message' => 'Installation Docker disponible uniquement sur le serveur local.'];
-        }
-
-        if (PHP_OS_FAMILY !== 'Linux') {
+        if ($this->isLocal($server) && PHP_OS_FAMILY !== 'Linux') {
             return ['success' => false, 'message' => 'Installation Docker non supportée sur cet environnement.'];
         }
 
-        $status = \Illuminate\Support\Facades\Cache::get('obiora_progress:docker_install');
+        if (! $this->isLocal($server) && $server->primaryNode === null) {
+            return ['success' => false, 'message' => 'Agent slave non configuré sur ce serveur.'];
+        }
+
+        $cacheKey = $this->progressCacheKey($server->id, 'install');
+        $status = \Illuminate\Support\Facades\Cache::get($cacheKey);
         if (is_array($status) && ($status['running'] ?? false)) {
             return ['success' => false, 'message' => 'Une installation Docker est déjà en cours.'];
         }
 
-        \Illuminate\Support\Facades\Cache::put('obiora_progress:docker_install', [
+        \Illuminate\Support\Facades\Cache::put($cacheKey, [
             'progress' => 2,
             'message' => 'Mise en file d\'attente…',
             'running' => true,
             'success' => null,
+            'server_id' => $server->id,
             'updated_at' => now()->toIso8601String(),
         ], 3600);
 
-        DockerInstallJob::dispatch();
+        DockerInstallJob::dispatch($server->id);
 
         return ['success' => true, 'message' => 'Installation Docker lancée en arrière-plan.'];
     }
@@ -99,12 +101,12 @@ final class DockerManager
             return ['success' => false, 'message' => 'Aucun serveur sélectionné.'];
         }
 
-        if (! $this->isLocal($server)) {
-            return ['success' => false, 'message' => 'Désinstallation Docker disponible uniquement sur le serveur local.'];
+        if ($this->isLocal($server) && PHP_OS_FAMILY !== 'Linux') {
+            return ['success' => false, 'message' => 'Désinstallation Docker non supportée sur cet environnement.'];
         }
 
-        if (PHP_OS_FAMILY !== 'Linux') {
-            return ['success' => false, 'message' => 'Désinstallation Docker non supportée sur cet environnement.'];
+        if (! $this->isLocal($server) && $server->primaryNode === null) {
+            return ['success' => false, 'message' => 'Agent slave non configuré sur ce serveur.'];
         }
 
         $info = $this->info($server);
@@ -112,22 +114,23 @@ final class DockerManager
             return ['success' => false, 'message' => 'Docker n\'est pas installé sur ce serveur.'];
         }
 
-        foreach (['docker_install', 'docker_uninstall'] as $key) {
-            $status = \Illuminate\Support\Facades\Cache::get("obiora_progress:{$key}");
+        foreach (['install', 'uninstall'] as $operation) {
+            $status = \Illuminate\Support\Facades\Cache::get($this->progressCacheKey($server->id, $operation));
             if (is_array($status) && ($status['running'] ?? false)) {
                 return ['success' => false, 'message' => 'Une opération Docker est déjà en cours.'];
             }
         }
 
-        \Illuminate\Support\Facades\Cache::put('obiora_progress:docker_uninstall', [
+        \Illuminate\Support\Facades\Cache::put($this->progressCacheKey($server->id, 'uninstall'), [
             'progress' => 2,
             'message' => 'Mise en file d\'attente…',
             'running' => true,
             'success' => null,
+            'server_id' => $server->id,
             'updated_at' => now()->toIso8601String(),
         ], 3600);
 
-        DockerUninstallJob::dispatch();
+        DockerUninstallJob::dispatch($server->id);
 
         return ['success' => true, 'message' => 'Désinstallation Docker lancée en arrière-plan.'];
     }
@@ -135,8 +138,52 @@ final class DockerManager
     /**
      * @return array{success: bool, message: string}
      */
-    public function runUninstallScript(): array
+    public function runInstallScript(?int $serverId = null): array
     {
+        $server = $this->resolveServer($serverId);
+
+        if ($server === null) {
+            return ['success' => false, 'message' => 'Serveur introuvable.'];
+        }
+
+        if (! $this->isLocal($server)) {
+            return $this->remoteInstallDocker($server);
+        }
+
+        if (PHP_OS_FAMILY !== 'Linux') {
+            return ['success' => false, 'message' => 'Installation Docker non supportée sur cet environnement.'];
+        }
+
+        $result = $this->scripts->run(base_path('agent/scripts/docker-install.sh'), [], 900);
+
+        $output = trim($result->output."\n".$result->errorOutput);
+
+        if ($result->successful && str_contains($output, 'OK:')) {
+            return ['success' => true, 'message' => $this->extractOkMessage($output, 'Docker installé')];
+        }
+
+        return ['success' => false, 'message' => $output !== '' ? $output : 'Échec installation Docker'];
+    }
+
+    /**
+     * @return array{success: bool, message: string}
+     */
+    public function runUninstallScript(?int $serverId = null): array
+    {
+        $server = $this->resolveServer($serverId);
+
+        if ($server === null) {
+            return ['success' => false, 'message' => 'Serveur introuvable.'];
+        }
+
+        if (! $this->isLocal($server)) {
+            return $this->remoteUninstallDocker($server);
+        }
+
+        if (PHP_OS_FAMILY !== 'Linux') {
+            return ['success' => false, 'message' => 'Désinstallation Docker non supportée sur cet environnement.'];
+        }
+
         $result = $this->scripts->run(base_path('agent/scripts/docker-uninstall.sh'), [], 600);
 
         $output = trim($result->output."\n".$result->errorOutput);
@@ -148,20 +195,18 @@ final class DockerManager
         return ['success' => false, 'message' => $output !== '' ? $output : 'Échec désinstallation Docker'];
     }
 
-    /**
-     * @return array{success: bool, message: string}
-     */
-    public function runInstallScript(): array
+    public function progressCacheKey(int $serverId, string $operation): string
     {
-        $result = $this->scripts->run(base_path('agent/scripts/docker-install.sh'), [], 900);
+        return "obiora_progress:docker_{$operation}:{$serverId}";
+    }
 
-        $output = trim($result->output."\n".$result->errorOutput);
-
-        if ($result->successful && str_contains($output, 'OK:')) {
-            return ['success' => true, 'message' => $this->extractOkMessage($output, 'Docker installé')];
+    private function resolveServer(?int $serverId): ?Server
+    {
+        if ($serverId !== null) {
+            return Server::query()->find($serverId);
         }
 
-        return ['success' => false, 'message' => $output !== '' ? $output : 'Échec installation Docker'];
+        return $this->serverManager->getCurrentServer();
     }
 
     private function extractOkMessage(string $output, string $fallback): string
@@ -577,9 +622,43 @@ final class DockerManager
     }
 
     /**
+     * @return array{success: bool, message: string}
+     */
+    private function remoteInstallDocker(Server $server): array
+    {
+        try {
+            $response = $this->agentRequest($server, 'POST', '/api/v1/docker/install', [], 1200);
+        } catch (\Throwable $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+
+        return [
+            'success' => (bool) $response->json('success', false),
+            'message' => (string) ($response->json('message') ?: $response->body()),
+        ];
+    }
+
+    /**
+     * @return array{success: bool, message: string}
+     */
+    private function remoteUninstallDocker(Server $server): array
+    {
+        try {
+            $response = $this->agentRequest($server, 'POST', '/api/v1/docker/uninstall', [], 600);
+        } catch (\Throwable $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+
+        return [
+            'success' => (bool) $response->json('success', false),
+            'message' => (string) ($response->json('message') ?: $response->body()),
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $payload
      */
-    private function agentRequest(Server $server, string $method, string $uri, array $payload = []): \Illuminate\Http\Client\Response
+    private function agentRequest(Server $server, string $method, string $uri, array $payload = [], int $timeout = 120): \Illuminate\Http\Client\Response
     {
         $node = $server->primaryNode;
 
@@ -591,7 +670,7 @@ final class DockerManager
         $port = $node->port ?? 9100;
         $url = "http://{$host}:{$port}{$uri}";
 
-        $client = Http::timeout(120)->withToken($server->agent_token);
+        $client = Http::timeout($timeout)->withToken($server->agent_token);
 
         return match ($method) {
             'POST' => $client->post($url, $payload),

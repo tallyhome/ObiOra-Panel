@@ -20,23 +20,31 @@ final class DockerInstallJob implements ShouldQueue
 
     public int $timeout = 1200;
 
+    public function __construct(
+        private readonly int $serverId,
+    ) {}
+
     public function handle(DockerManager $dockerManager): void
     {
-        Cache::put('obiora_progress:docker_install', [
+        $cacheKey = $dockerManager->progressCacheKey($this->serverId, 'install');
+
+        Cache::put($cacheKey, [
             'progress' => 3,
             'message' => 'Démarrage de l\'installation Docker…',
             'running' => true,
             'success' => null,
+            'server_id' => $this->serverId,
             'updated_at' => now()->toIso8601String(),
         ], 3600);
 
-        $result = $dockerManager->runInstallScript();
+        $result = $dockerManager->runInstallScript($this->serverId);
 
-        Cache::put('obiora_progress:docker_install', [
+        Cache::put($cacheKey, [
             'progress' => 100,
             'message' => $result['message'],
             'running' => false,
             'success' => $result['success'],
+            'server_id' => $this->serverId,
             'updated_at' => now()->toIso8601String(),
         ], 3600);
     }

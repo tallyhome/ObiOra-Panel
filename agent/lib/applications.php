@@ -28,6 +28,40 @@ function agentFindPackageManifest(string $slug): ?array
 }
 
 /**
+ * @param  array<string, mixed>  $env
+ */
+function agentApplicationShellCommand(string $script, array $env = []): string
+{
+    $inner = 'bash '.escapeshellarg($script);
+
+    if ($env !== []) {
+        $exports = [];
+        foreach ($env as $key => $valueB64) {
+            if (! is_string($key) || ! preg_match('/^OBIORA_APP_[A-Z0-9_]+$/', $key)) {
+                continue;
+            }
+
+            $value = base64_decode((string) $valueB64, true);
+            if ($value === false) {
+                continue;
+            }
+
+            $exports[] = 'export '.escapeshellarg($key).'='.escapeshellarg($value);
+        }
+
+        if ($exports !== []) {
+            $inner = implode('; ', $exports).'; '.$inner;
+        }
+    }
+
+    if (PHP_OS_FAMILY === 'Linux' && function_exists('posix_geteuid') && posix_geteuid() !== 0) {
+        return 'sudo -n bash -c '.escapeshellarg($inner);
+    }
+
+    return $inner;
+}
+
+/**
  * @param  array<string, mixed>  $body
  * @return array<string, mixed>
  */
@@ -58,12 +92,24 @@ function agentApplicationAction(array $body, string $action): array
         return ['success' => false, 'output' => "Script {$action} introuvable"];
     }
 
-    $cmd = 'bash '.escapeshellarg($script);
+    $realScript = realpath($script) ?: $script;
+    $packagesRoot = realpath(agentPackagesRoot()) ?: agentPackagesRoot();
 
-    if (PHP_OS_FAMILY === 'Linux' && function_exists('posix_geteuid') && posix_geteuid() !== 0) {
-        $cmd = 'sudo -n '.$cmd;
+    if (! str_starts_with($realScript, $packagesRoot)) {
+        http_response_code(422);
+
+        return ['success' => false, 'output' => 'Chemin script non autorisé'];
     }
 
+    if (! preg_match('#/packages/[a-z0-9-]+/(install|uninstall)\.sh$#', $realScript)) {
+        http_response_code(422);
+
+        return ['success' => false, 'output' => 'Script marketplace non autorisé'];
+    }
+
+    /** @var array<string, mixed> $env */
+    $env = is_array($body['env'] ?? null) ? $body['env'] : [];
+    $cmd = agentApplicationShellCommand($realScript, $env);
     $output = shell_exec($cmd.' 2>&1') ?? '';
 
     if (! str_contains($output, 'OK:')) {

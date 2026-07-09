@@ -47,7 +47,7 @@ final class AiAssistantManager
 
         $apiKey = (string) config('obiora.ai.api_key', '');
         if ($apiKey === '') {
-            return $this->localFallback($userMessage);
+            return $this->guidedFallback($userMessage, hasApiKey: false);
         }
 
         $ctx = $this->context->build();
@@ -74,11 +74,35 @@ final class AiAssistantManager
         } catch (\Throwable $e) {
             Log::warning('AI assistant provider error', ['message' => $e->getMessage()]);
 
-            $fallback = $this->localFallback($userMessage);
-            $fallback['content'] = "Provider IA indisponible ({$e->getMessage()}).\n\n".$fallback['content'];
+            $fallback = $this->guidedFallback($userMessage, hasApiKey: true);
+            $fallback['content'] = $this->formatProviderFailure($e)."\n\n".$fallback['content'];
 
             return $fallback;
         }
+    }
+
+    private function formatProviderFailure(\Throwable $e): string
+    {
+        $message = $e->getMessage();
+        $provider = (string) config('obiora.ai.provider', 'openai');
+
+        if (preg_match('/HTTP 402/', $message) || str_contains($message, 'Insufficient Balance')) {
+            return match ($provider) {
+                'deepseek' => 'DeepSeek : solde API insuffisant (HTTP 402). La clé est valide mais le compte n\'a plus de crédits — rechargez sur https://platform.deepseek.com (Billing / Top up), puis réessayez.',
+                'moonshot', 'kimi' => 'Moonshot / Kimi : solde API insuffisant (HTTP 402). Rechargez votre compte provider.',
+                default => 'Solde API insuffisant (HTTP 402). Rechargez le compte de votre provider (« '.$provider.' »).',
+            };
+        }
+
+        if (preg_match('/HTTP 401/', $message)) {
+            return 'Clé API refusée (HTTP 401). Vérifiez OBIORA_AI_API_KEY dans le .env du panel et régénérez la clé si besoin.';
+        }
+
+        if (preg_match('/HTTP 429/', $message)) {
+            return 'Limite de requêtes provider atteinte (HTTP 429). Réessayez dans quelques minutes.';
+        }
+
+        return 'Provider IA indisponible ('.$message.').';
     }
 
     /**
@@ -168,7 +192,7 @@ final class AiAssistantManager
     /**
      * @return array{content: string, provider: string, offline: bool}
      */
-    private function localFallback(string $userMessage): array
+    private function guidedFallback(string $userMessage, bool $hasApiKey): array
     {
         $ctx = $this->context->build();
         $hints = $this->context->suggestedActions($ctx);
@@ -178,8 +202,18 @@ final class AiAssistantManager
             ? "Score Doctor : {$ctx['doctor']['score']}% ({$ctx['doctor']['critical_count']} alerte(s) critique(s))."
             : 'Aucun rapport Doctor — installez l\'agent depuis Doctor & Suite ou Monitoring.';
 
+        $modeLine = $hasApiKey
+            ? 'Réponse de secours (provider cloud indisponible — voir message ci-dessus).'
+            : 'Mode local (sans clé API cloud).';
+
+        $providerTip = $hasApiKey
+            ? 'Une fois le provider rétabli, les réponses seront générées par le modèle configuré.'
+            : 'Ajoutez OBIORA_AI_API_KEY + provider deepseek/ollama/openai pour des réponses générées par un modèle.';
+
+        $questionHints = $this->hintsForQuestion($userMessage, $ctx);
+
         $content = <<<TEXT
-Mode local (sans clé API cloud).
+{$modeLine}
 
 {$doctor}
 Alertes non lues : {$ctx['alerts_unread']}.
@@ -187,10 +221,9 @@ Alertes non lues : {$ctx['alerts_unread']}.
 Raccourcis utiles :
 {$links}
 
-Pour votre question « {$userMessage} » :
-1. Vérifiez le monitoring et les services systemd concernés.
-2. Consultez les logs dans Licence & MAJ ou Services.
-3. Ajoutez OBIORA_AI_API_KEY + provider deepseek/ollama/openai pour des réponses générées par un modèle.
+{$questionHints}
+
+{$providerTip}
 TEXT;
 
         return [
@@ -198,6 +231,39 @@ TEXT;
             'provider' => 'local',
             'offline' => true,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $ctx
+     */
+    private function hintsForQuestion(string $userMessage, array $ctx): string
+    {
+        if (preg_match('/monitoring/iu', $userMessage)) {
+            $alerts = (int) ($ctx['alerts_unread'] ?? 0);
+            $score = $ctx['doctor']['score'] ?? null;
+            $scoreLine = $score !== null ? "Score Doctor actuel : {$score}%." : 'Aucun rapport Doctor récent.';
+
+            return <<<TEXT
+Pour le monitoring :
+1. Ouvrez Monitoring → consultez les {$alerts} alerte(s) non lue(s) et marquez-les traitées.
+2. {$scoreLine} Vérifiez la flotte (serveurs online, agents Seedbox/Doctor/Crash).
+3. Si une alerte cible un service (nginx, mysql…), ouvrez Services pour l'état et les logs.
+TEXT;
+        }
+
+        return <<<TEXT
+Pour votre question « {$userMessage} » :
+1. Vérifiez le monitoring et les services systemd concernés.
+2. Consultez les logs dans Licence & MAJ ou Services.
+TEXT;
+    }
+
+    /**
+     * @return array{content: string, provider: string, offline: bool}
+     */
+    private function localFallback(string $userMessage): array
+    {
+        return $this->guidedFallback($userMessage, hasApiKey: false);
     }
 
     /**

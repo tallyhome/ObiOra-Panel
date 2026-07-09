@@ -44,4 +44,31 @@ final class AiAssistantTest extends TestCase
         $this->assertTrue($result['offline']);
         $this->assertStringContainsString('Mode local', $result['content']);
     }
+
+    public function test_deepseek_insufficient_balance_shows_recharge_hint(): void
+    {
+        \Illuminate\Support\Facades\Http::fake([
+            'api.deepseek.com/*' => \Illuminate\Support\Facades\Http::response([
+                'error' => [
+                    'message' => 'Insufficient Balance',
+                    'type' => 'unknown_error',
+                    'code' => 'invalid_request_error',
+                ],
+            ], 402),
+        ]);
+
+        config([
+            'obiora.ai.enabled' => true,
+            'obiora.ai.api_key' => 'sk-test-key',
+            'obiora.ai.provider' => 'deepseek',
+            'license.enabled' => false,
+        ]);
+
+        $result = $this->app->make(AiAssistantManager::class)->chat('Que dois-je vérifier concernant : Ouvrir le monitoring ?');
+
+        $this->assertTrue($result['offline']);
+        $this->assertStringContainsString('solde API insuffisant', $result['content']);
+        $this->assertStringNotContainsString('sans clé API cloud', $result['content']);
+        $this->assertStringContainsString('alerte(s) non lue(s)', $result['content']);
+    }
 }
