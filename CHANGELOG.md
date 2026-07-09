@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.30 - 2026-07-09
+
+- Fix 500 après MAJ : sauvegarde/restauration de `public/build` si `npm run build` échoue
+- Récupération post-MAJ renforcée : composer, rebuild Vite, `obiora:post-deploy`, permissions storage
+
 ## v2.1.29 - 2026-07-09
 
 - MAJ panel : plus de `restart` PHP-FPM pendant la mise à jour (évite 502 Bad Gateway sur le polling Livewire)

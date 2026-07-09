@@ -325,6 +325,7 @@ final class PanelUpdater
     {
         try {
             Artisan::call('up');
+            Artisan::call('obiora:post-deploy', ['--skip-migrate' => true]);
             Artisan::call('optimize:clear');
         } catch (Throwable $exception) {
             Log::warning('Récupération artisan post-MAJ partielle', ['message' => $exception->getMessage()]);

@@ -17,6 +17,7 @@ final class RecoverPanelHttpCommand extends Command
     public function handle(SystemExecutorInterface $executor): int
     {
         $this->components->task('Sortie maintenance', fn () => $this->callSilent('up') === self::SUCCESS);
+        $this->components->task('Post-déploiement (RBAC)', fn () => $this->callSilent('obiora:post-deploy', ['--skip-migrate' => true]) === self::SUCCESS);
         $this->components->task('Purge caches', fn () => $this->callSilent('optimize:clear') === self::SUCCESS);
 
         if (! $this->option('skip-systemd') && PHP_OS_FAMILY === 'Linux') {

@@ -154,20 +154,59 @@ if command -v npm &>/dev/null && [[ -f package.json ]]; then
         chmod 775 "${build_dir}"
     }
 
+    restore_frontend_build_backup() {
+        local build_dir="${OBIORA_INSTALL_DIR}/public/build"
+        local backup_dir="$1"
+
+        if [[ -z "${backup_dir}" ]] || [[ ! -d "${backup_dir}" ]]; then
+            return 1
+        fi
+
+        rm -rf "${build_dir}"
+        mkdir -p "${build_dir}"
+        cp -a "${backup_dir}/." "${build_dir}/"
+        chown -R "${OBIORA_USER}:${OBIORA_GROUP}" "${build_dir}"
+        chmod -R 775 "${build_dir}"
+        echo "WARN: assets frontend restaurés depuis la sauvegarde (npm build en échec)"
+    }
+
+    BUILD_BACKUP_DIR=""
+    if [[ -f "${OBIORA_INSTALL_DIR}/public/build/manifest.json" ]]; then
+        BUILD_BACKUP_DIR="$(mktemp -d)"
+        cp -a "${OBIORA_INSTALL_DIR}/public/build/." "${BUILD_BACKUP_DIR}/"
+    fi
+
     prepare_frontend_build_dir
 
     progress 52 "Installation des dépendances npm…"
-    sudo -u "${OBIORA_USER}" env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" \
+    if ! sudo -u "${OBIORA_USER}" env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" \
         npm ci --ignore-scripts 2>/dev/null \
-        || sudo -u "${OBIORA_USER}" env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" npm install --ignore-scripts
+        && ! sudo -u "${OBIORA_USER}" env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" npm install --ignore-scripts; then
+        restore_frontend_build_backup "${BUILD_BACKUP_DIR}" || true
+        rm -rf "${BUILD_BACKUP_DIR}"
+        echo "ERREUR: installation npm échouée" >&2
+        exit 1
+    fi
 
     progress 58 "Compilation des assets frontend…"
+    NPM_BUILD_OK=0
     if command -v timeout &>/dev/null; then
-        sudo -u "${OBIORA_USER}" env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" \
-            timeout 900 npm run build
-    else
-        sudo -u "${OBIORA_USER}" env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" npm run build
+        if sudo -u "${OBIORA_USER}" env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" \
+            timeout 900 npm run build; then
+            NPM_BUILD_OK=1
+        fi
+    elif sudo -u "${OBIORA_USER}" env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" npm run build; then
+        NPM_BUILD_OK=1
     fi
+
+    if [[ "${NPM_BUILD_OK}" -ne 1 ]]; then
+        restore_frontend_build_backup "${BUILD_BACKUP_DIR}" || true
+        rm -rf "${BUILD_BACKUP_DIR}"
+        echo "ERREUR: compilation frontend échouée" >&2
+        exit 1
+    fi
+
+    rm -rf "${BUILD_BACKUP_DIR}"
 fi
 
 echo "[5/8] artisan post-deploy..."
