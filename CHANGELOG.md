@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.31 - 2026-07-09
+
+- Test release : badge « test MAJ » sur la page Licence & MAJ (validation du pipeline de mise à jour)
+
 ## v2.1.30 - 2026-07-09
 
 - Fix 500 après MAJ : sauvegarde/restauration de `public/build` si `npm run build` échoue
