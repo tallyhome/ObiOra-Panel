@@ -9,6 +9,7 @@ use App\Livewire\Concerns\AuthorizesPanelAccess;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
 use App\Services\Diagnostics\ServerSshKeyService;
+use App\Services\Deploy\RemoteDeployLauncher;
 use App\Services\Servers\SlaveDeployProgressService;
 use App\Services\Servers\SlaveDeployRunner;
 use App\Services\Servers\SlaveRemoteDeployService;
@@ -17,8 +18,6 @@ use App\Support\SlaveInstallHelper;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
-use Symfony\Component\Process\PhpExecutableFinder;
-use Symfony\Component\Process\Process;
 
 #[Layout('layouts.app')]
 #[Title('Détail serveur')]
@@ -142,8 +141,11 @@ final class ServerShow extends Component
         $this->deployError = null;
     }
 
-    public function deploySlaveAgent(SlaveDeployProgressService $progress, SlaveDeployRunner $runner): void
-    {
+    public function deploySlaveAgent(
+        SlaveDeployProgressService $progress,
+        SlaveDeployRunner $runner,
+        RemoteDeployLauncher $launcher,
+    ): void {
         $this->authorizePermission('servers.manage');
         $this->validateSshForm();
 
@@ -161,13 +163,14 @@ final class ServerShow extends Component
         try {
             $runner->storeBootstrapPassword($this->server->id, $this->sshPassword);
             $progress->start($this->server->id);
-            $this->spawnDeployProcess();
+            $progress->appendLog($this->server->id, 'Lancement du processus d\'installation…');
+            $launcher->launchSlave($this->server->id, $this->sshHost, $this->sshPort, $this->sshUser);
 
             $this->deployRunning = true;
             $this->deployFinished = false;
             $this->deploySuccess = null;
             $this->deployProgress = 5;
-            $this->deployProgressMessage = 'Connexion au VPS, installation de l\'agent seedbox…';
+            $this->deployProgressMessage = 'Connexion au serveur distant, installation de l\'agent seedbox…';
             $this->deployError = null;
             $this->deployConsole = ['['.now()->format('H:i:s').'] Installation démarrée…'];
             $this->sshPassword = '';
@@ -199,7 +202,7 @@ final class ServerShow extends Component
         if ($this->deployRunning && $progress->isStale($this->server->id)) {
             $progress->cancel($this->server->id, 'Installation interrompue (processus bloqué). Relancez.');
             $this->deployRunning = false;
-            $this->deployError = 'Installation bloquée — consultez les logs panel.';
+            $this->deployError = 'Installation bloquée — consultez le journal panel ou storage/logs/deploy.log.';
         }
 
         if (! $this->deployRunning && array_key_exists('success', $status)) {
@@ -252,34 +255,6 @@ final class ServerShow extends Component
             $this->deployProgress = (int) ($status['progress'] ?? 100);
             $this->deployProgressMessage = (string) ($status['message'] ?? '');
             $this->deployConsole = is_array($status['console'] ?? null) ? $status['console'] : [];
-        }
-    }
-
-    private function spawnDeployProcess(): void
-    {
-        $php = (new PhpExecutableFinder)->find(false) ?: 'php';
-
-        $process = new Process(
-            [
-                $php,
-                base_path('artisan'),
-                'obiora:slave-deploy',
-                (string) $this->server->id,
-                $this->sshHost,
-                (string) $this->sshPort,
-                $this->sshUser,
-            ],
-            base_path(),
-            null,
-            null,
-            null,
-        );
-
-        $process->disableOutput();
-        $process->start();
-
-        if (! $process->isRunning()) {
-            throw new \RuntimeException('Impossible de lancer l\'installation slave.');
         }
     }
 

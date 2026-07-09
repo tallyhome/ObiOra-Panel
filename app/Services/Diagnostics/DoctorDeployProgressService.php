@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Diagnostics;
 
 use App\Events\ProgressUpdated;
+use App\Services\Deploy\DeployLogService;
 use App\Support\Realtime;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -59,6 +60,9 @@ final class DoctorDeployProgressService
         $current['updated_at'] = now()->toIso8601String();
 
         $this->store($serverId, $current);
+
+        $level = str_starts_with(strtoupper($line), 'ERREUR') ? 'error' : 'info';
+        app(DeployLogService::class)->log($serverId, 'doctor', $line, $level);
     }
 
     /**
@@ -95,6 +99,13 @@ final class DoctorDeployProgressService
             'console' => $current['console'] ?? [],
             'updated_at' => now()->toIso8601String(),
         ]);
+
+        app(DeployLogService::class)->log(
+            $serverId,
+            'doctor',
+            $message,
+            $success ? 'info' : 'error',
+        );
     }
 
     public function cancel(int $serverId, string $reason = 'Déploiement annulé.'): void

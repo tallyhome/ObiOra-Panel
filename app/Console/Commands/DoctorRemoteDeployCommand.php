@@ -11,13 +11,13 @@ final class DoctorRemoteDeployCommand extends Command
 {
     protected $signature = 'obiora:doctor-deploy
                             {serverId : ID du serveur panel}
-                            {host : Hôte SSH du VPS}
+                            {host : Hôte SSH du serveur distant}
                             {port : Port SSH}
                             {user : Utilisateur SSH}
                             {doctor : Installer Doctor (yes/no)}
                             {crash : Installer Crash Analyzer (yes/no)}';
 
-    protected $description = 'Déploie Doctor & Crash Analyzer sur un VPS distant (processus arrière-plan)';
+    protected $description = 'Déploie Doctor & Crash Analyzer sur un serveur distant (processus arrière-plan)';
 
     public function handle(DoctorDeployRunner $runner): int
     {

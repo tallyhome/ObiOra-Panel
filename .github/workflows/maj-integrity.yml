@@ -1,0 +1,63 @@
+name: MAJ integrity
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  maj-integrity:
+    runs-on: ubuntu-latest
+    name: Pipeline MAJ
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
+          coverage: none
+
+      - name: Validate bash scripts (syntax)
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' script; do
+            echo "bash -n ${script}"
+            bash -n "${script}"
+          done < <(find install -name '*.sh' -print0)
+
+      - name: Verify MAJ scripts are executable
+        run: |
+          test -x install/update-panel.sh
+          test -x install/lib/update-recover.sh
+
+      - name: Compile panel-update-helper (smoke)
+        run: |
+          gcc -Wall -Wextra -o /tmp/obiora-panel-update \
+            install/lib/panel-update-helper.c
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Copy environment file
+        run: cp .env.example .env
+
+      - name: Generate app key
+        run: php artisan key:generate
+
+      - name: Verify update integrity command
+        run: php artisan obiora:verify-update-integrity
+
+      - name: Run MAJ-related tests
+        run: php artisan test --filter='PanelUpdate|UpdateProgress|ApplyPanelUpdate'

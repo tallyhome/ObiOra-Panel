@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\DTOs\SshConnection;
+use App\Jobs\Diagnostics\DoctorRemoteDeployJob;
 use App\Models\Server;
 use App\Services\Diagnostics\DoctorDeployProgressService;
 use App\Services\Diagnostics\DoctorRemoteDeployService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
-use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
 final class DoctorRemoteDeployFlowTest extends TestCase
@@ -25,11 +26,9 @@ final class DoctorRemoteDeployFlowTest extends TestCase
         $this->seed(\Database\Seeders\RolePermissionSeeder::class);
     }
 
-    public function test_deploy_starts_background_process_and_progress(): void
+    public function test_deploy_dispatches_queue_job_and_starts_progress(): void
     {
-        if (! class_exists(Process::class)) {
-            $this->markTestSkipped('symfony/process unavailable');
-        }
+        Queue::fake();
 
         $user = \App\Models\User::factory()->create();
         $user->assignRole(Role::findByName('super-admin'));
@@ -56,6 +55,8 @@ final class DoctorRemoteDeployFlowTest extends TestCase
             ->call('deployRemote')
             ->assertSet('deployRunning', true)
             ->assertSet('deployProgress', 5);
+
+        Queue::assertPushed(DoctorRemoteDeployJob::class);
 
         $status = app(DoctorDeployProgressService::class)->status($server->id);
         $this->assertIsArray($status);
@@ -110,7 +111,7 @@ final class DoctorRemoteDeployFlowTest extends TestCase
         $response = $this->actingAs($user)->get(route('doctor.index'));
         $response->assertOk();
         $response->assertSee('Tester la connexion');
-        $response->assertSee('Installer sur le VPS');
+        $response->assertSee('Installer sur le serveur');
         $response->assertSee('Comment installer les agents');
     }
 

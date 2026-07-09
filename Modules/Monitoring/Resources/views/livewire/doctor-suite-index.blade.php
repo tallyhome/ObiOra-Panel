@@ -5,7 +5,7 @@
     <div class="mb-4 d-flex flex-wrap justify-content-between align-items-start gap-2">
         <div>
             <h1 class="h3 mb-1">ObiOra Doctor & Suite</h1>
-            <p class="text-muted mb-0">Installez Doctor et Crash Analyzer sur vos VPS et consultez les diagnostics depuis le panel.</p>
+            <p class="text-muted mb-0">Installez Doctor et Crash Analyzer sur vos serveurs dédiés et/ou VPS, puis consultez les diagnostics depuis le panel.</p>
         </div>
         @if($server)
         <div class="d-flex gap-2">
@@ -16,12 +16,12 @@
     </div>
 
     <div class="alert alert-info py-3 mb-4">
-        <p class="fw-semibold mb-2">Comment installer les agents sur un VPS ?</p>
+        <p class="fw-semibold mb-2">Comment installer les agents sur un serveur dédié et/ou VPS ?</p>
         <ol class="small mb-0 ps-3">
             <li class="mb-1">Choisissez le <strong>serveur panel</strong> (ci-dessous) — c'est l'entrée qui recevra les rapports.</li>
-            <li class="mb-1">Renseignez l'<strong>IP</strong>, le <strong>port</strong>, l'<strong>utilisateur</strong> et le <strong>mot de passe SSH</strong> du VPS distant.</li>
+            <li class="mb-1">Renseignez l'<strong>IP</strong>, le <strong>port</strong>, l'<strong>utilisateur</strong> et le <strong>mot de passe SSH</strong> du serveur distant.</li>
             <li class="mb-1">Cliquez <strong>Tester la connexion</strong>.</li>
-            <li>Si le test est OK, cliquez <strong>Installer sur le VPS</strong> : le panel se connecte, installe la clé API, envoie Doctor + Crash Analyzer, exécute les scripts et affiche les données ici.</li>
+            <li>Si le test est OK, cliquez <strong>Installer sur le serveur</strong> : le panel se connecte, installe la clé API, envoie Doctor + Crash Analyzer, exécute les scripts et affiche les données ici.</li>
         </ol>
         @if($reportCount > 0)
             <p class="small text-success mb-0 mt-2">{{ $reportCount }} rapport(s) Doctor en base — dernier {{ $lastReportLabel }}</p>
@@ -41,7 +41,7 @@
                 </div>
                 <div class="col-md-8 small text-muted">
                     Jeton agent API : <code>{{ $server?->agent_token ? Str::limit($server->agent_token, 24).'…' : '—' }}</code>
-                    <span class="d-block mt-1">Utilisé par les agents installés sur le VPS pour envoyer les rapports au panel.</span>
+                    <span class="d-block mt-1">Utilisé par les agents installés sur le serveur distant pour envoyer les rapports au panel.</span>
                 </div>
             </div>
         </div>
@@ -110,7 +110,7 @@
         <div class="card-body">
             @if($deployRunning)
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="small fw-medium">Installation en cours sur le VPS…</span>
+                <span class="small fw-medium">Installation en cours sur le serveur distant…</span>
                 <div class="d-flex align-items-center gap-2">
                     <span class="small text-muted">{{ $deployProgress }}%</span>
                     @if($canManageServers)
@@ -137,7 +137,7 @@
 
             <div class="obiora-deploy-console-wrap">
                 <div class="obiora-deploy-console-header">
-                    <span class="small fw-medium">Console d'installation (VPS distant)</span>
+                    <span class="small fw-medium">Console d'installation (serveur distant)</span>
                     @if($deployRunning)
                     <span class="badge text-bg-info">Live</span>
                     @endif
@@ -145,6 +145,15 @@
                 <pre id="obiora-deploy-console" class="obiora-deploy-console mb-0">@foreach($deployConsole as $line){{ $line }}
 @endforeach</pre>
             </div>
+
+            @if(count($panelDeployLogs) > 0)
+            <details class="mt-3" open>
+                <summary class="small fw-medium">Journal panel (persistant)</summary>
+                <pre class="small bg-dark text-light p-2 rounded mt-2 mb-0" style="max-height:220px;overflow:auto">@foreach($panelDeployLogs->reverse() as $logEntry)[{{ $logEntry->created_at->format('d/m H:i:s') }}] {{ strtoupper($logEntry->level) }} — {{ $logEntry->message }}
+@endforeach</pre>
+                <p class="small text-muted mt-1 mb-0">Fichier serveur : <code>storage/logs/deploy.log</code></p>
+            </details>
+            @endif
         </div>
     </div>
     @endif
@@ -152,7 +161,7 @@
     <div class="row g-4 mb-4">
         <div class="col-lg-7">
             <div class="card obiora-card h-100 border-primary">
-                <div class="card-header bg-primary bg-opacity-10 fw-medium">Installer sur un VPS distant</div>
+                <div class="card-header bg-primary bg-opacity-10 fw-medium">Installer sur un serveur dédié et/ou VPS</div>
                 <div class="card-body">
                     <div class="row g-3 mb-3">
                         <div class="col-md-8">
@@ -194,7 +203,7 @@
                         </button>
                         <button type="button" wire:click="deployRemote" wire:loading.attr="disabled" class="btn btn-primary"
                                 @if($deployRunning || !$sshTestOk) disabled @endif>
-                            <span wire:loading.remove wire:target="deployRemote">Installer sur le VPS</span>
+                            <span wire:loading.remove wire:target="deployRemote">Installer sur le serveur</span>
                             <span wire:loading wire:target="deployRemote">Installation…</span>
                         </button>
                     </div>
@@ -202,12 +211,12 @@
                     @if(!$sshTestOk)
                         <p class="small text-muted mb-0">Le bouton d'installation s'active après un test de connexion réussi.</p>
                     @elseif($sshKeyInstalled)
-                        <p class="small text-success mb-0">Connexion OK — clé SSH déjà installée sur ce VPS. L'installation va utiliser la clé dédiée du panel.</p>
+                        <p class="small text-success mb-0">Connexion OK — clé SSH déjà installée sur ce serveur. L'installation va utiliser la clé dédiée du panel.</p>
                     @else
                         <p class="small text-success mb-0">Connexion OK — le panel va installer sa clé SSH, déployer les agents et récupérer les données automatiquement.</p>
                     @endif
                     @else
-                    <div class="alert alert-warning py-2 small mb-0">Permission <code>servers.manage</code> requise pour installer sur un VPS distant.</div>
+                    <div class="alert alert-warning py-2 small mb-0">Permission <code>servers.manage</code> requise pour installer sur un serveur distant.</div>
                     @endif
 
                     @if($sshTestResult)
@@ -241,7 +250,7 @@
                             <button type="button" class="btn btn-outline-secondary btn-sm mt-1" onclick="obioraCopyFromButton(this)">Copier la clé publique</button>
                         </div>
                         @if($sshKeyInstalled)
-                            <span class="badge text-bg-success mt-2">Clé installée sur le VPS</span>
+                            <span class="badge text-bg-success mt-2">Clé installée sur le serveur</span>
                         @endif
                     </details>
                     @endif
@@ -253,7 +262,7 @@
             <div class="card obiora-card h-100">
                 <div class="card-header">Installation manuelle (SSH)</div>
                 <div class="card-body">
-                    <p class="small text-muted">Alternative : copiez cette commande et exécutez-la directement sur le VPS.</p>
+                    <p class="small text-muted">Alternative : copiez cette commande et exécutez-la directement sur le serveur distant.</p>
                     <h3 class="h6">Doctor + Crash Analyzer</h3>
                     <div class="obiora-copy-block mb-3">
                         <pre class="small mb-0 obiora-copy-text">{{ $remoteSuiteInstall }}</pre>

@@ -8,6 +8,7 @@ use App\Contracts\SystemExecutorInterface;
 use App\Jobs\ApplyPanelUpdateJob;
 use App\Models\UpdateHistory;
 use App\Support\InstalledVersion;
+use App\Support\PanelUpdateIntegrity;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -19,6 +20,7 @@ final class PanelUpdater
         private readonly SystemExecutorInterface $executor,
         private readonly UpdateManager $updateManager,
         private readonly InstalledVersion $installedVersion,
+        private readonly PanelUpdateIntegrity $updateIntegrity,
     ) {}
 
     /**
@@ -33,6 +35,22 @@ final class PanelUpdater
             return [
                 'success' => false,
                 'message' => 'Mise à jour indisponible : dépôt git introuvable ou script update-panel.sh absent.',
+                'history_id' => null,
+            ];
+        }
+
+        $integrity = $this->updateIntegrity->verify(base_path());
+
+        if (! $integrity['ok']) {
+            $this->updateIntegrity->restoreFromGit(base_path(), $this->executor);
+            $this->updateIntegrity->ensureExecutableScripts(base_path());
+            $integrity = $this->updateIntegrity->verify(base_path());
+        }
+
+        if (! $integrity['ok']) {
+            return [
+                'success' => false,
+                'message' => 'Intégrité MAJ compromise : fichiers critiques manquants ('.implode(', ', $integrity['missing']).').',
                 'history_id' => null,
             ];
         }
@@ -216,28 +234,16 @@ final class PanelUpdater
      */
     private function ensureUpdateScriptReady(string $panelRoot): bool
     {
-        $updateScript = $panelRoot.'/install/update-panel.sh';
+        $this->updateIntegrity->restoreFromGit($panelRoot, $this->executor);
+        $this->updateIntegrity->ensureExecutableScripts($panelRoot);
 
-        if (! is_file($updateScript) && File::isDirectory($panelRoot.'/.git')) {
-            try {
-                $this->executor->run(
-                    'git -C '.escapeshellarg($panelRoot).' checkout HEAD -- install/update-panel.sh install/lib/panel-update-helper.c install/lib/panel-update-helper.sh 2>&1',
-                    ['timeout' => 120],
-                );
-            } catch (Throwable $exception) {
-                Log::warning('Impossible de restaurer update-panel.sh depuis git', [
-                    'message' => $exception->getMessage(),
-                ]);
-            }
-        }
+        $updateScript = $panelRoot.'/install/update-panel.sh';
 
         if (! is_file($updateScript)) {
             return false;
         }
 
         if (! is_executable($updateScript)) {
-            @chmod($updateScript, 0755);
-
             try {
                 $this->executor->run('chmod +x '.escapeshellarg($updateScript).' 2>&1', ['timeout' => 10]);
             } catch (Throwable) {

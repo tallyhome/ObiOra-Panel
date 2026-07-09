@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 
 /**
- * Exécute le déploiement Doctor & Crash Analyzer sur un VPS distant.
+ * Exécute le déploiement Doctor & Crash Analyzer sur un serveur distant (dédié ou VPS).
  */
 final class DoctorDeployRunner
 {
@@ -37,6 +37,7 @@ final class DoctorDeployRunner
         }
 
         try {
+            $this->progress->update($serverId, 8, 'Worker de déploiement démarré…');
             $this->progress->appendLog($serverId, "Cible : {$sshUser}@{$sshHost}:{$sshPort}");
 
             $bootstrapPassword = $this->pullBootstrapPassword($serverId);
@@ -181,16 +182,16 @@ final class DoctorDeployRunner
         }
 
         if ($this->sshKeys->isInstalledOnRemote($server)) {
-            $this->progress->appendLog($server->id, 'Clé SSH déjà installée sur le VPS.');
+            $this->progress->appendLog($server->id, 'Clé SSH déjà installée sur le serveur distant.');
 
             return $server;
         }
 
         if ($bootstrapPassword === null || $bootstrapPassword === '') {
-            throw new \RuntimeException('Mot de passe SSH requis pour la première installation sur ce VPS.');
+            throw new \RuntimeException('Mot de passe SSH requis pour la première installation sur ce serveur distant.');
         }
 
-        $this->progress->appendLog($server->id, 'Installation de la clé SSH sur le VPS (mot de passe)…');
+        $this->progress->appendLog($server->id, 'Installation de la clé SSH sur le serveur distant (mot de passe)…');
 
         $connection = new SshConnection(
             host: $sshHost,
@@ -202,10 +203,10 @@ final class DoctorDeployRunner
         $result = $this->sshKeys->installPublicKeyOnRemote($server, $connection, $this->deploy);
 
         if (! $result['success']) {
-            throw new \RuntimeException($result['output'] ?: 'Impossible d\'installer la clé SSH sur le VPS.');
+            throw new \RuntimeException($result['output'] ?: 'Impossible d\'installer la clé SSH sur le serveur distant.');
         }
 
-        $this->progress->appendLog($server->id, 'Clé SSH installée sur le VPS.');
+        $this->progress->appendLog($server->id, 'Clé SSH installée sur le serveur distant.');
 
         return $server->fresh() ?? $server;
     }

@@ -66,6 +66,14 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'deploy' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/deploy.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 30,
+            'replace_placeholders' => true,
+        ],
+
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),

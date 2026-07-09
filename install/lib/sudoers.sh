@@ -20,13 +20,17 @@ setup_sudoers() {
 
     local sudoers_file="/etc/sudoers.d/obiora-agent"
     local update_script="${OBIORA_INSTALL_DIR}/install/update-panel.sh"
+    local recover_script="${OBIORA_INSTALL_DIR}/install/lib/update-recover.sh"
     chmod +x "${update_script}" 2>/dev/null || true
+    chmod +x "${recover_script}" 2>/dev/null || true
 
     cat > "${sudoers_file}" <<SUDOERS
 # ObiOra Panel — exécution scripts agent, marketplace et mise à jour panel
 ${OBIORA_USER} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/agent/scripts/*.sh
 ${OBIORA_USER} ALL=(root) NOPASSWD: ${update_script}
 ${OBIORA_USER} ALL=(root) NOPASSWD: /bin/bash ${update_script}
+${OBIORA_USER} ALL=(root) NOPASSWD: ${recover_script}
+${OBIORA_USER} ALL=(root) NOPASSWD: /bin/bash ${recover_script}
 ${OBIORA_USER} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/packages/*/install.sh
 ${OBIORA_USER} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/packages/*/uninstall.sh
 SUDOERS
@@ -38,6 +42,8 @@ SUDOERS
 ${web_user} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/agent/scripts/*.sh
 ${web_user} ALL=(root) NOPASSWD: ${update_script}
 ${web_user} ALL=(root) NOPASSWD: /bin/bash ${update_script}
+${web_user} ALL=(root) NOPASSWD: ${recover_script}
+${web_user} ALL=(root) NOPASSWD: /bin/bash ${recover_script}
 ${web_user} ALL=(root) NOPASSWD: /usr/bin/systemctl start obiora-queue
 ${web_user} ALL=(root) NOPASSWD: /usr/bin/systemctl restart obiora-queue
 ${web_user} ALL=(root) NOPASSWD: /usr/bin/systemctl is-active obiora-queue

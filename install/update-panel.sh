@@ -60,6 +60,26 @@ fi
 
 cd "${OBIORA_INSTALL_DIR}"
 
+verify_update_integrity() {
+    local rel missing=0
+    for rel in \
+        install/update-panel.sh \
+        install/lib/update-recover.sh \
+        install/lib/sudoers.sh \
+        install/lib/common.sh; do
+        if [[ ! -f "${OBIORA_INSTALL_DIR}/${rel}" ]]; then
+            echo "ERREUR: fichier MAJ critique manquant: ${rel}" >&2
+            missing=1
+        fi
+    done
+    return "${missing}"
+}
+
+if ! verify_update_integrity; then
+    progress "${LAST_PROGRESS}" "Échec — fichiers MAJ critiques manquants"
+    exit 1
+fi
+
 # Git ne conserve pas toujours le bit +x : réappliquer avant toute opération
 chmod +x "${OBIORA_INSTALL_DIR}/install/update-panel.sh" 2>/dev/null || true
 chmod +x "${OBIORA_INSTALL_DIR}"/install/*.sh 2>/dev/null || true

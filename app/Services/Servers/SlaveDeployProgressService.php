@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Servers;
 
+use App\Services\Deploy\DeployLogService;
 use Illuminate\Support\Facades\Cache;
 
 final class SlaveDeployProgressService
@@ -47,6 +48,9 @@ final class SlaveDeployProgressService
         $current['updated_at'] = now()->toIso8601String();
 
         $this->store($serverId, $current);
+
+        $level = str_starts_with(strtoupper($line), 'ERREUR') ? 'error' : 'info';
+        app(DeployLogService::class)->log($serverId, 'slave', $line, $level);
     }
 
     public function update(int $serverId, int $progress, string $message): void
@@ -75,6 +79,13 @@ final class SlaveDeployProgressService
             'console' => $current['console'] ?? [],
             'updated_at' => now()->toIso8601String(),
         ]);
+
+        app(DeployLogService::class)->log(
+            $serverId,
+            'slave',
+            $message,
+            $success ? 'info' : 'error',
+        );
     }
 
     public function cancel(int $serverId, string $reason = 'Installation annulée.'): void

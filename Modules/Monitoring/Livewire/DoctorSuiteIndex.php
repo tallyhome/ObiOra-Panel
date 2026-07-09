@@ -8,6 +8,8 @@ use App\DTOs\SshConnection;
 use App\Models\DiagnosticReport;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
+use App\Services\Deploy\DeployLogService;
+use App\Services\Deploy\RemoteDeployLauncher;
 use App\Services\Diagnostics\DoctorDeployProgressService;
 use App\Services\Diagnostics\DoctorDeployRunner;
 use App\Services\Diagnostics\DoctorRemoteDeployService;
@@ -17,8 +19,6 @@ use App\Support\DoctorInstallHelper;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
-use Symfony\Component\Process\PhpExecutableFinder;
-use Symfony\Component\Process\Process;
 
 #[Layout('layouts.app')]
 #[Title('Doctor & Suite')]
@@ -125,7 +125,7 @@ final class DoctorSuiteIndex extends Component
 
         if ($ssh === null) {
             $this->sshTestOk = false;
-            $this->sshTestResult = 'Saisissez le mot de passe SSH du VPS pour tester la connexion.';
+            $this->sshTestResult = 'Saisissez le mot de passe SSH du serveur distant pour tester la connexion.';
 
             return;
         }
@@ -146,6 +146,7 @@ final class DoctorSuiteIndex extends Component
     public function deployRemote(
         DoctorDeployProgressService $progress,
         DoctorDeployRunner $runner,
+        RemoteDeployLauncher $launcher,
     ): void {
         $this->authorizeDeploy();
         $this->validateSshForm();
@@ -169,13 +170,20 @@ final class DoctorSuiteIndex extends Component
             $progress->start($server->id);
             $progress->appendLog($server->id, 'Lancement du processus d\'installation…');
 
-            $this->spawnDeployProcess($server->id);
+            $launcher->launchDoctor(
+                $server->id,
+                $this->sshHost,
+                $this->sshPort,
+                $this->sshUser,
+                $this->deployDoctor,
+                $this->deployCrashAnalyzer,
+            );
 
             $this->deployRunning = true;
             $this->deployFinished = false;
             $this->deploySuccess = null;
             $this->deployProgress = 5;
-            $this->deployProgressMessage = 'Connexion au VPS, envoi des agents…';
+            $this->deployProgressMessage = 'Connexion au serveur distant, envoi des agents…';
             $this->deployError = null;
             $this->deploySteps = [];
             $this->deployConsole = ['['.now()->format('H:i:s').'] Déploiement démarré…'];
@@ -231,7 +239,7 @@ final class DoctorSuiteIndex extends Component
                 'Déploiement interrompu (processus panel arrêté ou bloqué). Relancez l\'installation.',
             );
             $this->deployRunning = false;
-            $this->deployError = 'Le déploiement semble bloqué. Vérifiez les logs panel et relancez.';
+            $this->deployError = 'Le déploiement semble bloqué. Consultez le journal panel ci-dessous ou storage/logs/deploy.log.';
         }
 
         if (! $this->deployRunning && array_key_exists('success', $status)) {
@@ -250,7 +258,7 @@ final class DoctorSuiteIndex extends Component
         }
     }
 
-    public function render(DoctorSuiteService $suite)
+    public function render(DoctorSuiteService $suite, DeployLogService $deployLog)
     {
         $servers = Server::query()
             ->with('latestDiagnosticReport')
@@ -280,6 +288,9 @@ final class DoctorSuiteIndex extends Component
             'lastReportLabel' => $lastReportLabel,
             'suiteUrl' => (string) config('obiora.suite.url', ''),
             'canManageServers' => auth()->user()?->can('servers.manage') ?? false,
+            'panelDeployLogs' => $this->serverId !== null
+                ? $deployLog->recentForServer($this->serverId, 'doctor')
+                : collect(),
         ]);
     }
 
@@ -309,36 +320,6 @@ final class DoctorSuiteIndex extends Component
             $this->deployProgressMessage = (string) ($status['message'] ?? '');
             $this->deploySteps = is_array($status['steps'] ?? null) ? $status['steps'] : [];
             $this->deployConsole = is_array($status['console'] ?? null) ? $status['console'] : [];
-        }
-    }
-
-    private function spawnDeployProcess(int $serverId): void
-    {
-        $php = (new PhpExecutableFinder)->find(false) ?: 'php';
-
-        $process = new Process(
-            [
-                $php,
-                base_path('artisan'),
-                'obiora:doctor-deploy',
-                (string) $serverId,
-                $this->sshHost,
-                (string) $this->sshPort,
-                $this->sshUser,
-                $this->deployDoctor ? 'yes' : 'no',
-                $this->deployCrashAnalyzer ? 'yes' : 'no',
-            ],
-            base_path(),
-            null,
-            null,
-            null,
-        );
-
-        $process->disableOutput();
-        $process->start();
-
-        if (! $process->isRunning()) {
-            throw new \RuntimeException('Impossible de lancer le processus d\'installation.');
         }
     }
 

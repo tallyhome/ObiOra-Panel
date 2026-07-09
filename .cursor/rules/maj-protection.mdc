@@ -1,0 +1,43 @@
+---
+description: Protéger le pipeline MAJ panel — ne pas casser les mises à jour
+alwaysApply: true
+---
+
+# Protection du système MAJ ObiOra Panel
+
+## Règle principale
+
+Les modifications sur le panel **ne doivent pas casser le pipeline de mise à jour**, sauf si la tâche concerne explicitement la MAJ.
+
+Avant de livrer une release, vérifier :
+```bash
+php artisan obiora:verify-update-integrity
+php artisan test --filter=PanelUpdate
+```
+
+## Fichiers MAJ-critiques (ne pas modifier sans raison)
+
+- `install/update-panel.sh`, `install/lib/update-recover.sh`
+- `install/lib/panel-update-helper.c`, `install/lib/panel-update-helper.sh`
+- `install/lib/sudoers.sh`, `install/lib/common.sh`
+- `app/Services/Core/PanelUpdater.php`, `app/Jobs/ApplyPanelUpdateJob.php`
+- `app/Support/PanelUpdateIntegrity.php`
+- `app/Console/Commands/UpdateProgressCommand.php`, `RecoverPanelHttpCommand.php`
+
+Liste canonique : `App\Support\PanelUpdateIntegrity::CRITICAL_RELATIVE_PATHS`.
+
+## Interdictions dans les changements non-MAJ
+
+- Ne pas supprimer/renommer les scripts `install/update-panel.sh` ou `install/lib/update-recover.sh`
+- Ne pas ajouter `systemctl restart php-fpm` dans `update-panel.sh` (502 Livewire) — utiliser `reload` via `update-recover.sh`
+- Ne pas `systemctl restart obiora-queue` dans `update-panel.sh` (tue le job MAJ en cours)
+- Ne pas supprimer `public/build` avant un `npm run build` réussi (500 Vite)
+- Ne pas changer les args du shell (`$1` = historyId, `$2` = version) sans mettre à jour `PanelUpdater`
+- Garder `install/**/*.sh` exécutables dans git (`+x`)
+
+## Si tu touches quand même la MAJ
+
+- Mettre à jour `PanelUpdateIntegrity::CRITICAL_RELATIVE_PATHS` si nouveaux fichiers requis
+- Ajouter/adapter des tests dans `tests/Unit/PanelUpdate*`
+- Documenter dans `CHANGELOG.md`
+- Vérifier que `setup_sudoers()` couvre les nouveaux scripts NOPASSWD

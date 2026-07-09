@@ -1,0 +1,50 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Unit;
+
+use App\Support\PanelUpdateIntegrity;
+use Tests\TestCase;
+
+final class PanelUpdateIntegrityTest extends TestCase
+{
+    public function test_all_critical_update_files_exist_in_repository(): void
+    {
+        $integrity = new PanelUpdateIntegrity;
+        $result = $integrity->verify(base_path());
+
+        $this->assertTrue(
+            $result['ok'],
+            'Fichiers MAJ manquants : '.implode(', ', $result['missing']),
+        );
+    }
+
+    public function test_update_scripts_are_executable_on_linux(): void
+    {
+        if (PHP_OS_FAMILY !== 'Linux') {
+            $this->markTestSkipped('Vérification +x uniquement sur Linux.');
+        }
+
+        $integrity = new PanelUpdateIntegrity;
+        $result = $integrity->verify(base_path());
+
+        $nonExecutable = array_filter(
+            $result['warnings'],
+            static fn (string $w): bool => str_contains($w, 'n\'est pas exécutable'),
+        );
+
+        $this->assertSame([], array_values($nonExecutable));
+    }
+
+    public function test_restore_paths_only_include_install_scripts(): void
+    {
+        $paths = array_filter(
+            PanelUpdateIntegrity::CRITICAL_RELATIVE_PATHS,
+            static fn (string $path): bool => str_starts_with($path, 'install/'),
+        );
+
+        $this->assertContains('install/update-panel.sh', $paths);
+        $this->assertContains('install/lib/update-recover.sh', $paths);
+    }
+}

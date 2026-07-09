@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.33 - 2026-07-09
+
+- Doctor & Suite : déploiement via worker `obiora-queue` (plus de blocage à 5 % depuis PHP-FPM)
+- Journal panel des déploiements (`deploy_logs` + `storage/logs/deploy.log`) visible dans l'UI
+- Libellés « serveur dédié et/ou VPS » à la place de « VPS » uniquement
+- Protection MAJ : intégrité fichiers critiques, CI `maj-integrity`, règle Cursor
+
+## v2.1.32 - 2026-07-09
+
+- Protection MAJ : vérification d'intégrité des fichiers critiques avant chaque mise à jour (`PanelUpdateIntegrity`)
+- CI dédiée `maj-integrity` (syntaxe bash, scripts exécutables, tests MAJ)
+- Règle Cursor `maj-protection` pour éviter de casser le pipeline lors des futurs changements
+- Sudoers : accès NOPASSWD à `update-recover.sh` pour la récupération HTTP post-MAJ
+
 ## v2.1.31 - 2026-07-09
 
 - Test release : badge « test MAJ » sur la page Licence & MAJ (validation du pipeline de mise à jour)
