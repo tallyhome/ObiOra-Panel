@@ -715,6 +715,20 @@ label {
     overflow: auto;
 }
 
+.obiora-server-detail-grid {
+    width: 100%;
+}
+
+.obiora-ssh-install-panel {
+    max-width: 100%;
+}
+
+@media (min-width: 1200px) {
+    .obiora-ssh-install-panel {
+        max-width: 42%;
+    }
+}
+
 .dropdown-menu {
     background: var(--obiora-bg-card);
     border-color: var(--obiora-border);

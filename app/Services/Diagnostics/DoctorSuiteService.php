@@ -10,6 +10,7 @@ use App\Models\CrashAnalyzerReport;
 use App\Models\DiagnosticReport;
 use App\Models\Server;
 use App\Services\CrashAnalyzer\CrashAnalyzerMetricsService;
+use App\Support\ServerAgentStatus;
 use Illuminate\Support\Collection;
 
 /**
@@ -19,6 +20,7 @@ final class DoctorSuiteService
 {
     public function __construct(
         private readonly CrashAnalyzerMetricsService $crashMetrics,
+        private readonly ServerAgentStatus $agentStatus,
     ) {}
 
     /**
@@ -61,6 +63,8 @@ final class DoctorSuiteService
                 ->where('server_id', $server->id)
                 ->count();
 
+            $agents = $this->agentStatus->flags($server);
+
             return [
                 'id' => $server->id,
                 'name' => $server->name,
@@ -71,7 +75,10 @@ final class DoctorSuiteService
                 'crash_last_metric_at' => $lastMetric?->sampled_at?->toIso8601String(),
                 'crash_critical_24h' => $criticalEvents,
                 'crash_reports' => $reportsCount,
-                'deployed' => isset(($server->metadata ?? [])['doctor_deploy']),
+                'deployed' => $agents['any'],
+                'agents_slave' => $agents['slave'],
+                'agents_doctor' => $agents['doctor'],
+                'agents_crash' => $agents['crash'],
                 'deploy_remote_host' => ($server->metadata ?? [])['doctor_deploy']['remote_host'] ?? null,
                 'display_ip' => ($server->metadata ?? [])['doctor_deploy']['remote_host'] ?? $server->ip_address,
             ];

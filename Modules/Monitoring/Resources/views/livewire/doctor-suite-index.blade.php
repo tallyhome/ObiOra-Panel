@@ -35,7 +35,7 @@
                     <label class="form-label small fw-medium">Serveur panel (réception des données)</label>
                     <select wire:model.live="serverId" class="form-select">
                         @foreach($doctorFleet as $fleetServer)
-                            <option value="{{ $fleetServer->id }}">{{ $fleetServer->name }} (ID {{ $fleetServer->id }})</option>
+                            <option value="{{ $fleetServer->id }}">{{ $fleetServer->name }} — {{ $fleetServer->ip_address }} (ID {{ $fleetServer->id }})</option>
                         @endforeach
                     </select>
                 </div>
@@ -91,11 +91,20 @@
                             </td>
                             <td>{{ $row['crash_reports'] ?: '—' }}</td>
                             <td>
-                                @if($row['deployed'])
-                                    <span class="badge text-bg-success">Oui</span>
-                                @else
-                                    <span class="badge text-bg-secondary">Non</span>
-                                @endif
+                                <div class="d-flex flex-wrap gap-1">
+                                    @if($row['agents_slave'] ?? false)
+                                        <span class="badge text-bg-primary" title="Agent seedbox">Seedbox</span>
+                                    @endif
+                                    @if($row['agents_doctor'] ?? false)
+                                        <span class="badge text-bg-success" title="ObiOra Doctor">Doctor</span>
+                                    @endif
+                                    @if($row['agents_crash'] ?? false)
+                                        <span class="badge text-bg-danger" title="Crash Analyzer">Crash</span>
+                                    @endif
+                                    @if(!($row['deployed'] ?? false))
+                                        <span class="badge text-bg-secondary">Aucun</span>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                         @endforeach

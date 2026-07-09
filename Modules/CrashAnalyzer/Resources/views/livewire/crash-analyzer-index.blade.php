@@ -19,7 +19,7 @@
                     <label class="form-label small">Serveur</label>
                     <select wire:model.live="server" class="form-select">
                         @foreach($servers as $srv)
-                            <option value="{{ $srv->id }}">{{ $srv->name }} ({{ $srv->hostname }})</option>
+                            <option value="{{ $srv->id }}">{{ $srv->name }} — {{ $srv->ip_address }}</option>
                         @endforeach
                     </select>
                 </div>

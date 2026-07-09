@@ -98,7 +98,6 @@ final class DoctorSuiteIndex extends Component
         if ($server !== null) {
             $this->sshHost = $server->ip_address;
         }
-        $this->sshTestResult = null;
         $this->sshTestOk = false;
         $this->sshBootstrapResult = null;
         $this->deployError = null;

@@ -9,6 +9,7 @@ use App\Livewire\Concerns\AuthorizesPanelAccess;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
 use App\Services\Diagnostics\ServerSshKeyService;
+use App\Services\Diagnostics\RemoteOsDetector;
 use App\Services\Deploy\RemoteDeployLauncher;
 use App\Services\Servers\SlaveDeployProgressService;
 use App\Services\Servers\SlaveDeployRunner;
@@ -56,6 +57,10 @@ final class ServerShow extends Component
 
     public bool $deployFinished = false;
 
+    public bool $deployDismissed = true;
+
+    public bool $showSshInstallPanel = true;
+
     public ?bool $deploySuccess = null;
 
     public function mount(
@@ -72,6 +77,8 @@ final class ServerShow extends Component
         $this->doctorRemoteCommand = $doctor->remoteCommand($this->server);
         $this->slaveRemoteCommand = $slave->remoteCommand($this->server);
         $this->sshHost = (string) ($this->server->ip_address ?: $this->server->hostname);
+        $this->showSshInstallPanel = ! (bool) ($this->server->metadata['agent_installed'] ?? false)
+            && $this->server->status->value !== 'online';
         $this->resumeDeployIfRunning($progress);
     }
 
@@ -119,8 +126,11 @@ final class ServerShow extends Component
         }
     }
 
-    public function testSshConnection(ServerSshKeyService $sshKeys, SlaveRemoteDeployService $deploy): void
-    {
+    public function testSshConnection(
+        ServerSshKeyService $sshKeys,
+        SlaveRemoteDeployService $deploy,
+        RemoteOsDetector $osDetector,
+    ): void {
         $this->authorizePermission('servers.manage');
         $this->validateSshForm();
 
@@ -138,6 +148,20 @@ final class ServerShow extends Component
         $this->sshTestResult = $result['success']
             ? ($result['message'] ?: 'Connexion réussie.')
             : ($result['message'] ?: 'Connexion SSH refusée.');
+
+        if ($result['success'] && $ssh !== null) {
+            $os = $osDetector->detect($ssh);
+            if ($os !== null) {
+                $this->server->update([
+                    'os_name' => $os['name'],
+                    'os_version' => $os['version'],
+                    'hostname' => $this->server->hostname ?: ($result['message'] ?? $this->server->hostname),
+                ]);
+                $this->server->refresh();
+                $this->sshTestResult .= ' — OS : '.$os['name'].($os['version'] ? ' '.$os['version'] : '');
+            }
+        }
+
         $this->deployError = null;
     }
 
@@ -168,7 +192,8 @@ final class ServerShow extends Component
 
             $this->deployRunning = true;
             $this->deployFinished = false;
-            $this->deploySuccess = null;
+            $this->deployDismissed = false;
+            $this->showSshInstallPanel = true;
             $this->deployProgress = 5;
             $this->deployProgressMessage = 'Connexion au serveur distant, installation de l\'agent seedbox…';
             $this->deployError = null;
@@ -213,12 +238,33 @@ final class ServerShow extends Component
             $this->slaveRemoteCommand = app(SlaveInstallHelper::class)->remoteCommand($this->server);
             $this->doctorRemoteCommand = app(DoctorInstallHelper::class)->remoteCommand($this->server);
 
-            if (! $ok) {
+            if ($ok) {
+                $serverManager->ping($this->server);
+                $this->server->refresh();
+                $progress->clear($this->server->id);
+                $this->deployDismissed = true;
+                $this->showSshInstallPanel = false;
+                $this->deployConsole = [];
+            } else {
                 $this->deployError = (string) ($status['message'] ?? 'Échec installation.');
             }
 
             $this->dispatch('notify', type: $ok ? 'success' : 'danger', message: (string) ($status['message'] ?? ''));
         }
+    }
+
+    public function dismissDeployResult(SlaveDeployProgressService $progress): void
+    {
+        $this->deployDismissed = true;
+        $this->deployFinished = false;
+        $this->deployConsole = [];
+        $this->deployError = null;
+        $progress->clear($this->server->id);
+    }
+
+    public function toggleSshInstallPanel(): void
+    {
+        $this->showSshInstallPanel = ! $this->showSshInstallPanel;
     }
 
     public function useServer(ServerManager $serverManager): void
@@ -231,8 +277,12 @@ final class ServerShow extends Component
     public function render()
     {
         return view('servers::livewire.server-show', [
-            'agentInstalled' => (bool) ($this->server->metadata['agent_installed'] ?? false),
+            'agentInstalled' => (bool) ($this->server->metadata['agent_installed'] ?? false)
+                || $this->server->status->value === 'online',
+            'agentFlags' => app(\App\Support\ServerAgentStatus::class)->flags($this->server),
             'canManage' => auth()->user()?->can('servers.manage') ?? false,
+            'awaitingAgent' => $this->server->status->value === 'pending'
+                && ! (bool) ($this->server->metadata['agent_installed'] ?? false),
         ]);
     }
 
@@ -242,6 +292,8 @@ final class ServerShow extends Component
 
         if (is_array($status) && ($status['running'] ?? false)) {
             $this->deployRunning = true;
+            $this->deployDismissed = false;
+            $this->showSshInstallPanel = true;
             $this->deployProgress = (int) ($status['progress'] ?? 0);
             $this->deployProgressMessage = (string) ($status['message'] ?? '');
             $this->deployConsole = is_array($status['console'] ?? null) ? $status['console'] : [];
@@ -249,13 +301,9 @@ final class ServerShow extends Component
             return;
         }
 
-        if (is_array($status) && array_key_exists('success', $status)) {
-            $this->deployFinished = true;
-            $this->deploySuccess = (bool) $status['success'];
-            $this->deployProgress = (int) ($status['progress'] ?? 100);
-            $this->deployProgressMessage = (string) ($status['message'] ?? '');
-            $this->deployConsole = is_array($status['console'] ?? null) ? $status['console'] : [];
-        }
+        $this->deployRunning = false;
+        $this->deployFinished = false;
+        $this->deployDismissed = true;
     }
 
     private function resetDeployState(): void

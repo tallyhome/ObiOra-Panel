@@ -8,6 +8,7 @@ use App\DTOs\SshConnection;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
 use App\Services\Diagnostics\DoctorRemoteDeployService;
+use App\Services\Diagnostics\RemoteOsDetector;
 use App\Services\Diagnostics\ServerSshKeyService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
@@ -20,6 +21,7 @@ final class SlaveDeployRunner
         private readonly ServerSshKeyService $sshKeys,
         private readonly ServerManager $servers,
         private readonly DoctorRemoteDeployService $doctorDeploy,
+        private readonly RemoteOsDetector $osDetector,
     ) {}
 
     public function run(int $serverId, string $sshHost, int $sshPort, string $sshUser): void
@@ -59,6 +61,15 @@ final class SlaveDeployRunner
             }
 
             $this->progress->appendLog($serverId, 'Connexion SSH OK.');
+
+            $os = $this->osDetector->detect($ssh);
+            if ($os !== null) {
+                $server->update([
+                    'os_name' => $os['name'],
+                    'os_version' => $os['version'],
+                ]);
+                $this->progress->appendLog($serverId, 'OS détecté : '.$os['name'].($os['version'] ? ' '.$os['version'] : ''));
+            }
 
             $result = $this->deploy->deploySlave(
                 $server,

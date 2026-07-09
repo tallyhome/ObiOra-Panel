@@ -56,7 +56,7 @@ final class ServerCreate extends Component
             ? 'agent connecté'
             : 'en attente — installez l\'agent via SSH sur la fiche serveur';
 
-        session()->flash('success', "Serveur « {$server->name} » enregistré ({$status}).");
+        session()->flash('success', "Serveur « {$server->name} » enregistré ({$status}). Installez l'agent seedbox via SSH sur la fiche serveur.");
 
         $this->redirect(route('servers.show', $server), navigate: true);
     }

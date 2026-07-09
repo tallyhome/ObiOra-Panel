@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.35 - 2026-07-09
+
+- Serveurs : grille responsive, panneau SSH compact (%), fermeture auto après install slave
+- Détection OS distante (AlmaLinux, Ubuntu…) via SSH test / déploiement
+- Statut agents unifié (Seedbox / Doctor / Crash) dans flotte Doctor & Suite et fiche serveur
+- UX ajout serveur : info « étape suivante » au lieu d'alerte alarmante
+
 ## v2.1.34 - 2026-07-09
 
 - Doctor & Suite : liaison auto serveur panel par IP SSH (création si absent) — flotte / monitoring / crash à jour
