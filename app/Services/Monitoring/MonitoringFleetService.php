@@ -19,6 +19,7 @@ final class MonitoringFleetService
     {
         return Server::query()
             ->with('latestDiagnosticReport')
+            ->orderByDesc('is_master')
             ->orderBy('name')
             ->get()
             ->map(fn (Server $server) => $this->serializeServer($server))

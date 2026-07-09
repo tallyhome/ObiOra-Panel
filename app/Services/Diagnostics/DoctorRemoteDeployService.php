@@ -82,11 +82,14 @@ final class DoctorRemoteDeployService
         $success = $steps !== [] && collect($steps)->every(fn (array $s) => $s['success']);
 
         if ($success) {
+            $remoteHost = $connection->host;
             $server->forceFill([
+                'hostname' => $server->hostname ?: $remoteHost,
                 'metadata' => array_merge($server->metadata ?? [], [
                     'doctor_deploy' => [
                         'deployed_at' => now()->toIso8601String(),
                         'method' => 'ssh_key',
+                        'remote_host' => $remoteHost,
                         'components' => array_column($steps, 'component'),
                     ],
                 ]),

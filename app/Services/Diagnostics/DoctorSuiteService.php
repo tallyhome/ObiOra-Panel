@@ -72,6 +72,8 @@ final class DoctorSuiteService
                 'crash_critical_24h' => $criticalEvents,
                 'crash_reports' => $reportsCount,
                 'deployed' => isset(($server->metadata ?? [])['doctor_deploy']),
+                'deploy_remote_host' => ($server->metadata ?? [])['doctor_deploy']['remote_host'] ?? null,
+                'display_ip' => ($server->metadata ?? [])['doctor_deploy']['remote_host'] ?? $server->ip_address,
             ];
         })->values()->all();
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\CrashAnalyzer\Livewire;
 
 use App\Models\Server;
+use App\Services\Core\ServerManager;
 use App\Services\CrashAnalyzer\CrashAnalyzerMetricsService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -26,18 +27,19 @@ final class CrashAnalyzerIndex extends Component
     /** @var string */
     public string $eventTypeFilter = '';
 
-    public function mount(): void
+    public function mount(ServerManager $servers): void
     {
         $this->historyMinutes = (int) config('crash_analyzer.history_minutes', 60);
 
         if ($this->server === null) {
-            $this->server = Server::query()->orderBy('name')->value('id');
+            $this->server = $servers->getCurrentServer()?->id
+                ?? Server::query()->orderByDesc('is_master')->orderBy('name')->value('id');
         }
     }
 
     public function render(CrashAnalyzerMetricsService $metrics)
     {
-        $servers = Server::query()->orderBy('name')->get(['id', 'name', 'hostname', 'status']);
+        $servers = Server::query()->orderByDesc('is_master')->orderBy('name')->get(['id', 'name', 'hostname', 'ip_address', 'status']);
         $selected = $servers->firstWhere('id', $this->server);
         $dashboard = $selected
             ? $metrics->dashboardData($selected, $this->historyMinutes)

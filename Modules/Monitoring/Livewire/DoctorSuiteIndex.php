@@ -8,6 +8,7 @@ use App\DTOs\SshConnection;
 use App\Models\DiagnosticReport;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
+use App\Services\Diagnostics\DoctorDeployTargetResolver;
 use App\Services\Deploy\DeployLogService;
 use App\Services\Deploy\RemoteDeployLauncher;
 use App\Services\Diagnostics\DoctorDeployProgressService;
@@ -71,7 +72,11 @@ final class DoctorSuiteIndex extends Component
 
     public bool $deployFinished = false;
 
+    public bool $deployDismissed = true;
+
     public ?bool $deploySuccess = null;
+
+    public ?string $sshRemoteHostname = null;
 
     public function mount(ServerManager $servers, DoctorInstallHelper $doctor, ServerSshKeyService $sshKeys): void
     {
@@ -100,9 +105,13 @@ final class DoctorSuiteIndex extends Component
         $this->resumeDeployIfRunning();
     }
 
-    public function updatedSshHost(): void
+    public function updatedSshHost(DoctorDeployTargetResolver $targetResolver): void
     {
         $this->resetSshTest();
+        $match = $targetResolver->findByIp($this->sshHost);
+        if ($match !== null) {
+            $this->serverId = $match->id;
+        }
     }
 
     public function updatedSshPort(): void
@@ -135,8 +144,15 @@ final class DoctorSuiteIndex extends Component
 
         if ($result['success']) {
             $hostname = trim(str_replace(['OBIORA_SSH_OK', "\n"], ['', ' '], $result['output']));
+            $this->sshRemoteHostname = $hostname !== '' ? $hostname : null;
             $this->sshTestResult = 'Connexion réussie'.($hostname !== '' ? ' — '.$hostname : '.').' Vous pouvez lancer l\'installation.';
+
+            $match = app(DoctorDeployTargetResolver::class)->findByIp($this->sshHost);
+            if ($match !== null) {
+                $this->serverId = $match->id;
+            }
         } else {
+            $this->sshRemoteHostname = null;
             $this->sshTestResult = $result['message'] ?: ($result['output'] ?: 'Connexion SSH refusée ou timeout.');
         }
 
@@ -147,6 +163,7 @@ final class DoctorSuiteIndex extends Component
         DoctorDeployProgressService $progress,
         DoctorDeployRunner $runner,
         RemoteDeployLauncher $launcher,
+        DoctorDeployTargetResolver $targetResolver,
     ): void {
         $this->authorizeDeploy();
         $this->validateSshForm();
@@ -163,7 +180,12 @@ final class DoctorSuiteIndex extends Component
         }
 
         try {
-            $server = Server::query()->findOrFail($this->serverId);
+            $server = $targetResolver->resolve(
+                $this->sshHost,
+                $this->sshRemoteHostname,
+                $this->serverId,
+            );
+            $this->serverId = $server->id;
 
             $runner->storeBootstrapPassword($server->id, $this->sshPassword);
 
@@ -181,6 +203,7 @@ final class DoctorSuiteIndex extends Component
 
             $this->deployRunning = true;
             $this->deployFinished = false;
+            $this->deployDismissed = false;
             $this->deploySuccess = null;
             $this->deployProgress = 5;
             $this->deployProgressMessage = 'Connexion au serveur distant, envoi des agents…';
@@ -195,6 +218,19 @@ final class DoctorSuiteIndex extends Component
             $this->deployError = $e->getMessage();
             $this->deployRunning = false;
             $this->dispatch('notify', type: 'danger', message: $this->deployError);
+        }
+    }
+
+    public function dismissDeployResult(DoctorDeployProgressService $progress): void
+    {
+        $this->deployDismissed = true;
+        $this->deployFinished = false;
+        $this->deployConsole = [];
+        $this->deploySteps = [];
+        $this->deployError = null;
+
+        if ($this->serverId !== null) {
+            $progress->clear($this->serverId);
         }
     }
 
@@ -245,6 +281,7 @@ final class DoctorSuiteIndex extends Component
         if (! $this->deployRunning && array_key_exists('success', $status)) {
             $ok = (bool) $status['success'];
             $this->deployFinished = true;
+            $this->deployDismissed = false;
             $this->deploySuccess = $ok;
             if (! $ok) {
                 $this->deployError = (string) ($status['message'] ?? 'Échec du déploiement.');
@@ -304,6 +341,7 @@ final class DoctorSuiteIndex extends Component
 
         if (is_array($status) && ($status['running'] ?? false)) {
             $this->deployRunning = true;
+            $this->deployDismissed = false;
             $this->deployProgress = (int) ($status['progress'] ?? 0);
             $this->deployProgressMessage = (string) ($status['message'] ?? '');
             $this->deploySteps = is_array($status['steps'] ?? null) ? $status['steps'] : [];
@@ -312,15 +350,9 @@ final class DoctorSuiteIndex extends Component
             return;
         }
 
-        if (is_array($status) && array_key_exists('success', $status)) {
-            $this->deployRunning = false;
-            $this->deployFinished = true;
-            $this->deploySuccess = (bool) $status['success'];
-            $this->deployProgress = (int) ($status['progress'] ?? 100);
-            $this->deployProgressMessage = (string) ($status['message'] ?? '');
-            $this->deploySteps = is_array($status['steps'] ?? null) ? $status['steps'] : [];
-            $this->deployConsole = is_array($status['console'] ?? null) ? $status['console'] : [];
-        }
+        $this->deployRunning = false;
+        $this->deployFinished = false;
+        $this->deployDismissed = true;
     }
 
     private function resetDeployState(bool $clearCache = true): void
@@ -341,6 +373,7 @@ final class DoctorSuiteIndex extends Component
     {
         $this->sshTestOk = false;
         $this->sshTestResult = null;
+        $this->sshRemoteHostname = null;
         $this->deployError = null;
     }
 

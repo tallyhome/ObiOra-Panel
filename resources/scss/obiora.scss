@@ -693,15 +693,26 @@ label {
 
 .obiora-deploy-console {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    font-size: 0.75rem;
-    line-height: 1.45;
+    font-size: 0.72rem;
+    line-height: 1.4;
     color: #c8f7dc;
     background: #0d0d12;
-    padding: 0.75rem;
-    max-height: 320px;
+    padding: 0.65rem 0.75rem;
+    max-height: 28vh;
     overflow: auto;
     white-space: pre-wrap;
     word-break: break-word;
+}
+
+.obiora-deploy-journal {
+    max-height: 18vh;
+    overflow: auto;
+    font-size: 0.7rem;
+}
+
+.obiora-deploy-steps-pre {
+    max-height: 22vh;
+    overflow: auto;
 }
 
 .dropdown-menu {

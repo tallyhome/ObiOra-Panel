@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.34 - 2026-07-09
+
+- Doctor & Suite : liaison auto serveur panel par IP SSH (création si absent) — flotte / monitoring / crash à jour
+- UI déploiement : console en `vh`, panneau fermé au retour sur la page, bouton Fermer
+- Fix script `install-doctor-suite.sh` : `BASH_SOURCE` sous curl|bash
+
 ## v2.1.33 - 2026-07-09
 
 - Doctor & Suite : déploiement via worker `obiora-queue` (plus de blocage à 5 % depuis PHP-FPM)

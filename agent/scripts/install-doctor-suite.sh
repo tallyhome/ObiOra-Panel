@@ -7,7 +7,7 @@ PANEL_URL="${OBIORA_PANEL_URL:?OBIORA_PANEL_URL requis}"
 SERVER_ID="${OBIORA_SERVER_ID:?OBIORA_SERVER_ID requis}"
 AGENT_TOKEN="${OBIORA_AGENT_TOKEN:?OBIORA_AGENT_TOKEN requis}"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "/tmp")"
+SCRIPT_DIR="/tmp"
 
 echo "=== ObiOra Doctor & Suite — installation ==="
 

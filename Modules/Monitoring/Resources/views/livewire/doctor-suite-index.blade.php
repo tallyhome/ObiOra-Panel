@@ -69,6 +69,7 @@
                             <td>
                                 <span class="fw-medium">{{ $row['name'] }}</span>
                                 <span class="small text-muted d-block">{{ $row['hostname'] }}</span>
+                                <span class="small text-muted d-block">{{ $row['display_ip'] ?? $row['hostname'] }}</span>
                             </td>
                             <td>
                                 @if($row['doctor_score'] !== null)
@@ -105,8 +106,8 @@
     </div>
     @endif
 
-    @if($deployRunning || $deployFinished || count($deployConsole) > 0)
-    <div class="card obiora-card mb-4 border-primary">
+    @if($deployRunning || ($deployFinished && !$deployDismissed))
+    <div class="card obiora-card mb-4 border-primary obiora-deploy-panel">
         <div class="card-body">
             @if($deployRunning)
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -129,8 +130,8 @@
                 <span class="small fw-medium {{ $deploySuccess ? 'text-success' : 'text-danger' }}">
                     {{ $deploySuccess ? 'Installation terminée' : 'Installation échouée' }}
                 </span>
-                <button type="button" wire:click="$set('deployFinished', false)" class="btn btn-outline-secondary btn-sm py-0 px-2">
-                    Masquer
+                <button type="button" wire:click="dismissDeployResult" class="btn btn-outline-secondary btn-sm py-0 px-2">
+                    Fermer
                 </button>
             </div>
             @endif
@@ -147,9 +148,9 @@
             </div>
 
             @if(count($panelDeployLogs) > 0)
-            <details class="mt-3" open>
+            <details class="mt-3">
                 <summary class="small fw-medium">Journal panel (persistant)</summary>
-                <pre class="small bg-dark text-light p-2 rounded mt-2 mb-0" style="max-height:220px;overflow:auto">@foreach($panelDeployLogs->reverse() as $logEntry)[{{ $logEntry->created_at->format('d/m H:i:s') }}] {{ strtoupper($logEntry->level) }} — {{ $logEntry->message }}
+                <pre class="small bg-dark text-light p-2 rounded mt-2 mb-0 obiora-deploy-journal">@foreach($panelDeployLogs->reverse() as $logEntry)[{{ $logEntry->created_at->format('d/m H:i:s') }}] {{ strtoupper($logEntry->level) }} — {{ $logEntry->message }}
 @endforeach</pre>
                 <p class="small text-muted mt-1 mb-0">Fichier serveur : <code>storage/logs/deploy.log</code></p>
             </details>
@@ -238,7 +239,7 @@
                         <strong class="small {{ $step['success'] ? 'text-success' : 'text-danger' }}">
                             {{ $step['component'] }} — {{ $step['success'] ? 'OK' : 'Échec' }}
                         </strong>
-                        <pre class="small bg-dark text-light p-2 rounded mt-1 mb-0" style="max-height:120px;overflow:auto">{{ $step['output'] }}</pre>
+                        <pre class="small bg-dark text-light p-2 rounded mt-1 mb-0 obiora-deploy-steps-pre">{{ $step['output'] }}</pre>
                     </div>
                     @endforeach
 
