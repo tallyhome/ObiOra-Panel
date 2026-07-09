@@ -5,9 +5,12 @@ from __future__ import annotations
 import glob
 import os
 import re
-import subprocess
+import time
 from abc import ABC, abstractmethod
 from typing import Any
+
+from crash_analyzer.boot_journal import collect_boot_journal_snapshot, persistent_journal_enabled
+from crash_analyzer.util import run_cmd
 
 
 def read_file(path: str, default: str = "") -> str:
@@ -23,20 +26,6 @@ def read_int(path: str, default: int = 0) -> int:
         return int(read_file(path, str(default)))
     except ValueError:
         return default
-
-
-def run_cmd(cmd: list[str], timeout: float = 3.0) -> str:
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            check=False,
-        )
-        return (result.stdout or result.stderr or "").strip()
-    except (subprocess.SubprocessError, OSError):
-        return ""
 
 
 class BaseCollector(ABC):
@@ -245,7 +234,81 @@ class JournalCollector(BaseCollector):
             ["journalctl", "-p", "0..3", "-n", "5", "--no-pager", "-o", "short-iso"],
             timeout=4,
         )
-        return {"recent_critical": critical[:3000]}
+        return {
+            "recent_critical": critical[:3000],
+            "persistent_journal": persistent_journal_enabled(),
+        }
+
+
+class JournalBootCollector(BaseCollector):
+    """journalctl --list-boots et extrait du boot précédent (-b -1)."""
+
+    name = "journal_boot"
+    _CACHE_SECONDS = 300
+
+    def __init__(self) -> None:
+        self._cache: dict[str, Any] | None = None
+        self._cache_at: float = 0.0
+
+    def collect(self) -> dict[str, Any]:
+        now = time.time()
+        if self._cache is not None and now - self._cache_at < self._CACHE_SECONDS:
+            return {**self._cache, "cached": True}
+        payload = collect_boot_journal_snapshot()
+        payload["cached"] = False
+        self._cache = payload
+        self._cache_at = now
+        return payload
+
+
+class HardwareCollector(BaseCollector):
+    """Inventaire matériel (dmidecode, lscpu, lspci) — cache 1 h."""
+
+    name = "hardware"
+    _CACHE_SECONDS = 3600
+
+    def __init__(self) -> None:
+        self._cache: dict[str, Any] | None = None
+        self._cache_at: float = 0.0
+
+    def collect(self) -> dict[str, Any]:
+        now = time.time()
+        if self._cache is not None and now - self._cache_at < self._CACHE_SECONDS:
+            return {**self._cache, "cached": True}
+
+        payload: dict[str, Any] = {
+            "cached": False,
+            "dmidecode_system": run_cmd(["dmidecode", "-t", "system"], timeout=5)[:4000],
+            "dmidecode_baseboard": run_cmd(["dmidecode", "-t", "baseboard"], timeout=5)[:4000],
+            "dmidecode_bios": run_cmd(["dmidecode", "-t", "bios"], timeout=5)[:4000],
+            "lscpu": run_cmd(["lscpu"], timeout=4)[:4000],
+            "lspci_network_storage": run_cmd(
+                ["sh", "-c", "lspci 2>/dev/null | grep -Ei 'ethernet|network|raid|sas|nvme' || true"],
+                timeout=5,
+            )[:4000],
+        }
+        payload["available"] = any(
+            payload[k] for k in (
+                "dmidecode_system", "dmidecode_baseboard", "dmidecode_bios", "lscpu", "lspci_network_storage",
+            )
+        )
+        self._cache = payload
+        self._cache_at = now
+        return payload
+
+
+class ToolsCollector(BaseCollector):
+    """Vérifie la présence des outils de diagnostic (strace, time, etc.)."""
+
+    name = "tools"
+
+    def collect(self) -> dict[str, Any]:
+        tools = ("strace", "time", "dmidecode", "lscpu", "lspci", "journalctl")
+        status = {tool: bool(run_cmd(["which", tool], timeout=2)) for tool in tools}
+        return {
+            "installed": status,
+            "all_required": status.get("journalctl", False) and status.get("time", False),
+        }
 
 
 class DmesgCollector(BaseCollector):
@@ -349,7 +412,8 @@ COLLECTOR_REGISTRY: dict[str, type[BaseCollector]] = {
     for c in (
         CpuCollector, MemoryCollector, SwapCollector, PsiCollector, DiskCollector,
         NetworkCollector, ThermalCollector, SmartCollector, EdacCollector,
-        RasdaemonCollector, JournalCollector, DmesgCollector, VirtualizorCollector,
+        RasdaemonCollector, JournalCollector, JournalBootCollector, HardwareCollector,
+        ToolsCollector, DmesgCollector, VirtualizorCollector,
         LibvirtCollector, DockerCollector, SystemdCollector, ProcessesCollector,
         IrqCollector, SshCollector, LoadCollector,
     )

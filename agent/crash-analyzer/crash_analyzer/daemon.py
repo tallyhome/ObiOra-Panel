@@ -11,6 +11,7 @@ import urllib.error
 import urllib.request
 from typing import Any
 
+from crash_analyzer.boot_journal import collect_boot_journal_snapshot
 from crash_analyzer.collectors import build_collectors
 from crash_analyzer.config import CrashAnalyzerConfig
 from crash_analyzer.detectors import EventDetector
@@ -54,6 +55,8 @@ class CrashAnalyzerDaemon:
         if reboot_event:
             logger.warning("Redémarrage inattendu: %s", reboot_event.title)
             self.detector.persist_events(self.storage, [reboot_event])
+            boot_journal = collect_boot_journal_snapshot()
+            self.storage.insert_metric("journal_boot", boot_journal, time.time())
             report = self.reporter.generate(
                 self.storage,
                 self._hostname,
@@ -62,6 +65,7 @@ class CrashAnalyzerDaemon:
                     "title": reboot_event.title,
                     "details": reboot_event.details,
                 },
+                extras={"boot_journal": boot_journal},
             )
             self._push_crash_report(report)
 

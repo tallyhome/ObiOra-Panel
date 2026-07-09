@@ -37,15 +37,52 @@ install_deps() {
     case "${os}" in
         debian|ubuntu)
             apt-get update -qq
-            apt-get install -y -qq python3 python3-venv smartmontools iproute2 systemd curl tar rsync
+            apt-get install -y -qq \
+                python3 python3-venv smartmontools iproute2 systemd curl tar rsync \
+                strace dmidecode pciutils util-linux
             ;;
         almalinux|rocky|centos|rhel)
-            dnf install -y -q python3 python3-pip smartmontools iproute systemd curl tar rsync
+            dnf install -y -q \
+                python3 python3-pip smartmontools iproute systemd curl tar rsync \
+                strace time dmidecode pciutils
             ;;
         *)
-            echo "OS ${os} — installez python3, curl, tar et rsync manuellement si besoin" >&2
+            echo "OS ${os} — installez python3, strace, time, dmidecode, pciutils manuellement si besoin" >&2
             ;;
     esac
+}
+
+setup_persistent_journal() {
+    echo "Configuration du journal systemd persistant…"
+    mkdir -p /var/log/journal
+    systemd-tmpfiles --create --prefix /var/log/journal 2>/dev/null || true
+
+    local conf="/etc/systemd/journald.conf"
+    if [[ -f "${conf}" ]]; then
+        if grep -qE '^#?Storage=' "${conf}"; then
+            sed -i 's/^#\?Storage=.*/Storage=persistent/' "${conf}"
+        else
+            echo "Storage=persistent" >> "${conf}"
+        fi
+        systemctl restart systemd-journald 2>/dev/null || true
+    fi
+
+    if journalctl --list-boots --no-pager 2>/dev/null | head -1 | grep -q .; then
+        echo "OK: journal persistant actif ($(journalctl --list-boots --no-pager 2>/dev/null | wc -l | tr -d ' ') boots listés)"
+    else
+        echo "AVERTISSEMENT: journalctl --list-boots indisponible — vérifiez systemd-journald" >&2
+    fi
+}
+
+verify_tools() {
+    echo "Outils diagnostic:"
+    for bin in strace time dmidecode lscpu lspci journalctl; do
+        if command -v "${bin}" >/dev/null 2>&1; then
+            echo "  ✔ ${bin} → $(command -v "${bin}")"
+        else
+            echo "  ✗ ${bin} manquant" >&2
+        fi
+    done
 }
 
 install_agent_source() {
@@ -70,6 +107,8 @@ install_agent_source() {
 }
 
 install_deps
+setup_persistent_journal
+verify_tools
 mkdir -p "${CONFIG_DIR}" "${DATA_DIR}/reports"
 install_agent_source
 

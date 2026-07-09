@@ -28,6 +28,7 @@ class ReportGenerator:
         storage: MetricsStorage,
         hostname: str,
         trigger_event: dict[str, Any] | None = None,
+        extras: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Génère HTML, JSON et PDF (si reportlab disponible)."""
         since = time.time() - (self.history_minutes * 60)
@@ -49,6 +50,8 @@ class ReportGenerator:
             "events": events,
             "metrics_summary": self._summarize_metrics(metrics),
             "metrics": metrics[-500:],
+            "boot_journal": (extras or {}).get("boot_journal"),
+            "hardware": (extras or {}).get("hardware"),
         }
 
         json_path = out_dir / "report.json"
@@ -93,6 +96,12 @@ class ReportGenerator:
             for e in payload.get("events", [])
         )
         trigger = payload.get("trigger_event") or {}
+        boot = payload.get("boot_journal") or {}
+        boot_section = ""
+        if boot:
+            boot_section = f"""<h2>Journal boot précédent (journalctl -b -1)</h2>
+<p>Journal persistant: {'oui' if boot.get('persistent_journal') else 'non'} | Boots: {boot.get('boots_count', 0)}</p>
+<pre>{(boot.get('previous_boot_errors') or boot.get('previous_boot_log_tail') or '')[:6000]}</pre>"""
         return f"""<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -124,6 +133,7 @@ th {{ background: #2c3e50; color: #fff; }}
 </table>
 <h2>Résumé métriques</h2>
 <pre>{json.dumps(payload.get('metrics_summary', {}), indent=2)}</pre>
+{boot_section}
 <footer><p>ObiOra Crash Analyzer — rapport automatique post-incident</p></footer>
 </body>
 </html>"""

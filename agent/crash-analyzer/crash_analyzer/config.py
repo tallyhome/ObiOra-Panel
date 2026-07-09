@@ -62,8 +62,8 @@ class CrashAnalyzerConfig:
         if not enabled:
             enabled = [
                 "cpu", "memory", "swap", "psi", "disk", "network", "thermal",
-                "smart", "edac", "rasdaemon", "journal", "dmesg", "virtualizor",
-                "libvirt", "docker", "systemd", "processes", "irq", "ssh", "load",
+                "smart", "edac", "rasdaemon", "journal", "journal_boot", "hardware", "tools",
+                "dmesg", "virtualizor", "libvirt", "docker", "systemd", "processes", "irq", "ssh", "load",
             ]
 
         return cls(

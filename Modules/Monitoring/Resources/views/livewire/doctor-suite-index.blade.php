@@ -344,6 +344,9 @@
                 <div class="card-header">Crash Analyzer — {{ $server?->name }}</div>
                 <div class="card-body">
                     @php($crash = $overview['crash_analyzer']['summary'] ?? [])
+                    @php($journalBoot = $overview['crash_analyzer']['journal_boot'] ?? null)
+                    @php($hardware = $overview['crash_analyzer']['hardware'] ?? null)
+                    @php($tools = $overview['crash_analyzer']['tools'] ?? null)
                     <dl class="row small mb-3">
                         <dt class="col-sm-5">Métriques (période)</dt>
                         <dd class="col-sm-7">{{ $crash['metrics_count'] ?? 0 }}</dd>
@@ -353,7 +356,53 @@
                         <dd class="col-sm-7">{{ $crash['cpu_max'] ?? '—' }}%</dd>
                         <dt class="col-sm-5">RAM max</dt>
                         <dd class="col-sm-7">{{ $crash['memory_max'] ?? '—' }}%</dd>
+                        @if($journalBoot)
+                        <dt class="col-sm-5">Journal persistant</dt>
+                        <dd class="col-sm-7">{{ ($journalBoot['persistent_journal'] ?? false) ? '✔ actif' : '✗ inactif' }}</dd>
+                        <dt class="col-sm-5">Boots journalctl</dt>
+                        <dd class="col-sm-7">{{ $journalBoot['boots_count'] ?? '—' }}</dd>
+                        @endif
                     </dl>
+
+                    @if($journalBoot && !empty($journalBoot['boots']))
+                    <h3 class="h6">journalctl --list-boots</h3>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm obiora-table mb-0">
+                            <thead class="obiora-table-head"><tr><th>Idx</th><th>ID</th><th>Date</th></tr></thead>
+                            <tbody>
+                                @foreach(array_slice($journalBoot['boots'], -6) as $boot)
+                                <tr>
+                                    <td><code>{{ $boot['index'] ?? '' }}</code></td>
+                                    <td class="small text-muted">{{ Str::limit($boot['id'] ?? '', 12) }}</td>
+                                    <td class="small">{{ $boot['date'] ?? '' }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @endif
+
+                    @if($journalBoot && !empty($journalBoot['previous_boot_errors']))
+                    <h3 class="h6">Boot précédent — erreurs (journalctl -b -1)</h3>
+                    <pre class="small bg-dark text-light p-2 rounded mb-3" style="max-height:160px;overflow:auto">{{ Str::limit($journalBoot['previous_boot_errors'], 2000) }}</pre>
+                    @endif
+
+                    @if($hardware && ($hardware['available'] ?? false))
+                    <h3 class="h6">Inventaire matériel</h3>
+                    <details class="small mb-3">
+                        <summary>dmidecode / lscpu / lspci</summary>
+                        <pre class="small mt-2 mb-0" style="max-height:200px;overflow:auto">{{ Str::limit(($hardware['lscpu'] ?? '')."\n".($hardware['lspci_network_storage'] ?? ''), 2500) }}</pre>
+                    </details>
+                    @endif
+
+                    @if($tools)
+                    <p class="small text-muted mb-3">
+                        Outils :
+                        @foreach(['strace','time','dmidecode','lscpu','lspci'] as $tool)
+                            <span class="badge {{ ($tools['installed'][$tool] ?? false) ? 'text-bg-success' : 'text-bg-secondary' }}">{{ $tool }}</span>
+                        @endforeach
+                    </p>
+                    @endif
 
                     @if(!empty($overview['crash_analyzer']['events']))
                     <h3 class="h6">Derniers événements</h3>

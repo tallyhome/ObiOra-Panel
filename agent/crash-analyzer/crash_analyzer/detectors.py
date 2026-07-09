@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from crash_analyzer.collectors import run_cmd
+from crash_analyzer.util import run_cmd
 from crash_analyzer.storage import MetricsStorage
 
 

@@ -38,6 +38,9 @@ final class DoctorSuiteService
                 'events' => array_slice($crashDashboard['events'] ?? [], 0, 20),
                 'reports' => $crashDashboard['reports'] ?? [],
                 'charts' => $crashDashboard['charts'] ?? [],
+                'journal_boot' => $this->latestMetricPayload($server, 'journal_boot'),
+                'hardware' => $this->latestMetricPayload($server, 'hardware'),
+                'tools' => $this->latestMetricPayload($server, 'tools'),
             ],
         ];
     }
@@ -83,6 +86,20 @@ final class DoctorSuiteService
                 'display_ip' => ($server->metadata ?? [])['doctor_deploy']['remote_host'] ?? $server->ip_address,
             ];
         })->values()->all();
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function latestMetricPayload(Server $server, string $collector): ?array
+    {
+        $metric = CrashAnalyzerMetric::query()
+            ->where('server_id', $server->id)
+            ->where('collector', $collector)
+            ->latest('sampled_at')
+            ->first();
+
+        return $metric?->payload;
     }
 
     /**
