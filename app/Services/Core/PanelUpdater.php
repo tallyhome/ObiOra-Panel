@@ -8,6 +8,7 @@ use App\Contracts\SystemExecutorInterface;
 use App\Jobs\ApplyPanelUpdateJob;
 use App\Models\UpdateHistory;
 use App\Support\InstalledVersion;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -168,6 +169,7 @@ final class PanelUpdater
                 ]);
 
                 Log::warning('Panel update failed', ['output' => $output]);
+                $this->finalizePanelHttp();
 
                 return;
             }
@@ -180,6 +182,7 @@ final class PanelUpdater
                 'completed_at' => now(),
             ]);
 
+            $this->finalizePanelHttp();
             $this->restartQueueWorkerDeferred();
         } catch (Throwable $exception) {
             Log::error('Panel update exception', ['message' => $exception->getMessage()]);
@@ -191,6 +194,8 @@ final class PanelUpdater
                 'output' => $exception->getMessage(),
                 'completed_at' => now(),
             ]);
+
+            $this->finalizePanelHttp();
         }
     }
 
@@ -308,6 +313,40 @@ final class PanelUpdater
             );
         } catch (Throwable $exception) {
             Log::info('Redémarrage obiora-queue après MAJ ignoré', [
+                'message' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Rétablit le panel HTTP après MAJ (évite 502 Bad Gateway / mode maintenance bloqué).
+     */
+    private function finalizePanelHttp(): void
+    {
+        try {
+            Artisan::call('up');
+            Artisan::call('optimize:clear');
+        } catch (Throwable $exception) {
+            Log::warning('Récupération artisan post-MAJ partielle', ['message' => $exception->getMessage()]);
+        }
+
+        if (PHP_OS_FAMILY !== 'Linux') {
+            return;
+        }
+
+        $script = base_path('install/lib/update-recover.sh');
+
+        if (! is_file($script)) {
+            return;
+        }
+
+        try {
+            $this->executor->run(
+                'sudo -n /bin/bash '.escapeshellarg($script).' 2>&1',
+                ['timeout' => 120],
+            );
+        } catch (Throwable $exception) {
+            Log::warning('Récupération HTTP post-MAJ (systemd) ignorée', [
                 'message' => $exception->getMessage(),
             ]);
         }

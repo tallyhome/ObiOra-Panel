@@ -30,8 +30,18 @@ on_update_error() {
     local line="$1"
     local code="$2"
     echo "ERREUR: mise à jour interrompue (ligne ${line}, code ${code})" >&2
-    progress "${LAST_PROGRESS}" "Échec — voir le log de mise à jour"
+    progress "${LAST_PROGRESS}" "Échec — récupération HTTP du panel…"
+    finalize_panel_http || true
     exit "${code}"
+}
+
+finalize_panel_http() {
+    if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/update-recover.sh" ]]; then
+        bash "${OBIORA_INSTALL_DIR}/install/lib/update-recover.sh" || true
+    else
+        sudo -u "${OBIORA_USER}" php artisan up >/dev/null 2>&1 || true
+        clear_panel_caches
+    fi
 }
 
 trap 'on_update_error ${LINENO} $?' ERR
@@ -197,11 +207,11 @@ if command -v getenforce &>/dev/null && [[ "$(getenforce)" != "Disabled" ]] && c
     restorecon -Rv "${OBIORA_INSTALL_DIR}" >/dev/null 2>&1 || true
 fi
 
-echo "[8/8] rechargement des services..."
-progress 94 "Rechargement des services (PHP-FPM, Nginx, Reverb)…"
-systemctl reload-or-restart php-fpm 2>/dev/null || systemctl reload-or-restart php8.3-fpm 2>/dev/null || systemctl reload-or-restart php8.2-fpm 2>/dev/null || true
+echo "[8/8] finalisation HTTP du panel..."
+progress 94 "Finalisation (caches, PHP-FPM, Nginx)…"
 
-# Reverb activé par défaut (sauf OBIORA_REALTIME_ENABLED=false dans .env)
+# Ne pas « restart » PHP-FPM ici : ça coupe les requêtes Livewire (502) pendant la MAJ.
+# Le reload gracieux est fait dans finalize_panel_http.
 if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/reverb.sh" ]]; then
     # shellcheck source=/dev/null
     source "${OBIORA_INSTALL_DIR}/install/lib/common.sh"
@@ -232,7 +242,7 @@ if systemctl list-unit-files 2>/dev/null | grep -q '^obiora-reverb\.service'; th
     systemctl restart obiora-reverb >/dev/null 2>&1 || true
 fi
 
-sudo -u "${OBIORA_USER}" php artisan up >/dev/null 2>&1 || true
+finalize_panel_http
 
 trap - ERR
 progress 100 "Mise à jour terminée avec succès"

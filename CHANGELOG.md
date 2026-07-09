@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.29 - 2026-07-09
+
+- MAJ panel : plus de `restart` PHP-FPM pendant la mise à jour (évite 502 Bad Gateway sur le polling Livewire)
+- MAJ panel : récupération HTTP automatique en fin de script et après échec (`install/lib/update-recover.sh`)
+- Nouvelle commande `obiora:recover-panel-http` pour rétablir le panel manuellement après une MAJ bloquée
+
 ## v2.1.28 - 2026-07-09
 
 - Serveurs : statut « en attente » tant que l'agent n'est pas installé (plus de faux offline ICMP)

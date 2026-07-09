@@ -54,6 +54,38 @@ final class UpdateRecovery
             ]);
         }
 
+        if ($stale->isNotEmpty()) {
+            $this->recoverPanelHttp();
+        }
+
         return $stale->count();
+    }
+
+    private function recoverPanelHttp(): void
+    {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('obiora:recover-panel-http', ['--skip-systemd' => true]);
+        } catch (\Throwable) {
+            //
+        }
+
+        if (PHP_OS_FAMILY !== 'Linux') {
+            return;
+        }
+
+        $script = base_path('install/lib/update-recover.sh');
+
+        if (! is_file($script)) {
+            return;
+        }
+
+        try {
+            app(\App\Contracts\SystemExecutorInterface::class)->run(
+                'sudo -n /bin/bash '.escapeshellarg($script).' 2>&1',
+                ['timeout' => 120],
+            );
+        } catch (\Throwable) {
+            //
+        }
     }
 }
