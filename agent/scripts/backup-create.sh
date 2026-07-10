@@ -9,6 +9,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=backup-common.sh
 source "${SCRIPT_DIR}/backup-common.sh"
 
+on_error() {
+    echo "ERREUR: échec sauvegarde (ligne ${1})" >&2
+    exit 1
+}
+trap 'on_error ${LINENO}' ERR
+
 if [[ -z "${TYPE}" || -z "${LABEL}" ]]; then
     echo "Usage: backup-create.sh <database|files|full> <label> [target]" >&2
     exit 1
@@ -21,11 +27,17 @@ TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 SAFE_LABEL="${LABEL}"
 
 case "${TYPE}" in
+    database|full)
+        ensure_mysql_service_running
+        ;;
+esac
+
+case "${TYPE}" in
     database)
         DB_NAME="${TARGET:-all}"
         FILE="${BACKUP_ROOT}/${SAFE_LABEL}-db-${TIMESTAMP}.sql.gz"
         if [[ "${DB_NAME}" == "all" ]]; then
-            DB_LIST="$(mysql_root_exec -N -e "SHOW DATABASES" 2>/dev/null | grep -Ev '^(information_schema|performance_schema|mysql|sys)$' || true)"
+            DB_LIST="$(mysql_root_exec -N -e "SHOW DATABASES" | grep -Ev '^(information_schema|performance_schema|mysql|sys)$' || true)"
             if [[ -z "${DB_LIST}" ]]; then
                 echo "ERREUR: aucune base de données à sauvegarder" >&2
                 exit 1
@@ -34,35 +46,43 @@ case "${TYPE}" in
                 while read -r db; do
                     [[ -z "${db}" ]] && continue
                     echo "-- DB: ${db}"
-                    mysql_root_exec "${db}" 2>/dev/null
+                    mysqldump_root_exec --single-transaction --routines --triggers --databases "${db}"
                 done <<< "${DB_LIST}"
             } | gzip > "${FILE}"
         else
             [[ "${DB_NAME}" =~ ^[a-zA-Z0-9_]{1,64}$ ]] || { echo "Base invalide" >&2; exit 1; }
-            mysql_root_exec "${DB_NAME}" | gzip > "${FILE}"
+            mysqldump_root_exec --single-transaction --routines --triggers --databases "${DB_NAME}" | gzip > "${FILE}"
         fi
         ;;
     files)
         PATH_TO_BACKUP="${TARGET:-/var/www}"
         FILE="${BACKUP_ROOT}/${SAFE_LABEL}-files-${TIMESTAMP}.tar.gz"
-        tar_cmd -czf "${FILE}" -C "$(dirname "${PATH_TO_BACKUP}")" "$(basename "${PATH_TO_BACKUP}")" 2>/dev/null
+        if [[ ! -e "${PATH_TO_BACKUP}" ]]; then
+            echo "ERREUR: chemin introuvable : ${PATH_TO_BACKUP}" >&2
+            exit 1
+        fi
+        tar_cmd -czf "${FILE}" -C "$(dirname "${PATH_TO_BACKUP}")" "$(basename "${PATH_TO_BACKUP}")"
         ;;
     full)
         TMP_DIR="$(mktemp -d)"
         DB_DUMP="${TMP_DIR}/databases.sql"
-        DB_LIST="$(mysql_root_exec -N -e "SHOW DATABASES" 2>/dev/null | grep -Ev '^(information_schema|performance_schema|mysql|sys)$' || true)"
+        DB_LIST="$(mysql_root_exec -N -e "SHOW DATABASES" | grep -Ev '^(information_schema|performance_schema|mysql|sys)$' || true)"
         if [[ -n "${DB_LIST}" ]]; then
             while read -r db; do
                 [[ -z "${db}" ]] && continue
                 echo "-- DB: ${db}" >> "${DB_DUMP}"
-                mysql_root_exec "${db}" >> "${DB_DUMP}" 2>/dev/null
+                mysqldump_root_exec --single-transaction --routines --triggers --databases "${db}" >> "${DB_DUMP}"
             done <<< "${DB_LIST}"
         else
             echo "-- Aucune base utilisateur" > "${DB_DUMP}"
         fi
         gzip "${DB_DUMP}"
         FILE="${BACKUP_ROOT}/${SAFE_LABEL}-full-${TIMESTAMP}.tar.gz"
-        tar_cmd -czf "${FILE}" -C "${TMP_DIR}" databases.sql.gz -C / var/www 2>/dev/null || tar_cmd -czf "${FILE}" -C "${TMP_DIR}" databases.sql.gz
+        if [[ -d /var/www ]]; then
+            tar_cmd -czf "${FILE}" -C "${TMP_DIR}" databases.sql.gz -C / var/www
+        else
+            tar_cmd -czf "${FILE}" -C "${TMP_DIR}" databases.sql.gz
+        fi
         rm -rf "${TMP_DIR}"
         ;;
     *)
@@ -70,6 +90,8 @@ case "${TYPE}" in
         exit 1
         ;;
 esac
+
+[[ -f "${FILE}" ]] || { echo "ERREUR: fichier de sauvegarde non créé" >&2; exit 1; }
 
 SIZE="$(stat -c%s "${FILE}" 2>/dev/null || stat -f%z "${FILE}")"
 echo "OK:${FILE}:$(basename "${FILE}"):${SIZE}:${TYPE}"

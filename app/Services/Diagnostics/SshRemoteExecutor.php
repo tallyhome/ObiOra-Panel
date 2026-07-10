@@ -15,6 +15,29 @@ use Symfony\Component\Process\Process;
  */
 final class SshRemoteExecutor
 {
+    /**
+     * PHP-FPM (apache) n'a souvent pas de $HOME writable — ssh échoue sans cela.
+     *
+     * @return array<string, string>
+     */
+    public static function runtimeEnv(): array
+    {
+        $dir = storage_path('app/ssh');
+
+        if (! is_dir($dir) && ! mkdir($dir, 0700, true) && ! is_dir($dir)) {
+            $dir = sys_get_temp_dir().'/obiora_ssh';
+            if (! is_dir($dir)) {
+                mkdir($dir, 0700, true);
+            }
+        }
+
+        return [
+            'HOME' => $dir,
+            'USER' => 'obiora-panel',
+            'SSH_AUTH_SOCK' => '',
+        ];
+    }
+
     public function run(SshConnection $ssh, string $remoteCommand, int $timeout = 300): array
     {
         if ($ssh->privateKey !== null && $ssh->privateKey !== '') {
@@ -90,17 +113,21 @@ final class SshRemoteExecutor
             file_put_contents($keyFile, $ssh->privateKey);
             chmod($keyFile, 0600);
 
+            $sshDir = self::runtimeEnv()['HOME'];
+            $knownHosts = $sshDir.'/known_hosts';
+
             $process = new Process([
                 'ssh',
                 '-p', (string) $ssh->port,
                 '-i', $keyFile,
                 '-o', 'StrictHostKeyChecking=accept-new',
+                '-o', 'UserKnownHostsFile='.$knownHosts,
                 '-o', 'ConnectTimeout=30',
                 '-o', 'LogLevel=ERROR',
                 '-o', 'BatchMode=yes',
                 $ssh->username.'@'.$ssh->host,
                 $remoteCommand,
-            ]);
+            ], null, self::runtimeEnv());
             $process->setTimeout($timeout);
             $process->run();
 

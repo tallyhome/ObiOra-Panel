@@ -6,6 +6,8 @@ namespace App\Services\Diagnostics;
 
 use App\DTOs\SshConnection;
 use App\Models\Server;
+use App\Services\System\PrivilegedScriptRunner;
+use App\Support\PanelLocalTarget;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
@@ -15,6 +17,10 @@ use Symfony\Component\Process\Process;
  */
 final class ServerSshKeyService
 {
+    public function __construct(
+        private readonly PrivilegedScriptRunner $scripts,
+    ) {}
+
     public function hasKey(Server $server): bool
     {
         return $this->privateKey($server) !== null;
@@ -177,6 +183,46 @@ SH;
             'success' => false,
             'output' => $result['output'] ?: 'Échec installation clé publique.',
         ];
+    }
+
+    /**
+     * Installe la clé publique sur le serveur local du panel (sans client SSH).
+     *
+     * @return array{success: bool, output: string}
+     */
+    public function installPublicKeyLocally(Server $server): array
+    {
+        $publicKey = $this->publicKey($server);
+
+        if ($publicKey === null) {
+            return ['success' => false, 'output' => 'Générez d\'abord une clé SSH dédiée.'];
+        }
+
+        $marker = 'obiora-panel-server-'.$server->id;
+        $script = base_path('agent/scripts/ssh-authorize-panel-key.sh');
+
+        if (! is_file($script)) {
+            return ['success' => false, 'output' => 'Script ssh-authorize-panel-key.sh introuvable.'];
+        }
+
+        $result = $this->scripts->run($script, [$publicKey, $marker], 60);
+        $output = trim($result->output.$result->errorOutput);
+
+        if ($result->successful && str_contains($output, 'OBIORA_KEY_INSTALLED')) {
+            $this->markInstalledOnRemote($server);
+
+            return ['success' => true, 'output' => 'Clé SSH installée sur le serveur local.'];
+        }
+
+        return [
+            'success' => false,
+            'output' => $output !== '' ? $output : 'Échec installation clé publique locale.',
+        ];
+    }
+
+    public function isLocalPanelTarget(Server $server, string $host): bool
+    {
+        return PanelLocalTarget::isPanelServer($server, $host);
     }
 
     private function fingerprintFromPublic(string $publicKey): string

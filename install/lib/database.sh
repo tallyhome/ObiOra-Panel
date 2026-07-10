@@ -53,5 +53,30 @@ CREDS
     mkdir -p /etc/obiora
     chmod 755 /etc/obiora
 
+    write_mysql_admin_cnf
+
     success "Base de données ${OBIORA_DB_NAME} configurée"
+}
+
+write_mysql_admin_cnf() {
+    local socket=""
+
+    for candidate in /var/lib/mysql/mysql.sock /run/mysqld/mysqld.sock /tmp/mysql.sock; do
+        if [[ -S "${candidate}" ]]; then
+            socket="${candidate}"
+            break
+        fi
+    done
+
+    if [[ -z "${socket}" ]]; then
+        warn "Socket MySQL introuvable — /etc/obiora/mysql-admin.cnf non créé"
+        return 0
+    fi
+
+    cat > /etc/obiora/mysql-admin.cnf <<CNF
+[client]
+user=root
+socket=${socket}
+CNF
+    chmod 600 /etc/obiora/mysql-admin.cnf
 }

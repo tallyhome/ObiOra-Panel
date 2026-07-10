@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.38 - 2026-07-10
+
+- Doctor & Suite : installation directe sur le serveur local du panel (sans SSH vers sa propre IP)
+- SSH distant : `HOME` et `known_hosts` dans `storage/app/ssh` pour PHP-FPM (apache)
+- Script `ssh-authorize-panel-key.sh` pour bootstrap clé sur serveur local
+- Sauvegardes : `mysqldump` réel, erreurs explicites, vérif MariaDB actif
+- Install / recovery : création `/etc/obiora/mysql-admin.cnf` pour accès root socket aux backups
+
+## v2.1.37 - 2026-07-10
+
+- Crash Analyzer : journal persistant post-reboot, inventaire matériel enrichi
+- Doctor & Suite : affichage statut agents et journal crash dans l'UI
+
 ## v2.1.36 - 2026-07-09
 
 - Slave : installation / désinstallation Docker à distance via l'agent (menu Docker)

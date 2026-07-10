@@ -6,6 +6,7 @@ namespace App\Services\Diagnostics;
 
 use App\DTOs\SshConnection;
 use App\Models\Server;
+use App\Support\PanelLocalTarget;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 
@@ -17,6 +18,7 @@ final class DoctorDeployRunner
     public function __construct(
         private readonly DoctorDeployProgressService $progress,
         private readonly DoctorRemoteDeployService $deploy,
+        private readonly LocalDoctorDeployService $localDeploy,
         private readonly ServerSshKeyService $sshKeys,
     ) {}
 
@@ -39,6 +41,12 @@ final class DoctorDeployRunner
         try {
             $this->progress->update($serverId, 8, 'Worker de déploiement démarré…');
             $this->progress->appendLog($serverId, "Cible : {$sshUser}@{$sshHost}:{$sshPort}");
+
+            if (PanelLocalTarget::isPanelServer($server, $sshHost)) {
+                $this->runLocalDeploy($server, $installDoctor, $installCrashAnalyzer);
+
+                return;
+            }
 
             $bootstrapPassword = $this->pullBootstrapPassword($serverId);
 
@@ -167,6 +175,69 @@ final class DoctorDeployRunner
         return 'doctor_deploy_bootstrap:'.$serverId;
     }
 
+    private function runLocalDeploy(Server $server, bool $installDoctor, bool $installCrashAnalyzer): void
+    {
+        $serverId = $server->id;
+
+        $this->progress->appendLog($serverId, 'Serveur local du panel — installation directe (sans SSH).');
+        $this->progress->update($serverId, 15, 'Vérification environnement local…');
+
+        $test = $this->localDeploy->testLocal();
+        if (! $test['success']) {
+            throw new \RuntimeException($test['message'] ?: 'Environnement local indisponible.');
+        }
+
+        $this->progress->appendLog($serverId, $test['message']);
+
+        $result = $this->localDeploy->deploySuite(
+            $server,
+            $installDoctor,
+            $installCrashAnalyzer,
+            function (int $pct, string $msg, array $steps) use ($serverId): void {
+                $this->progress->update($serverId, $pct, $msg, $steps);
+                $this->progress->appendLog($serverId, $msg);
+
+                foreach ($steps as $step) {
+                    $status = ($step['success'] ?? false) ? 'OK' : 'ÉCHEC';
+                    $this->progress->appendLog($serverId, "[{$step['component']}] {$status}");
+                }
+            },
+        );
+
+        $log = collect($result['steps'])->pluck('output')->filter()->implode("\n\n");
+
+        foreach ($result['steps'] as $step) {
+            if (($step['output'] ?? '') !== '') {
+                $this->progress->appendLog($serverId, "--- {$step['component']} ---");
+                foreach (explode("\n", (string) $step['output']) as $line) {
+                    if (trim($line) !== '') {
+                        $this->progress->appendLog($serverId, $line);
+                    }
+                }
+            }
+        }
+
+        if ($result['success']) {
+            $this->progress->appendLog($serverId, 'Installation locale terminée avec succès.');
+            $this->progress->finish(
+                $serverId,
+                true,
+                'Installation terminée — les agents envoient les données au panel.',
+                $result['steps'],
+                $log,
+            );
+        } else {
+            $this->progress->appendLog($serverId, 'Une ou plusieurs étapes ont échoué.');
+            $this->progress->finish(
+                $serverId,
+                false,
+                'Échec du déploiement local — consultez la console ci-dessous.',
+                $result['steps'],
+                $log,
+            );
+        }
+    }
+
     private function ensureSshKeyReady(
         Server $server,
         string $sshHost,
@@ -185,6 +256,19 @@ final class DoctorDeployRunner
             $this->progress->appendLog($server->id, 'Clé SSH déjà installée sur le serveur distant.');
 
             return $server;
+        }
+
+        if (PanelLocalTarget::isPanelServer($server, $sshHost)) {
+            $this->progress->appendLog($server->id, 'Installation de la clé SSH sur le serveur local…');
+            $result = $this->sshKeys->installPublicKeyLocally($server);
+
+            if (! $result['success']) {
+                throw new \RuntimeException($result['output'] ?: 'Impossible d\'installer la clé SSH localement.');
+            }
+
+            $this->progress->appendLog($server->id, 'Clé SSH installée localement.');
+
+            return $server->fresh() ?? $server;
         }
 
         if ($bootstrapPassword === null || $bootstrapPassword === '') {

@@ -149,4 +149,26 @@ final class DoctorRemoteDeployFlowTest extends TestCase
 
         $this->assertTrue($progress->isStale($server->id, 180));
     }
+
+    public function test_local_panel_server_ssh_test_succeeds_without_password(): void
+    {
+        $user = \App\Models\User::factory()->create();
+        $user->assignRole(Role::findByName('super-admin'));
+
+        $server = Server::factory()->master()->create([
+            'ip_address' => '54.37.103.239',
+            'agent_token' => str_repeat('y', 64),
+        ]);
+
+        session(['current_server_id' => $server->id]);
+
+        Livewire::actingAs($user)
+            ->test(\Modules\Monitoring\Livewire\DoctorSuiteIndex::class)
+            ->set('serverId', $server->id)
+            ->set('sshHost', $server->ip_address)
+            ->set('sshUser', 'root')
+            ->call('testSshConnection')
+            ->assertSet('sshTestOk', true)
+            ->assertSet('sshTestResult', fn (string $msg) => str_contains($msg, 'Serveur local du panel'));
+    }
 }

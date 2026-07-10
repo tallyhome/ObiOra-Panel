@@ -15,8 +15,10 @@ use App\Services\Diagnostics\DoctorDeployProgressService;
 use App\Services\Diagnostics\DoctorDeployRunner;
 use App\Services\Diagnostics\DoctorRemoteDeployService;
 use App\Services\Diagnostics\DoctorSuiteService;
+use App\Services\Diagnostics\LocalDoctorDeployService;
 use App\Services\Diagnostics\ServerSshKeyService;
 use App\Support\DoctorInstallHelper;
+use App\Support\PanelLocalTarget;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -123,12 +125,30 @@ final class DoctorSuiteIndex extends Component
         $this->resetSshTest();
     }
 
-    public function testSshConnection(ServerSshKeyService $sshKeys, DoctorRemoteDeployService $deploy): void
-    {
+    public function testSshConnection(
+        ServerSshKeyService $sshKeys,
+        DoctorRemoteDeployService $deploy,
+        LocalDoctorDeployService $localDeploy,
+    ): void {
         $this->authorizeDeploy();
         $this->validateSshForm();
 
         $server = Server::query()->findOrFail($this->serverId);
+
+        if (PanelLocalTarget::isPanelServer($server, $this->sshHost)) {
+            $result = $localDeploy->testLocal();
+            $this->sshTestOk = $result['success'];
+            $hostname = trim(str_replace(['OBIORA_SSH_OK', "\n"], ['', ' '], $result['output']));
+            $this->sshRemoteHostname = $hostname !== '' ? $hostname : null;
+            $this->sshTestResult = $result['success']
+                ? 'Serveur local du panel — prêt pour installation directe.'
+                    .($hostname !== '' ? ' ('.$hostname.')' : '')
+                : ($result['message'] ?: 'Environnement local indisponible.');
+            $this->deployError = null;
+
+            return;
+        }
+
         $ssh = $this->resolveConnection($server, $sshKeys);
 
         if ($ssh === null) {

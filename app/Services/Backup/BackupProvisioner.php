@@ -158,6 +158,10 @@ final class BackupProvisioner
             ];
         }
 
+        if (! $result['success'] && $output === '') {
+            $output = 'Le script de sauvegarde n\'a retourné aucune sortie (vérifiez sudoers, MariaDB et storage/logs/provisioning.log).';
+        }
+
         return [
             'success' => false,
             'storage_path' => '',

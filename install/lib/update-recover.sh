@@ -81,6 +81,10 @@ if [[ -f "${OBIORA_INSTALL_DIR}/agent/scripts/mysql-docker-recover.sh" ]]; then
     bash "${OBIORA_INSTALL_DIR}/agent/scripts/mysql-docker-recover.sh" || true
 fi
 
+if [[ -f "${OBIORA_INSTALL_DIR}/agent/scripts/mysql-ensure-admin-cnf.sh" ]]; then
+    bash "${OBIORA_INSTALL_DIR}/agent/scripts/mysql-ensure-admin-cnf.sh" || true
+fi
+
 echo "[recover] Dépendances PHP et assets frontend…"
 ensure_composer_autoload
 ensure_frontend_manifest || true
