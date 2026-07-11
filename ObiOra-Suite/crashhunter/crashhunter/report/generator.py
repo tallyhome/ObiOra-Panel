@@ -55,6 +55,7 @@ class ReportGenerator:
         incident_id: str | None = None,
         timeline: EventTimeline | None = None,
         incident_summary: dict[str, Any] | None = None,
+        boot_reliability: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         report_id = datetime.now().strftime("CrashReport_%Y%m%d_%H%M%S")
         correlation_data = blackbox.correlate()
@@ -114,6 +115,8 @@ class ReportGenerator:
             "ml_prediction": ml_prediction,
             "recommendations": recommendations,
         }
+        if boot_reliability:
+            report["boot_reliability"] = boot_reliability
 
         self.similarity.index_report(report)
 

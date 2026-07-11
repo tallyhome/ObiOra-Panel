@@ -41,6 +41,16 @@ class WitnessStore:
         except (OSError, json.JSONDecodeError):
             return None
 
+    def latest_sequence(self, host: str) -> int | None:
+        latest = self.latest_heartbeat(host)
+        if not latest:
+            return None
+        seq = latest.get("sequence_id")
+        try:
+            return int(seq) if seq is not None else None
+        except (TypeError, ValueError):
+            return None
+
     def list_hosts(self) -> list[str]:
         if not self.heartbeats_dir.exists():
             return []

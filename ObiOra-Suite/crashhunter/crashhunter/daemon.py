@@ -25,7 +25,8 @@ from crashhunter.report.blackbox import BlackBoxRecorder
 from crashhunter.report.event_timeline import EventTimeline
 from crashhunter.report.generator import ReportGenerator
 from crashhunter.samplers.aggregator import SnapshotAggregator
-from crashhunter.storage.incident_store import IncidentStore
+from crashhunter.kernel.pstore import read_pstore_at_boot
+from crashhunter.storage.sequence_store import SequenceStore
 from crashhunter.storage.psi_history import PsiHistoryStore
 from crashhunter.storage.ring_buffer import RingBuffer
 from crashhunter.storage.state_store import StateStore
@@ -64,7 +65,11 @@ class CrashHunterDaemon:
         self.detector = SilentFreezeDetector(settings, self.timeline)
         self.incident_store = IncidentStore(settings.incident_dir)
         registry = CollectorRegistry(settings)
-        emergency = EmergencyCollector(settings, registry)
+        self.sequence_store = SequenceStore(
+            settings.sequence_file,
+            tmpfs_path=settings.sequence_tmpfs_file,
+        )
+        emergency = EmergencyCollector(settings, registry, self.sequence_store)
         sysrq = SysRqController(settings.sysrq.enabled)
         self.incident_manager = IncidentManager(
             settings, emergency, self.incident_store, self.timeline, sysrq=sysrq,
@@ -91,6 +96,7 @@ class CrashHunterDaemon:
         self._cycle_count = 0
         self._last_ring_sync = time.monotonic()
         self._timeline_push_index = 0
+        self._pstore_boot: dict[str, object] | None = None
 
     def handle_shutdown(self, signum: int, _frame: object) -> None:
         logger.info("Signal %s received, shutting down", signum)
@@ -102,6 +108,20 @@ class CrashHunterDaemon:
     def startup_check(self) -> dict[str, object] | None:
         """Detect reboot and generate post-freeze report if needed."""
         self.incident_manager.load_state()
+
+        # pstore / ramoops — aspirate before any other boot analysis
+        self._pstore_boot = read_pstore_at_boot()
+        if self._pstore_boot.get("entries"):
+            entry_count = len(self._pstore_boot["entries"])  # type: ignore[arg-type]
+            self.sequence_store.next_id("pstore_boot", {"entries": entry_count})
+            self.timeline.record(
+                "pstore_boot_capture",
+                f"Pstore: {entry_count} entrée(s) récupérée(s) au démarrage",
+                severity="critical",
+                extra={"total_bytes": self._pstore_boot.get("total_bytes")},
+            )
+            logger.warning("Pstore boot capture: %d entries", entry_count)
+
         if self.settings.netconsole.enabled:
             nc = self.netconsole.configure()
             logger.info("Netconsole: %s", nc)
@@ -136,6 +156,7 @@ class CrashHunterDaemon:
                 incident_id=self._last_incident_id,
                 timeline=self.timeline,
                 incident_summary=incident_summary,
+                boot_reliability=self._build_boot_reliability(),
             )
             if self.settings.panel.enabled:
                 self.panel_bridge.push_report(report, report.get("bundle_path"))
@@ -193,12 +214,22 @@ class CrashHunterDaemon:
             self.prometheus.export(snapshot, monitor_snap)
 
         if self.settings.witness.enabled:
+            seq = self.sequence_store.next_id("heartbeat", {})
+            payload = self.witness.build_payload(snapshot, incident_mode=False, sequence_id=seq)
             if self.settings.panel.enabled:
-                self.panel_bridge.push_witness(
-                    self.witness.build_payload(snapshot, incident_mode=False),
-                )
+                self.panel_bridge.push_witness(payload)
             else:
-                self.witness.send(snapshot, incident_mode=False)
+                self.witness.send(snapshot, incident_mode=False, sequence_id=seq)
+            witness_seq = self._fetch_witness_sequence()
+            if witness_seq is not None:
+                gap = self.sequence_store.compare_with_witness(witness_seq)
+                if gap.get("local_write_likely_dead"):
+                    self.timeline.record(
+                        "sequence_gap_detected",
+                        str(gap.get("interpretation", "Witness ahead of local sequence")),
+                        severity="warning",
+                        extra=gap,
+                    )
 
         if self.settings.panel.enabled:
             self._maybe_push_panel(snapshot)
@@ -242,7 +273,12 @@ class CrashHunterDaemon:
         logger.critical("Entering emergency mode: %.1fs interval for %ds",
                         interval, self.settings.incident.emergency_duration_seconds)
         if self.settings.witness.enabled:
-            self.witness.send({"timestamp_us": now_us(), "system": {}}, incident_mode=True)
+            seq = self.sequence_store.next_id("incident_mode", {"triggers": self._last_triggers})
+            self.witness.send(
+                {"timestamp_us": now_us(), "system": {}, "sequence_id": seq},
+                incident_mode=True,
+                sequence_id=seq,
+            )
         while self._running:
             snapshot = self.incident_manager.run_emergency_cycle()
             if snapshot is None:
@@ -286,6 +322,40 @@ class CrashHunterDaemon:
             if synced:
                 logger.debug("Ring buffer synced %d slots to disk", synced)
             self._last_ring_sync = time.monotonic()
+
+    def _build_boot_reliability(self) -> dict[str, object]:
+        reliability: dict[str, object] = {}
+        if self._pstore_boot:
+            reliability["pstore"] = self._pstore_boot
+        witness_seq = self._fetch_witness_sequence()
+        reliability["sequence"] = self.sequence_store.compare_with_witness(witness_seq)
+        correlation = self.blackbox.correlate()
+        for key in ("edac_mce", "ipmi_flight", "vm_heartbeat"):
+            if key in correlation:
+                reliability[key] = correlation[key]
+        return reliability
+
+    def _fetch_witness_sequence(self) -> int | None:
+        if not self.settings.witness.enabled:
+            return None
+        host = self.settings.witness.host_id or self.settings.hostname
+        base = self.settings.witness.receiver_url.rstrip("/")
+        url = f"{base}/api/v1/witness/sequence/{host}"
+        import urllib.error
+        import urllib.request
+
+        headers: dict[str, str] = {}
+        token = self.settings.witness.token
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        req = urllib.request.Request(url, headers=headers, method="GET")
+        try:
+            with urllib.request.urlopen(req, timeout=self.settings.witness.send_timeout_seconds) as resp:
+                data = __import__("json").loads(resp.read().decode("utf-8"))
+                seq = data.get("sequence_id")
+                return int(seq) if seq is not None else None
+        except (urllib.error.URLError, ValueError, TypeError):
+            return None
 
     def _check_live_anomalies(self, snapshot: dict[str, object]) -> None:
         alerts_path = self.settings.logs_dir / "alerts.log"

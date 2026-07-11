@@ -253,6 +253,7 @@ final class CrashHunterIngestService
                     'witness_gap_seconds' => $payload['witness_gap_seconds'] ?? $existingMeta['witness_gap_seconds'] ?? null,
                     'ring_count' => $payload['ring_count'] ?? $existingMeta['ring_count'] ?? null,
                     'version' => $payload['crashhunter_version'] ?? $existingMeta['version'] ?? null,
+                    'sequence_id' => $payload['sequence_id'] ?? $existingMeta['sequence_id'] ?? null,
                     'last_report_id' => $payload['last_report_id'] ?? $existingMeta['last_report_id'] ?? null,
                     'last_report_verdict' => $payload['last_report_verdict'] ?? $existingMeta['last_report_verdict'] ?? null,
                 ]),

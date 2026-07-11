@@ -1,4 +1,4 @@
-# CrashHunter Enterprise v2.1 — configuration
+# CrashHunter Enterprise v2.2 — configuration
 # Override via /opt/crashhunter/config.yaml or CRASHHUNTER_CONFIG env var.
 
 daemon:
@@ -118,12 +118,21 @@ collectors:
     - journal
     - dmesg
     - ipmi
+    - ipmi_flight
+    - edac_mce
     - smart
     - raid
     - temperature
     - pci
     - ssh
     - ping
+    - pstore
+    - vm_heartbeat
+
+diagnostic_budget:
+  enabled: true
+  psi_io_threshold: 25
+  command_slow_ms: 2000
 
 command_thresholds:
   default_ms: 3000

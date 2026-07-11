@@ -125,6 +125,66 @@ final class DoctorRemoteDeployService
     }
 
     /**
+     * Met à jour les agents déjà installés (préserve config CrashHunter).
+     *
+     * @param  list<string>  $components  crash_hunter, crash_analyzer, doctor
+     * @param  callable(int, string, list<array{component: string, success: bool, output: string}>): void|null  $onProgress
+     * @return array{success: bool, steps: list<array{component: string, success: bool, output: string}>}
+     */
+    public function upgradeAgents(
+        Server $server,
+        SshConnection $connection,
+        array $components,
+        ?callable $onProgress = null,
+    ): array {
+        $steps = [];
+        $panelUrl = rtrim((string) config('app.url'), '/');
+
+        if ($components === []) {
+            return ['success' => true, 'steps' => []];
+        }
+
+        if ($onProgress !== null) {
+            $onProgress(35, 'Mise à jour des agents distants…', $steps);
+        }
+
+        $command = sprintf(
+            'curl -fsSL %s/install/update-doctor-agents.sh | sudo OBIORA_PANEL_URL=%s OBIORA_SERVER_ID=%d OBIORA_AGENT_TOKEN=%s OBIORA_UPDATE_CRASH_HUNTER=%s OBIORA_UPDATE_CRASH_ANALYZER=%s OBIORA_UPDATE_DOCTOR=%s bash',
+            $panelUrl,
+            $panelUrl,
+            $server->id,
+            $server->agent_token,
+            in_array('crash_hunter', $components, true) ? 'yes' : 'no',
+            in_array('crash_analyzer', $components, true) ? 'yes' : 'no',
+            in_array('doctor', $components, true) ? 'yes' : 'no',
+        );
+
+        $result = $this->runRemote($connection, $command);
+        $steps[] = [
+            'component' => 'agent_upgrade',
+            'success' => $result['success'],
+            'output' => $result['output'],
+        ];
+
+        if ($result['success']) {
+            $meta = $server->metadata ?? [];
+            $meta['doctor_deploy'] = array_merge($meta['doctor_deploy'] ?? [], [
+                'last_upgrade_at' => now()->toIso8601String(),
+                'upgraded_components' => $components,
+            ]);
+            $server->forceFill(['metadata' => $meta])->save();
+            if ($onProgress !== null) {
+                $onProgress(95, 'Mise à jour enregistrée…', $steps);
+            }
+        }
+
+        return [
+            'success' => $result['success'],
+            'steps' => $steps,
+        ];
+    }
+
+    /**
      * @return array{success: bool, output: string, message: string}
      */
     public function testConnection(SshConnection $connection): array

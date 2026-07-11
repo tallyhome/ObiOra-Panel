@@ -35,6 +35,8 @@ final class DoctorDeployRunner
         bool $installCrashAnalyzer = true,
         bool $installCrashHunter = true,
         bool $installSlave = false,
+        bool $upgradeOnly = false,
+        array $upgradeComponents = [],
     ): void {
         $server = Server::query()->find($serverId);
 
@@ -80,28 +82,47 @@ final class DoctorDeployRunner
 
             $this->progress->appendLog($serverId, 'Connexion OK — '.$test['message']);
 
-            $this->progress->update($serverId, 25, 'Téléchargement des scripts depuis le panel…');
-            $this->progress->appendLog($serverId, 'Envoi des scripts d\'installation (Doctor + Crash Analyzer)…');
+            $this->progress->update($serverId, 25, $upgradeOnly
+                ? 'Mise à jour des agents distants…'
+                : 'Téléchargement des scripts depuis le panel…');
+            $this->progress->appendLog($serverId, $upgradeOnly
+                ? 'Envoi du script de mise à jour agents…'
+                : 'Envoi des scripts d\'installation (Doctor + Crash Analyzer)…');
 
-            $result = $this->deploy->deploySuite(
-                $server,
-                $ssh,
-                $installDoctor,
-                $installCrashAnalyzer,
-                $installCrashHunter,
-                function (int $pct, string $msg, array $steps) use ($serverId): void {
-                    $this->progress->update($serverId, $pct, $msg, $steps);
-                    $this->progress->appendLog($serverId, $msg);
+            if ($upgradeOnly) {
+                $components = $upgradeComponents !== []
+                    ? $upgradeComponents
+                    : app(DiagnosticsAgentVersionService::class)->outdatedComponents($server);
+                $result = $this->deploy->upgradeAgents(
+                    $server,
+                    $ssh,
+                    $components,
+                    function (int $pct, string $msg, array $steps) use ($serverId): void {
+                        $this->progress->update($serverId, $pct, $msg, $steps);
+                        $this->progress->appendLog($serverId, $msg);
+                    },
+                );
+            } else {
+                $result = $this->deploy->deploySuite(
+                    $server,
+                    $ssh,
+                    $installDoctor,
+                    $installCrashAnalyzer,
+                    $installCrashHunter,
+                    function (int $pct, string $msg, array $steps) use ($serverId): void {
+                        $this->progress->update($serverId, $pct, $msg, $steps);
+                        $this->progress->appendLog($serverId, $msg);
 
-                    foreach ($steps as $step) {
-                        $status = ($step['success'] ?? false) ? 'OK' : 'ÉCHEC';
-                        $this->progress->appendLog(
-                            $serverId,
-                            "[{$step['component']}] {$status}",
-                        );
-                    }
-                },
-            );
+                        foreach ($steps as $step) {
+                            $status = ($step['success'] ?? false) ? 'OK' : 'ÉCHEC';
+                            $this->progress->appendLog(
+                                $serverId,
+                                "[{$step['component']}] {$status}",
+                            );
+                        }
+                    },
+                );
+            }
 
             $log = collect($result['steps'])->pluck('output')->filter()->implode("\n\n");
 
@@ -120,7 +141,7 @@ final class DoctorDeployRunner
                 $slaveOk = true;
                 $slaveOutput = '';
 
-                if ($installSlave) {
+                if ($installSlave && ! $upgradeOnly) {
                     $this->progress->update($serverId, 92, 'Installation agent seedbox…');
                     $this->progress->appendLog($serverId, 'Installation agent seedbox (slave)…');
 
@@ -158,7 +179,9 @@ final class DoctorDeployRunner
 
                 $message = $installSlave && ! $slaveOk
                     ? 'Diagnostics installés — échec agent seedbox (voir console).'
-                    : 'Installation terminée — les agents envoient les données au panel.';
+                    : ($upgradeOnly
+                        ? 'Mise à jour des agents terminée.'
+                        : 'Installation terminée — les agents envoient les données au panel.');
 
                 $this->progress->appendLog($serverId, $slaveOk ? 'Installation terminée avec succès.' : 'Diagnostics OK — agent seedbox en échec.');
                 $this->progress->finish(

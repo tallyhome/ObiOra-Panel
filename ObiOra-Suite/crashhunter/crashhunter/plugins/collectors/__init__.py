@@ -29,6 +29,12 @@ from crashhunter.plugins.collectors.memory_extended import (
     SwapCollector,
 )
 from crashhunter.plugins.collectors.probes_extended import PingCollector, SshCollector
+from crashhunter.plugins.collectors.reliability_extended import (
+    EdacMceCollector,
+    IpmiFlightRecorderCollector,
+    PstoreCollector,
+    VmHeartbeatCollector,
+)
 from crashhunter.plugins.collectors.storage_extended import LvmCollector, XfsCollector
 from crashhunter.plugins.collectors.virt_extended import LibvirtCollector, QemuCollector
 
@@ -39,6 +45,7 @@ if TYPE_CHECKING:
 
 # All enterprise plugin classes — each is independently enable/disable via YAML
 ENTERPRISE_COLLECTOR_CLASSES: list[type] = [
+    PstoreCollector,
     SwapCollector,
     OomCollector,
     NumaCollector,
@@ -47,6 +54,7 @@ ENTERPRISE_COLLECTOR_CLASSES: list[type] = [
     XfsCollector,
     LibvirtCollector,
     QemuCollector,
+    VmHeartbeatCollector,
     BlkMqCollector,
     SchedulerCollector,
     InterruptCollector,
@@ -56,6 +64,8 @@ ENTERPRISE_COLLECTOR_CLASSES: list[type] = [
     JournalCollector,
     DmesgCollector,
     IpmiCollector,
+    IpmiFlightRecorderCollector,
+    EdacMceCollector,
     SmartCollector,
     RaidCollector,
     TemperatureCollector,

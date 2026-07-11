@@ -9,6 +9,7 @@ use App\Models\DiagnosticReport;
 use App\Models\Server;
 use App\Services\CrashHunter\CrashHunterMetricsService;
 use App\Services\Core\ServerManager;
+use App\Services\Diagnostics\DiagnosticsAgentVersionService;
 use App\Services\Diagnostics\DoctorDeployTargetResolver;
 use App\Services\Deploy\DeployLogService;
 use App\Services\Deploy\RemoteDeployLauncher;
@@ -365,6 +366,73 @@ final class DoctorSuiteIndex extends Component
         }
     }
 
+    public function upgradeAgents(
+        DoctorDeployProgressService $progress,
+        RemoteDeployLauncher $launcher,
+        DiagnosticsAgentVersionService $versions,
+        DoctorDeployTargetResolver $targetResolver,
+    ): void {
+        $this->authorizeDeploy();
+        $this->validateSshForm();
+
+        if (! $this->sshTestOk) {
+            $this->dispatch('notify', type: 'warning', message: 'Testez d\'abord la connexion SSH.');
+
+            return;
+        }
+
+        if ($this->deployRunning) {
+            return;
+        }
+
+        try {
+            $server = $targetResolver->resolve(
+                $this->sshHost,
+                $this->sshRemoteHostname,
+                $this->serverId,
+            );
+            $this->serverId = $server->id;
+
+            $components = $versions->outdatedComponents($server);
+            if ($components === []) {
+                $this->dispatch('notify', type: 'info', message: 'Les agents distants sont déjà à jour.');
+
+                return;
+            }
+
+            app(DoctorDeployRunner::class)->storeBootstrapPassword($server->id, $this->sshPassword);
+
+            $progress->start($server->id);
+            $progress->appendLog($server->id, 'Mise à jour agents : '.implode(', ', $components));
+
+            $launcher->launchAgentUpgrade(
+                $server->id,
+                $this->sshHost,
+                $this->sshPort,
+                $this->sshUser,
+                $components,
+            );
+
+            $this->deployRunning = true;
+            $this->deployFinished = false;
+            $this->deployDismissed = false;
+            $this->deploySuccess = null;
+            $this->deployProgress = 5;
+            $this->deployProgressMessage = 'Mise à jour des agents distants…';
+            $this->deployError = null;
+            $this->deploySteps = [];
+            $this->deployConsole = ['['.now()->format('H:i:s').'] Mise à jour agents démarrée…'];
+            $this->sshPassword = '';
+
+            $this->dispatch('deploy-console-scroll');
+        } catch (\Throwable $e) {
+            $progress->cancel($this->serverId, 'Échec au lancement : '.$e->getMessage());
+            $this->deployError = $e->getMessage();
+            $this->deployRunning = false;
+            $this->dispatch('notify', type: 'danger', message: $this->deployError);
+        }
+    }
+
     public function dismissDeployResult(DoctorDeployProgressService $progress): void
     {
         $this->deployDismissed = true;
@@ -580,7 +648,7 @@ final class DoctorSuiteIndex extends Component
         return $connection;
     }
 
-    public function render(DoctorSuiteService $suite, DeployLogService $deployLog)
+    public function render(DoctorSuiteService $suite, DeployLogService $deployLog, DiagnosticsAgentVersionService $agentVersions)
     {
         $servers = Server::query()
             ->with('latestDiagnosticReport')
@@ -614,6 +682,9 @@ final class DoctorSuiteIndex extends Component
                 ? $deployLog->recentForServer($this->serverId, 'doctor')
                 : collect(),
             'timezoneChoices' => TimezoneCatalog::choices(),
+            'agentVersionRows' => $server !== null ? $agentVersions->compare($server) : [],
+            'agentUpgradeNeeded' => $server !== null && $agentVersions->needsUpgrade($server),
+            'bundledAgentVersions' => $agentVersions->bundledVersions(),
         ]);
     }
 

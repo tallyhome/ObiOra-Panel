@@ -94,6 +94,9 @@ class IncidentManager:
     def _start_deep_collectors(self) -> None:
         if self._deep_collectors_started:
             return
+        if not self.emergency_collector.budget.allow_heavy_diagnostics():
+            logger.warning("Deep collectors skipped — diagnostic budget in minimal mode")
+            return
         self._deep_collectors_started = True
         threading.Thread(target=self.emergency_collector.run_deep_diagnostics, daemon=True).start()
 

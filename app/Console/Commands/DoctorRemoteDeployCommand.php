@@ -17,13 +17,20 @@ final class DoctorRemoteDeployCommand extends Command
                             {doctor : Installer Doctor (yes/no)}
                             {crash : Installer Crash Analyzer (yes/no)}
                             {crashhunter : Installer CrashHunter (yes/no)}
-                            {slave : Installer agent seedbox (yes/no)}';
+                            {slave : Installer agent seedbox (yes/no)}
+                            {upgrade : Mise à jour agents uniquement (yes/no)}
+                            {components : Composants à mettre à jour (csv)}';
 
-    protected $description = 'Déploie Doctor, Crash Analyzer, CrashHunter et optionnellement l\'agent seedbox';
+    protected $description = 'Déploie ou met à jour Doctor, Crash Analyzer, CrashHunter';
 
     public function handle(DoctorDeployRunner $runner): int
     {
         set_time_limit(0);
+
+        $componentsArg = (string) ($this->argument('components') ?? '');
+        $components = $componentsArg !== ''
+            ? array_values(array_filter(array_map('trim', explode(',', $componentsArg))))
+            : [];
 
         $runner->run(
             serverId: (int) $this->argument('serverId'),
@@ -34,6 +41,8 @@ final class DoctorRemoteDeployCommand extends Command
             installCrashAnalyzer: $this->argument('crash') === 'yes',
             installCrashHunter: $this->argument('crashhunter') === 'yes',
             installSlave: $this->argument('slave') === 'yes',
+            upgradeOnly: ($this->argument('upgrade') ?? 'no') === 'yes',
+            upgradeComponents: $components,
         );
 
         return self::SUCCESS;

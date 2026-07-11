@@ -87,6 +87,10 @@ def _make_handler(receiver: WitnessReceiver) -> type[BaseHTTPRequestHandler]:
             path = urlparse(self.path).path
             if path in ("/api/v1/witness/status", "/api/v1/witness/hosts"):
                 self._json_response(200, receiver.handle_status())
+            elif path.startswith("/api/v1/witness/sequence/"):
+                host = path.rsplit("/", 1)[-1]
+                seq = receiver.store.latest_sequence(host)
+                self._json_response(200, {"host": host, "sequence_id": seq})
             elif path == "/health":
                 self._json_response(200, {"status": "ok"})
             else:

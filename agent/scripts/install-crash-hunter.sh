@@ -48,6 +48,10 @@ install_source() {
 
 write_config() {
     mkdir -p "${CONFIG_DIR}" /dev/shm/crashhunter-ring "${INSTALL_DIR}/data" "${INSTALL_DIR}/reports" "${INSTALL_DIR}/logs"
+    if [[ -f "${INSTALL_DIR}/config.yaml" && "${OBIORA_PRESERVE_CONFIG:-no}" == "yes" ]]; then
+        echo "Config CrashHunter préservée (${INSTALL_DIR}/config.yaml)"
+        return 0
+    fi
     cat > "${INSTALL_DIR}/config.yaml" <<YAML
 daemon:
   base_dir: ${INSTALL_DIR}

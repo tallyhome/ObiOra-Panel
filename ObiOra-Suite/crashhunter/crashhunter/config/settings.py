@@ -167,6 +167,13 @@ class PrometheusSettings:
     metrics_file: str = "prometheus.metrics"
 
 
+@dataclass
+class DiagnosticBudgetSettings:
+    enabled: bool = True
+    psi_io_threshold: float = 25.0
+    command_slow_ms: float = 2000.0
+
+
 def _default_hostname() -> str:
     if hasattr(os, "uname"):
         return os.uname().nodename
@@ -192,8 +199,8 @@ class Settings:
         "swap", "oom", "numa", "hugepages", "lvm", "xfs",
         "libvirt", "qemu", "blkmq", "scheduler", "interrupt", "softirq",
         "pressure", "watchdog", "journal", "dmesg",
-        "ipmi", "smart", "raid", "temperature", "pci",
-        "ssh", "ping", "ebpf",
+        "ipmi", "ipmi_flight", "edac_mce", "smart", "raid", "temperature", "pci",
+        "ssh", "ping", "pstore", "vm_heartbeat", "ebpf",
     ])
     command_thresholds: dict[str, float] = field(default_factory=lambda: {
         "virsh_list": 3000, "ssh_localhost": 3000, "ping_loopback": 2000,
@@ -219,6 +226,7 @@ class Settings:
     ebpf: EbpfSettings = field(default_factory=EbpfSettings)
     retention: RetentionSettings = field(default_factory=RetentionSettings)
     prometheus: PrometheusSettings = field(default_factory=PrometheusSettings)
+    diagnostic_budget: DiagnosticBudgetSettings = field(default_factory=DiagnosticBudgetSettings)
     simulation_enabled: bool = False
     config_path: Path | None = None
     rules_path: Path | None = None
@@ -304,6 +312,14 @@ class Settings:
     @property
     def timeline_file(self) -> Path:
         return self.state_dir / "event_timeline.jsonl"
+
+    @property
+    def sequence_file(self) -> Path:
+        return self.state_dir / "sequence.json"
+
+    @property
+    def sequence_tmpfs_file(self) -> Path:
+        return Path("/dev/shm/crashhunter-sequence.json")
 
     @property
     def regression_state_file(self) -> Path:
@@ -392,6 +408,7 @@ def load_settings(config_path: Path | None = None) -> Settings:
     benchmark_raw = _deep_get(yaml_data, "benchmark", default={}) or {}
     web_raw = _deep_get(yaml_data, "web", default={}) or {}
     panel_raw = _deep_get(yaml_data, "panel", default={}) or {}
+    budget_raw = _deep_get(yaml_data, "diagnostic_budget", default={}) or {}
     cmd_thresh_raw = _deep_get(yaml_data, "command_thresholds", default={}) or {}
     collectors_raw = _deep_get(yaml_data, "collectors", "enabled", default=None)
 
@@ -544,6 +561,11 @@ def load_settings(config_path: Path | None = None) -> Settings:
         prometheus=PrometheusSettings(
             enabled=bool(prom_raw.get("enabled", False)),
             metrics_file=str(prom_raw.get("metrics_file", "prometheus.metrics")),
+        ),
+        diagnostic_budget=DiagnosticBudgetSettings(
+            enabled=bool(budget_raw.get("enabled", True)),
+            psi_io_threshold=float(budget_raw.get("psi_io_threshold", 25.0)),
+            command_slow_ms=float(budget_raw.get("command_slow_ms", 2000.0)),
         ),
         simulation_enabled=bool(_deep_get(yaml_data, "simulation", "enabled", default=False)),
         config_path=config_path,

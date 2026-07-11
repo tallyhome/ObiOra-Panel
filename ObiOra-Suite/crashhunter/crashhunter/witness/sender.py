@@ -20,7 +20,12 @@ class WitnessSender:
         self.settings = settings
         self._last_status = "unknown"
 
-    def build_payload(self, snapshot: dict[str, Any], incident_mode: bool = False) -> dict[str, Any]:
+    def build_payload(
+        self,
+        snapshot: dict[str, Any],
+        incident_mode: bool = False,
+        sequence_id: int | None = None,
+    ) -> dict[str, Any]:
         system = snapshot.get("system", {})
         cpu = snapshot.get("cpu", {})
         memory = snapshot.get("memory", {})
@@ -68,13 +73,19 @@ class WitnessSender:
             "incident_mode": incident_mode,
             "boot_id": system.get("boot_id"),
             "ring_count": snapshot.get("ring_count"),
+            "sequence_id": sequence_id if sequence_id is not None else snapshot.get("sequence_id"),
         }
 
-    def send(self, snapshot: dict[str, Any], incident_mode: bool = False) -> bool:
+    def send(
+        self,
+        snapshot: dict[str, Any],
+        incident_mode: bool = False,
+        sequence_id: int | None = None,
+    ) -> bool:
         if not self.settings.witness.enabled:
             return False
         url = self.settings.witness.receiver_url.rstrip("/") + "/api/v1/witness/heartbeat"
-        payload = self.build_payload(snapshot, incident_mode)
+        payload = self.build_payload(snapshot, incident_mode, sequence_id=sequence_id)
         data = json.dumps(payload).encode("utf-8")
         headers = {"Content-Type": "application/json"}
         token = self.settings.witness.token

@@ -77,6 +77,54 @@ final class RemoteDeployLauncher
         $this->launchDoctorCli($serverId, $sshHost, $sshPort, $sshUser, $installDoctor, $installCrashAnalyzer, $installCrashHunter, $installSlave);
     }
 
+    /**
+     * @param  list<string>  $components
+     */
+    public function launchAgentUpgrade(
+        int $serverId,
+        string $sshHost,
+        int $sshPort,
+        string $sshUser,
+        array $components = [],
+    ): void {
+        $this->deployLog->log($serverId, 'doctor', 'Demande de mise à jour agents', 'info', [
+            'host' => $sshHost,
+            'components' => $components,
+        ]);
+
+        $workerOk = $this->queue->ensureWorkerRunning();
+
+        try {
+            DoctorRemoteDeployJob::dispatch(
+                $serverId,
+                $sshHost,
+                $sshPort,
+                $sshUser,
+                false,
+                false,
+                false,
+                false,
+                true,
+                $components,
+            );
+
+            $this->doctorProgress->appendLog(
+                $serverId,
+                $workerOk
+                    ? 'Tâche de mise à jour envoyée au worker obiora-queue.'
+                    : 'Tâche en file — worker relancé, patientez…',
+            );
+
+            return;
+        } catch (Throwable $exception) {
+            Log::warning('Dispatch upgrade job échoué — fallback CLI', [
+                'message' => $exception->getMessage(),
+            ]);
+        }
+
+        $this->launchDoctorCli($serverId, $sshHost, $sshPort, $sshUser, false, false, false, false, true, $components);
+    }
+
     public function launchSlave(
         int $serverId,
         string $sshHost,
@@ -120,6 +168,8 @@ final class RemoteDeployLauncher
         bool $installCrashAnalyzer,
         bool $installCrashHunter = true,
         bool $installSlave = false,
+        bool $upgradeOnly = false,
+        array $upgradeComponents = [],
     ): void {
         $logFile = storage_path('logs/deploy-doctor.log');
         $command = $this->buildArtisanCommand([
@@ -132,6 +182,8 @@ final class RemoteDeployLauncher
             $installCrashAnalyzer ? 'yes' : 'no',
             $installCrashHunter ? 'yes' : 'no',
             $installSlave ? 'yes' : 'no',
+            $upgradeOnly ? 'yes' : 'no',
+            implode(',', $upgradeComponents),
         ], $logFile);
 
         $this->doctorProgress->appendLog($serverId, 'Fallback : lancement CLI en arrière-plan…');

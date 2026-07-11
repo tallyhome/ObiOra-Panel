@@ -122,6 +122,18 @@ Route::get('/install/uninstall-doctor-suite.sh', function () {
     );
 })->name('install.uninstall-doctor-suite');
 
+Route::get('/install/update-doctor-agents.sh', function () {
+    $path = base_path('agent/scripts/update-doctor-agents.sh');
+
+    abort_unless(is_readable($path), 404);
+
+    return response(
+        (string) file_get_contents($path),
+        200,
+        ['Content-Type' => 'text/x-shellscript; charset=utf-8'],
+    );
+})->name('install.update-doctor-agents');
+
 Route::get('/install/server-timezone.sh', function () {
     $path = base_path('agent/scripts/server-timezone.sh');
 

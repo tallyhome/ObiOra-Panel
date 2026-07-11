@@ -294,8 +294,38 @@
                     @if($canManageServers)
                     <div class="border rounded p-3 mb-3 bg-body-secondary">
                         <span class="small fw-medium d-block mb-2">Contrôle des agents distants</span>
+                        @if(!empty($agentVersionRows))
+                        <div class="table-responsive mb-2">
+                            <table class="table table-sm obiora-table mb-0">
+                                <thead class="obiora-table-head"><tr><th>Agent</th><th>Panel</th><th>Distant</th><th>État</th></tr></thead>
+                                <tbody>
+                                    @foreach($agentVersionRows as $row)
+                                    <tr>
+                                        <td class="small">{{ $row['label'] }}</td>
+                                        <td><code class="small">{{ $row['bundled'] ?: '—' }}</code></td>
+                                        <td><code class="small">{{ $row['remote'] ?: '—' }}</code></td>
+                                        <td>
+                                            @if($row['outdated'])
+                                                <span class="badge text-bg-warning">MAJ requise</span>
+                                            @elseif($row['remote'])
+                                                <span class="badge text-bg-success">OK</span>
+                                            @else
+                                                <span class="badge text-bg-secondary">inconnu</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        @endif
                         <p class="small text-muted mb-2">Une fois le problème identifié et résolu, arrêtez les agents diagnostics ou supprimez-les entièrement (services, logs, snapshots, répertoires).</p>
                         <div class="d-flex flex-wrap gap-2 mb-2">
+                            <button type="button" wire:click="upgradeAgents" wire:loading.attr="disabled" class="btn btn-outline-primary btn-sm"
+                                    @if(!$sshTestOk || !$agentUpgradeNeeded) disabled @endif>
+                                <span wire:loading.remove wire:target="upgradeAgents">Maj agents</span>
+                                <span wire:loading wire:target="upgradeAgents">Mise à jour…</span>
+                            </button>
                             <button type="button" wire:click="refreshRunningAgents" wire:loading.attr="disabled" class="btn btn-outline-secondary btn-sm"
                                     @if(!$sshTestOk) disabled @endif>
                                 <span wire:loading.remove wire:target="refreshRunningAgents">Voir les agents actifs</span>

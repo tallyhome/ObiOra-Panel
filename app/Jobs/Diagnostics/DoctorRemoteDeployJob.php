@@ -32,6 +32,9 @@ final class DoctorRemoteDeployJob implements ShouldQueue
         public readonly bool $installCrashAnalyzer = true,
         public readonly bool $installCrashHunter = true,
         public readonly bool $installSlave = false,
+        public readonly bool $upgradeOnly = false,
+        /** @var list<string> */
+        public readonly array $upgradeComponents = [],
     ) {}
 
     public function handle(DoctorDeployRunner $runner): void
@@ -45,6 +48,8 @@ final class DoctorRemoteDeployJob implements ShouldQueue
             $this->installCrashAnalyzer,
             $this->installCrashHunter,
             $this->installSlave,
+            $this->upgradeOnly,
+            $this->upgradeComponents,
         );
     }
 
