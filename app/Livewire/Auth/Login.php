@@ -32,14 +32,14 @@ final class Login extends Component
 
         if (RateLimiter::tooManyAttempts($key, 5)) {
             throw ValidationException::withMessages([
-                'email' => 'Trop de tentatives. Réessayez dans '.RateLimiter::availableIn($key).' secondes.',
+                'email' => __('panel.auth.too_many', ['seconds' => RateLimiter::availableIn($key)]),
             ]);
         }
 
         if (! Auth::attempt(['email' => $this->email, 'password' => $this->password, 'is_active' => true], $this->remember)) {
             RateLimiter::hit($key, 60);
             throw ValidationException::withMessages([
-                'email' => 'Identifiants incorrects.',
+                'email' => __('panel.auth.invalid_credentials'),
             ]);
         }
 
@@ -47,14 +47,14 @@ final class Login extends Component
         if ($user !== null && $user->isDemoExpired()) {
             Auth::logout();
             throw ValidationException::withMessages([
-                'email' => 'Votre démo a expiré. Créez-en une nouvelle sur le site ObiOra.',
+                'email' => __('panel.auth.demo_expired'),
             ]);
         }
 
         RateLimiter::clear($key);
         session()->regenerate();
 
-        $this->redirect(route('dashboard'), navigate: true);
+        $this->redirectIntended(default: route('dashboard'));
     }
 
     public function render()

@@ -47,6 +47,80 @@
         </div>
     </div>
 
+    @if($server)
+    <div class="card obiora-card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Date et fuseau horaire — {{ $server->name }}</span>
+            @if($timezoneLoading)
+                <span class="badge text-bg-secondary">Lecture…</span>
+            @endif
+        </div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <dl class="row small mb-0">
+                        <dt class="col-sm-5">Heure serveur</dt>
+                        <dd class="col-sm-7">
+                            @if($serverDateTime)
+                                <strong>{{ $serverDateTime }}</strong>
+                            @else
+                                <span class="text-muted">—</span>
+                            @endif
+                        </dd>
+                        <dt class="col-sm-5">Fuseau actuel</dt>
+                        <dd class="col-sm-7">
+                            @if($serverTimezone)
+                                <code>{{ $serverTimezone }}</code>
+                            @else
+                                <span class="text-muted">—</span>
+                            @endif
+                        </dd>
+                        @if($serverNtp !== null)
+                        <dt class="col-sm-5">Synchronisation NTP</dt>
+                        <dd class="col-sm-7">{{ $serverNtp === 'yes' ? 'Active' : ($serverNtp === 'no' ? 'Inactive' : $serverNtp) }}</dd>
+                        @endif
+                    </dl>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="doctorTimezoneSelect">Nouveau fuseau horaire</label>
+                    <select id="doctorTimezoneSelect" wire:model="selectedTimezone" class="form-select" @if(!$canManageServers) disabled @endif>
+                        @foreach($timezoneChoices as $tzValue => $tzLabel)
+                            <option value="{{ $tzValue }}">{{ $tzLabel }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    @if($canManageServers)
+                    <button type="button"
+                            wire:click="applyServerTimezone"
+                            wire:loading.attr="disabled"
+                            wire:target="applyServerTimezone,refreshServerTimezone"
+                            class="btn btn-outline-primary w-100">
+                        <span wire:loading.remove wire:target="applyServerTimezone">Appliquer au serveur</span>
+                        <span wire:loading wire:target="applyServerTimezone">Mise à jour…</span>
+                    </button>
+                    <button type="button"
+                            wire:click="refreshServerTimezone"
+                            wire:loading.attr="disabled"
+                            wire:target="refreshServerTimezone,applyServerTimezone"
+                            class="btn btn-link btn-sm px-0 mt-1">
+                        Actualiser l'heure
+                    </button>
+                    @else
+                    <p class="small text-muted mb-0">Permission <code>servers.manage</code> requise pour modifier le fuseau.</p>
+                    @endif
+                </div>
+            </div>
+            <p class="small text-muted mb-0 mt-3">
+                Le panel applique <code>timedatectl set-timezone</code> et active la synchronisation NTP pour corriger la date et l'heure du serveur sélectionné.
+            </p>
+            @if($timezoneMessage)
+            <div class="alert py-2 small mt-3 mb-0 alert-info">{{ $timezoneMessage }}</div>
+            @endif
+        </div>
+    </div>
+    @endif
+
     @if(!empty($fleetOverview))
     <div class="card obiora-card mb-4">
         <div class="card-body">

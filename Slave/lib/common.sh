@@ -49,3 +49,18 @@ get_server_ip() {
 generate_api_key() {
     openssl rand -hex 32
 }
+
+ensure_agent_executables() {
+    local root="${OBIORA_INSTALL_DIR:-/opt/obiora-slave}"
+    local bin="${root}/agent/bin/obiOra-agent"
+    local owner="${OBIORA_AGENT_USER:-obiora-slave}"
+
+    if [[ -f "${bin}" ]]; then
+        chmod +x "${bin}" 2>/dev/null || true
+        chown "${owner}:${owner}" "${bin}" 2>/dev/null || true
+    fi
+
+    if [[ -d "${root}/agent/scripts" ]]; then
+        chmod +x "${root}"/agent/scripts/*.sh 2>/dev/null || true
+    fi
+}

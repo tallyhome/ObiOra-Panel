@@ -24,6 +24,8 @@ Route::middleware('setup')->group(function () {
     Route::get('/login', Login::class)->name('login')->middleware('guest');
 });
 
+Route::get('/locale/{locale}', \App\Http\Controllers\LocaleController::class)->name('locale');
+
 Route::post('/logout', function () {
     Auth::logout();
     session()->invalidate();

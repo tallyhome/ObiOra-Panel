@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.42 - 2026-07-11
+
+- Login : correction 500 après reboot (page 503 « démarrage en cours » si MariaDB/Redis pas prêts)
+- Boot : `obiora-panel-ready.service`, PHP-FPM/Nginx après MariaDB/Redis, script `panel-boot-wait.sh`
+- i18n : locales FR/EN/DE/ES, switcher login + panel, cookie `obiora_locale`
+- ObiOra-Suite : CrashHunter Enterprise v2.0 (silent freeze, incident mode, plugins, bundle OVH)
+- UI : thème jour/nuit, logo SVG, navbar/sidebar harmonisés
+
+## v2.1.41 - 2026-07-10
+
+- Agent : `obiOra-agent` versionné exécutable dans Git (évite 644 après `git pull`)
+- MAJ / recovery : `ensure_agent_executables` après checkout et au démarrage systemd (`ExecStartPre chmod`)
+
 ## v2.1.38 - 2026-07-10
 
 - Doctor & Suite : installation directe sur le serveur local du panel (sans SSH vers sa propre IP)

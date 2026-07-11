@@ -25,8 +25,8 @@
             <path d="M11 -2 L-13 5" stroke="#3dd68c" stroke-width="1" opacity="0.35"/>
         </g>
 
-        <text x="72" y="30" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="21" font-weight="700" fill="#e8e8f0" letter-spacing="-0.5">ObiOra</text>
-        <text x="154" y="30" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#8b8ba3">Panel</text>
+        <text x="72" y="30" class="obiora-logo-text-main" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="21" font-weight="700" fill="#e8e8f0" letter-spacing="-0.5">ObiOra</text>
+        <text x="154" y="30" class="obiora-logo-text-sub" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#8b8ba3">Panel</text>
         <text x="72" y="48" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="10.5" font-weight="600" fill="url(#obiora-grad)" letter-spacing="0.32em">SEEDBOX</text>
         <rect x="72" y="52" width="42" height="2" rx="1" fill="url(#obiora-grad)" opacity="0.85"/>
     </svg>

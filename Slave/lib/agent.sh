@@ -11,6 +11,7 @@ clone_slave_agent() {
         git clone --depth 1 --branch "${OBIORA_BRANCH}" "${OBIORA_REPO}" "${OBIORA_INSTALL_DIR}"
     fi
 
+    ensure_agent_executables
     chown -R "${OBIORA_AGENT_USER}:${OBIORA_AGENT_USER}" "${OBIORA_INSTALL_DIR}"
     success "Agent téléchargé dans ${OBIORA_INSTALL_DIR}"
 }
@@ -40,7 +41,7 @@ JSON
 
     chmod 600 "${OBIORA_INSTALL_DIR}/agent/config/agent.json"
     chown "${OBIORA_AGENT_USER}:${OBIORA_AGENT_USER}" "${OBIORA_INSTALL_DIR}/agent/config/agent.json"
-    chmod +x "${OBIORA_INSTALL_DIR}/agent/bin/obiOra-agent"
+    ensure_agent_executables
 
     success "Agent configuré (port ${OBIORA_AGENT_PORT})"
 }

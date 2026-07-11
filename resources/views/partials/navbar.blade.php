@@ -3,7 +3,23 @@
         <livewire:server-switcher />
     </div>
 
-    <div class="d-flex align-items-center gap-3">
+    <div class="d-flex align-items-center gap-2">
+        <div class="btn-group btn-group-sm obiora-locale-switch" role="group" aria-label="{{ __('panel.nav.language') }}">
+            @foreach(config('obiora.locales', ['fr', 'en']) as $loc)
+            <a href="{{ route('locale', $loc) }}"
+               class="btn btn-outline-secondary {{ app()->getLocale() === $loc ? 'active' : '' }}">{{ strtoupper($loc) }}</a>
+            @endforeach
+        </div>
+
+        <button type="button"
+                class="btn btn-outline-secondary btn-sm"
+                data-obiora-theme-toggle
+                title="{{ __('panel.nav.theme_light') }} / {{ __('panel.nav.theme_dark') }}"
+                aria-label="{{ __('panel.nav.theme_light') }}">
+            <span class="obiora-theme-icon-dark">☀</span>
+            <span class="obiora-theme-icon-light d-none">☾</span>
+        </button>
+
         <div class="dropdown">
             <button class="btn btn-outline-secondary btn-sm dropdown-toggle d-flex align-items-center gap-2"
                     type="button"
@@ -17,13 +33,13 @@
                     {{ auth()->user()->email }}
                 </li>
                 <li>
-                    <a class="dropdown-item" href="{{ route('profile.index') }}">Mon profil</a>
+                    <a class="dropdown-item" href="{{ route('profile.index') }}">{{ __('panel.nav.profile') }}</a>
                 </li>
                 <li><hr class="dropdown-divider"></li>
                 <li>
                     <form method="POST" action="{{ route('logout') }}" class="px-0">
                         @csrf
-                        <button type="submit" class="dropdown-item text-danger">Déconnexion</button>
+                        <button type="submit" class="dropdown-item text-danger">{{ __('panel.nav.logout') }}</button>
                     </form>
                 </li>
             </ul>

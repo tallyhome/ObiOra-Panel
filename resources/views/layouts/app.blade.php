@@ -1,10 +1,16 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-obiora-theme="dark">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('obiora.name') }}</title>
+    <script>
+        (function () {
+            var t = localStorage.getItem('obiora-theme') || 'dark';
+            document.documentElement.setAttribute('data-obiora-theme', t);
+        })();
+    </script>
     @vite(['resources/scss/obiora.scss', 'resources/js/app.js'])
     @livewireStyles
     <script>
@@ -25,9 +31,9 @@
                 @auth
                     @if(auth()->user()->is_demo && auth()->user()->demo_expires_at)
                         <div class="alert alert-info py-2 mb-3 small" role="status">
-                            Compte démo — expire le {{ auth()->user()->demo_expires_at->format('d/m/Y à H:i') }}
+                            {{ __('panel.demo.banner', ['date' => auth()->user()->demo_expires_at->format('d/m/Y à H:i')]) }}
                             @if(auth()->user()->demoExpiresInHours() !== null && auth()->user()->demoExpiresInHours() <= 2)
-                                <strong class="ms-1">(bientôt terminé)</strong>
+                                <strong class="ms-1">{{ __('panel.demo.soon') }}</strong>
                             @endif
                         </div>
                     @endif
@@ -45,5 +51,14 @@
     </div>
 
     @livewireScripts
+    <script>
+        document.querySelectorAll('[data-obiora-theme-toggle]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                if (window.obioraToggleTheme) {
+                    window.obioraToggleTheme();
+                }
+            });
+        });
+    </script>
 </body>
 </html>

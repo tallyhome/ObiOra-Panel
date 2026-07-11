@@ -133,7 +133,7 @@ setup_agent_config() {
 JSON
     chmod 600 "${OBIORA_INSTALL_DIR}/agent/config/agent.json"
     chown "${OBIORA_USER}:${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}/agent/config/agent.json"
-    chmod +x "${OBIORA_INSTALL_DIR}/agent/bin/obiOra-agent"
+    ensure_agent_executables
 
     success "Agent configuré (port 9100)"
 }

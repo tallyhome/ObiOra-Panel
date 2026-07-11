@@ -1,0 +1,40 @@
+<?php
+
+return [
+    'nav' => [
+        'dashboard' => 'Dashboard',
+        'marketplace' => 'Marketplace',
+        'services' => 'Dienste',
+        'servers' => 'Server',
+        'monitoring' => 'Monitoring',
+        'ai' => 'KI-Assistent',
+        'websites' => 'Websites',
+        'databases' => 'Datenbanken',
+        'docker' => 'Docker',
+        'backups' => 'Backups',
+        'doctor' => 'Doctor & Suite',
+        'crash' => 'Crash Analyzer',
+        'infrastructure' => 'Infrastruktur',
+        'license' => 'Lizenz & Updates',
+        'profile' => 'Mein Profil',
+        'logout' => 'Abmelden',
+        'theme_light' => 'Tagmodus',
+        'theme_dark' => 'Nachtmodus',
+        'language' => 'Sprache',
+    ],
+    'demo' => [
+        'banner' => 'Demo-Konto — läuft ab am :date',
+        'soon' => '(bald abgelaufen)',
+    ],
+    'auth' => [
+        'title' => 'Anmelden',
+        'email' => 'E-Mail',
+        'password' => 'Passwort',
+        'remember' => 'Angemeldet bleiben',
+        'submit' => 'Anmelden',
+        'submitting' => 'Anmeldung…',
+        'invalid_credentials' => 'Ungültige Anmeldedaten.',
+        'too_many' => 'Zu viele Versuche. Erneut in :seconds Sekunden.',
+        'demo_expired' => 'Ihre Demo ist abgelaufen. Erstellen Sie eine neue auf der ObiOra-Website.',
+    ],
+];

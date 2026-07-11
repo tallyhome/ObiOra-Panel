@@ -1,0 +1,120 @@
+# CrashHunter Enterprise — configuration
+# Override via /opt/crashhunter/config.yaml or CRASHHUNTER_CONFIG env var.
+
+daemon:
+  base_dir: /opt/crashhunter
+  interval_seconds: 5.0   # 1.0 or 5.0 — ring auto-sized for 60 min
+  log_level: INFO
+  hostname: ""
+
+ring:
+  capacity: 0   # 0 = auto (3600/interval_seconds)
+
+sampling:
+  top_process_count: 50
+  journal_lines: 100
+  dmesg_lines: 100
+  subprocess_timeout: 4.0
+
+incident:
+  enabled: true
+  emergency_interval_seconds: 0.5
+  emergency_duration_seconds: 60.0
+  virsh_timeout_seconds: 3.0
+  ssh_timeout_seconds: 3.0
+  ping_timeout_seconds: 2.0
+  virtualizor_timeout_seconds: 5.0
+  iowait_threshold_percent: 20.0
+  blocked_d_state_threshold: 1
+  command_timeout_count_threshold: 2
+  clock_drift_threshold_seconds: 30.0
+  scheduler_stall_cycles: 3
+  external_ping_target: "1.1.1.1"
+
+collectors:
+  enabled:
+    - system
+    - cpu
+    - memory
+    - disk
+    - network
+    - processes
+    - kernel
+    - virtualizor
+    - hardware
+    - responsiveness
+    - dstate
+    - swap
+    - oom
+    - numa
+    - hugepages
+    - lvm
+    - xfs
+    - libvirt
+    - qemu
+    - scheduler
+    - interrupt
+    - softirq
+    - pressure
+    - watchdog
+    - journal
+    - dmesg
+    - ipmi
+    - smart
+    - raid
+    - temperature
+    - pci
+    - ssh
+    - ping
+    # - ebpf   # optional — enable if bpftrace installed
+
+command_thresholds:
+  default_ms: 3000
+  virsh_list: 3000
+  ssh_localhost: 3000
+  ping_loopback: 2000
+  ping_external: 2000
+  journalctl: 5000
+  iostat: 5000
+
+thresholds:
+  cpu_saturation_percent: 95.0
+  memory_pressure_ratio: 0.05
+  disk_latency_ms: 500.0
+  load_spike_multiplier: 3.0
+
+similarity:
+  enabled: true
+  min_confidence: 0.5
+  index_file: similarity_index.json
+
+self_monitor:
+  enabled: true
+  max_cycle_duration_ms: 4500
+  max_memory_mb: 100
+
+plugin_health:
+  enabled: true
+  max_plugin_duration_ms: 3000
+  max_consecutive_failures: 5
+  max_slow_cycles: 3
+  cooldown_seconds: 300
+
+ebpf:
+  enabled: false
+  timeout_seconds: 2.0
+
+prometheus:
+  enabled: false
+  metrics_file: prometheus.metrics
+
+retention:
+  enabled: true
+  retention_days: 90
+  compress_after_days: 7
+
+rules:
+  path: ""   # empty = built-in analysis/rules/default.yaml
+
+simulation:
+  enabled: false

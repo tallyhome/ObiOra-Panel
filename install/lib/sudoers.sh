@@ -4,6 +4,10 @@
 setup_sudoers() {
     info "Configuration sudoers agent..."
 
+    if declare -F ensure_agent_executables &>/dev/null; then
+        ensure_agent_executables
+    fi
+
     mkdir -p /etc/obiora
     chmod 755 /etc/obiora
 

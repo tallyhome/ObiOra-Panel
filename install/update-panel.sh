@@ -137,6 +137,13 @@ checkout_target_release() {
 
 checkout_target_release "${TARGET_VERSION}"
 
+# git checkout remet obiOra-agent en 644 (non exécutable) — corriger avant services
+if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/common.sh" ]]; then
+    # shellcheck source=/dev/null
+    source "${OBIORA_INSTALL_DIR}/install/lib/common.sh"
+    ensure_agent_executables
+fi
+
 # git checkout en root laisse des fichiers root:root — npm/vite (utilisateur obiora)
 # ne peut alors pas vider public/build (rimraf EACCES).
 chown -R "${OBIORA_USER}:${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}"
@@ -290,8 +297,19 @@ if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/scheduler.sh" ]]; then
     ensure_panel_scheduler || true
 fi
 if systemctl list-unit-files 2>/dev/null | grep -q '^obiora-agent\.service'; then
+    if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/common.sh" ]]; then
+        # shellcheck source=/dev/null
+        source "${OBIORA_INSTALL_DIR}/install/lib/common.sh"
+        ensure_agent_executables
+    fi
+    if [[ -f "${OBIORA_INSTALL_DIR}/agent/systemd/obiOra-agent.service" ]]; then
+        sed "s|/opt/obiora-panel|${OBIORA_INSTALL_DIR}|g" \
+            "${OBIORA_INSTALL_DIR}/agent/systemd/obiOra-agent.service" \
+            > /etc/systemd/system/obiora-agent.service
+        systemctl daemon-reload 2>/dev/null || true
+    fi
     systemctl enable obiora-agent >/dev/null 2>&1 || true
-    systemctl is-active --quiet obiora-agent || systemctl start obiora-agent >/dev/null 2>&1 || true
+    systemctl restart obiora-agent >/dev/null 2>&1 || systemctl start obiora-agent >/dev/null 2>&1 || true
 fi
 
 # Redémarrage différé du worker — géré par PanelUpdater après succès du job
@@ -299,6 +317,14 @@ fi
 
 if systemctl list-unit-files 2>/dev/null | grep -q '^obiora-reverb\.service'; then
     systemctl restart obiora-reverb >/dev/null 2>&1 || true
+fi
+
+if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/systemd.sh" ]]; then
+    # shellcheck source=/dev/null
+    source "${OBIORA_INSTALL_DIR}/install/lib/common.sh"
+    # shellcheck source=/dev/null
+    source "${OBIORA_INSTALL_DIR}/install/lib/systemd.sh"
+    ensure_boot_service_order || true
 fi
 
 finalize_panel_http

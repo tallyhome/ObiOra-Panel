@@ -2,6 +2,7 @@ import './bootstrap';
 import './echo';
 import './realtime';
 import './sidebar';
+import './theme';
 import ApexCharts from 'apexcharts';
 import { obioraConfirm, obioraConfirmWire, obioraSubmitInstallSetup, obioraToast } from './obiora-swal';
 import { obioraCopyFromButton, obioraCopyText } from './copy';

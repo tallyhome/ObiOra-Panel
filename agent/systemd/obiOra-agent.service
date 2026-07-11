@@ -6,6 +6,7 @@ After=network.target
 Type=simple
 User=obiora
 Group=obiora
+ExecStartPre=/bin/chmod +x /opt/obiora-panel/agent/bin/obiOra-agent
 ExecStart=/opt/obiora-panel/agent/bin/obiOra-agent
 Restart=on-failure
 RestartSec=5

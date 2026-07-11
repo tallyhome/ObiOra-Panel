@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Models\Server;
+use App\Support\PanelDatabase;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,7 +14,7 @@ final class SetCurrentServer
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (auth()->check()) {
+        if (auth()->check() && PanelDatabase::isAvailable()) {
             $serverId = session('current_server_id');
 
             if ($serverId && Server::query()->whereKey($serverId)->exists()) {

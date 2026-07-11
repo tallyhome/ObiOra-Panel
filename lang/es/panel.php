@@ -1,0 +1,40 @@
+<?php
+
+return [
+    'nav' => [
+        'dashboard' => 'Panel',
+        'marketplace' => 'Marketplace',
+        'services' => 'Servicios',
+        'servers' => 'Servidores',
+        'monitoring' => 'Monitorización',
+        'ai' => 'Asistente IA',
+        'websites' => 'Sitios web',
+        'databases' => 'Bases de datos',
+        'docker' => 'Docker',
+        'backups' => 'Copias de seguridad',
+        'doctor' => 'Doctor & Suite',
+        'crash' => 'Crash Analyzer',
+        'infrastructure' => 'Infraestructura',
+        'license' => 'Licencia y actualizaciones',
+        'profile' => 'Mi perfil',
+        'logout' => 'Cerrar sesión',
+        'theme_light' => 'Modo día',
+        'theme_dark' => 'Modo noche',
+        'language' => 'Idioma',
+    ],
+    'demo' => [
+        'banner' => 'Cuenta demo — expira el :date',
+        'soon' => '(termina pronto)',
+    ],
+    'auth' => [
+        'title' => 'Iniciar sesión',
+        'email' => 'Email',
+        'password' => 'Contraseña',
+        'remember' => 'Recordarme',
+        'submit' => 'Entrar',
+        'submitting' => 'Conectando…',
+        'invalid_credentials' => 'Credenciales incorrectas.',
+        'too_many' => 'Demasiados intentos. Reintente en :seconds segundos.',
+        'demo_expired' => 'Su demo ha expirado. Cree una nueva en el sitio ObiOra.',
+    ],
+];

@@ -32,7 +32,7 @@ SERVICE
         sed "s|/opt/obiora-panel|${OBIORA_INSTALL_DIR}|g" \
             "${OBIORA_INSTALL_DIR}/agent/systemd/obiOra-agent.service" \
             > /etc/systemd/system/obiora-agent.service
-        chmod +x "${OBIORA_INSTALL_DIR}/agent/bin/obiOra-agent"
+        ensure_agent_executables
     fi
 
     systemctl daemon-reload
@@ -49,5 +49,48 @@ SERVICE
     systemctl_enable_start redis 2>/dev/null || systemctl_enable_start redis-server 2>/dev/null || true
     systemctl enable supervisor 2>/dev/null && systemctl start supervisor 2>/dev/null || warn "Supervisor non démarré (optionnel)"
 
+    ensure_boot_service_order
+
     success "Services systemd démarrés"
+}
+
+ensure_boot_service_order() {
+    info "Ordre de démarrage au boot (MariaDB/Redis avant le panel)..."
+
+    local dropin='[Unit]
+After=mariadb.service mysqld.service redis.service redis-server.service network-online.target
+Wants=mariadb.service mysqld.service redis.service redis-server.service
+'
+
+    local svc
+    for svc in php-fpm php8.3-fpm php82-php-fpm nginx; do
+        if systemctl list-unit-files --type=service 2>/dev/null | grep -q "^${svc}.service"; then
+            mkdir -p "/etc/systemd/system/${svc}.service.d"
+            printf '%s' "${dropin}" > "/etc/systemd/system/${svc}.service.d/obiora-after-deps.conf"
+        fi
+    done
+
+    chmod +x "${OBIORA_INSTALL_DIR}/install/lib/panel-boot-wait.sh"
+
+    cat > /etc/systemd/system/obiora-panel-ready.service <<SERVICE
+[Unit]
+Description=ObiOra Panel warm-up after boot
+After=mariadb.service mysqld.service redis.service redis-server.service network-online.target
+Wants=mariadb.service mysqld.service redis.service redis-server.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment=OBIORA_INSTALL_DIR=${OBIORA_INSTALL_DIR}
+Environment=OBIORA_USER=${OBIORA_USER}
+ExecStart=/bin/bash ${OBIORA_INSTALL_DIR}/install/lib/panel-boot-wait.sh
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+
+    systemctl daemon-reload
+    systemctl enable obiora-panel-ready.service 2>/dev/null || true
+    systemctl start obiora-panel-ready.service 2>/dev/null || true
 }

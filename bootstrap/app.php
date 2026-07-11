@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Middleware\EnsureSetupComplete;
 use App\Http\Middleware\EnsureDemoNotExpired;
 use App\Http\Middleware\SetCurrentServer;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,10 +20,19 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->web(prepend: [
+            \App\Http\Middleware\EnsurePanelDatabaseAvailable::class,
+        ]);
+
+        $middleware->web(append: [
+            \App\Http\Middleware\SetLocale::class,
+        ]);
+
         $middleware->alias([
             'setup' => EnsureSetupComplete::class,
             'demo.active' => EnsureDemoNotExpired::class,
             'server' => SetCurrentServer::class,
+            'locale' => \App\Http\Middleware\SetLocale::class,
             'agent.token' => \App\Http\Middleware\AuthenticateAgentToken::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
@@ -30,8 +40,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->priority([
+            \App\Http\Middleware\EnsurePanelDatabaseAvailable::class,
             EnsureSetupComplete::class,
             \Illuminate\Auth\Middleware\Authenticate::class,
+            \App\Http\Middleware\SetLocale::class,
             EnsureDemoNotExpired::class,
             SetCurrentServer::class,
         ]);
@@ -49,4 +61,37 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        $panelUnavailable = static function (Request $request): bool {
+            return ! $request->is('api/*')
+                && ! $request->expectsJson()
+                && ! $request->is('up')
+                && ! $request->is('install/*');
+        };
+
+        $exceptions->render(function (QueryException $e, Request $request) use ($panelUnavailable) {
+            if ($panelUnavailable($request)) {
+                return response()->view('errors.panel-unavailable', [], 503);
+            }
+
+            return null;
+        });
+
+        $exceptions->render(function (\PDOException $e, Request $request) use ($panelUnavailable) {
+            if ($panelUnavailable($request)) {
+                return response()->view('errors.panel-unavailable', [], 503);
+            }
+
+            return null;
+        });
+
+        if (class_exists(\RedisException::class)) {
+            $exceptions->render(function (\RedisException $e, Request $request) use ($panelUnavailable) {
+                if ($panelUnavailable($request)) {
+                    return response()->view('errors.panel-unavailable', [], 503);
+                }
+
+                return null;
+            });
+        }
     })->create();

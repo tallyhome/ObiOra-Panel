@@ -69,6 +69,20 @@ fix_filesystem_permissions() {
         return 0
     fi
 
+    if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/common.sh" ]]; then
+        # shellcheck source=/dev/null
+        source "${OBIORA_INSTALL_DIR}/install/lib/common.sh"
+        ensure_agent_executables
+        if [[ -f "${OBIORA_INSTALL_DIR}/agent/systemd/obiOra-agent.service" ]] \
+            && [[ -f /etc/systemd/system/obiora-agent.service ]]; then
+            sed "s|/opt/obiora-panel|${OBIORA_INSTALL_DIR}|g" \
+                "${OBIORA_INSTALL_DIR}/agent/systemd/obiOra-agent.service" \
+                > /etc/systemd/system/obiora-agent.service
+            systemctl daemon-reload 2>/dev/null || true
+            systemctl restart obiora-agent 2>/dev/null || systemctl start obiora-agent 2>/dev/null || true
+        fi
+    fi
+
     chown -R "${OBIORA_USER}:${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}/storage" "${OBIORA_INSTALL_DIR}/bootstrap/cache" 2>/dev/null || true
     chmod -R 775 "${OBIORA_INSTALL_DIR}/storage" "${OBIORA_INSTALL_DIR}/bootstrap/cache" 2>/dev/null || true
 

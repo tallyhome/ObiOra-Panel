@@ -96,4 +96,7 @@ return [
         'url' => env('OBIORA_SUITE_URL', ''),
     ],
 
+    'locales' => ['fr', 'en', 'de', 'es'],
+    'default_locale' => env('OBIORA_DEFAULT_LOCALE', 'fr'),
+
 ];

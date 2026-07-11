@@ -15,7 +15,15 @@ $form-select-border-color: #2d2d42;
 @import "bootstrap/scss/bootstrap";
 
 html {
+    color-scheme: light dark;
+}
+
+html[data-obiora-theme="dark"] {
     color-scheme: dark;
+}
+
+html[data-obiora-theme="light"] {
+    color-scheme: light;
 }
 
 :root {
@@ -873,5 +881,132 @@ label {
             background-color: var(--obiora-bg-card) !important;
             border-color: var(--obiora-border) var(--obiora-border) var(--obiora-bg-card) !important;
         }
+    }
+}
+
+// Thème jour (light)
+html[data-obiora-theme="light"] {
+    color-scheme: light;
+
+    --obiora-primary: #16a34a;
+    --obiora-primary-dim: #15803d;
+    --obiora-accent: #4f46e5;
+    --obiora-bg: #f1f5f9;
+    --obiora-bg-elevated: #ffffff;
+    --obiora-bg-card: #ffffff;
+    --obiora-bg-card-hover: #f8fafc;
+    --obiora-border: #cbd5e1;
+    --obiora-text: #0f172a;
+    --obiora-text-muted: #64748b;
+    --obiora-sidebar-bg: #ffffff;
+    --obiora-sidebar-text: #475569;
+    --obiora-success: #16a34a;
+    --obiora-warning: #d97706;
+    --obiora-danger: #dc2626;
+
+    body.obiora-app,
+    body.obiora-guest {
+        background-color: var(--obiora-bg) !important;
+        color: var(--obiora-text) !important;
+    }
+
+    .obiora-logo .obiora-logo-text-main {
+        fill: #0f172a;
+    }
+
+    .obiora-logo .obiora-logo-text-sub {
+        fill: #64748b;
+    }
+
+    .obiora-logo circle[r="29"]:first-of-type {
+        fill: #f8fafc;
+        stroke: #e2e8f0;
+    }
+
+    .card,
+    .obiora-card {
+        background-color: var(--obiora-bg-card) !important;
+        color: var(--obiora-text) !important;
+        border-color: var(--obiora-border) !important;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+
+    .card-header,
+    .card-footer {
+        background-color: var(--obiora-bg-elevated) !important;
+        border-color: var(--obiora-border) !important;
+        color: var(--obiora-text) !important;
+    }
+
+    .table {
+        --bs-table-bg: var(--obiora-bg-card);
+        --bs-table-color: var(--obiora-text);
+        --bs-table-border-color: var(--obiora-border);
+    }
+
+    .form-control,
+    .form-select {
+        background-color: #ffffff !important;
+        color: var(--obiora-text) !important;
+        border-color: var(--obiora-border) !important;
+    }
+
+    .dropdown-menu {
+        background: #ffffff;
+        border-color: var(--obiora-border);
+    }
+
+    .dropdown-item {
+        color: var(--obiora-text);
+
+        &:hover {
+            background: var(--obiora-bg-card-hover);
+        }
+    }
+
+    .obiora-navbar,
+    .obiora-sidebar {
+        background: var(--obiora-bg-elevated) !important;
+        color: var(--obiora-text) !important;
+    }
+
+    .obiora-main {
+        background-color: var(--obiora-bg);
+    }
+
+    .text-muted {
+        color: var(--obiora-text-muted) !important;
+    }
+
+    .btn-outline-secondary {
+        border-color: var(--obiora-border);
+        color: var(--obiora-text-muted);
+
+        &:hover,
+        &.active {
+            background: var(--obiora-bg-card-hover);
+            color: var(--obiora-text);
+            border-color: var(--obiora-primary);
+        }
+    }
+
+    .obiora-theme-icon-dark {
+        display: none !important;
+    }
+
+    .obiora-theme-icon-light {
+        display: inline !important;
+    }
+
+    .obiora-locale-switch .btn.active {
+        background: rgba(22, 163, 74, 0.12);
+        border-color: var(--obiora-primary);
+        color: var(--obiora-primary);
+    }
+}
+
+html[data-obiora-theme="dark"] {
+    .obiora-theme-icon-light {
+        display: none !important;
     }
 }

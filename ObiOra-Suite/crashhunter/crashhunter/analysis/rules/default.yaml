@@ -1,0 +1,84 @@
+# CrashHunter Enterprise — detection rules
+# Add new detections here without modifying core code.
+
+rules:
+  - id: iowait_spike
+    match_field: cpu.iowait_percent
+    operator: gt
+    threshold: 20
+    severity: high
+    event: iowait_increased
+    message: "IO Wait elevated above {value}%"
+
+  - id: d_state_explosion
+    match_field: dstate.count
+    operator: gte
+    threshold: 3
+    severity: critical
+    event: d_state_explosion
+    message: "{value} processes in D state"
+
+  - id: ssh_slow
+    match_field: ssh.localhost.slow
+    operator: eq
+    threshold: true
+    severity: critical
+    event: ssh_timeout
+    message: "SSH localhost slow or timed out"
+
+  - id: virsh_slow
+    match_field: libvirt.virsh_list.slow
+    operator: eq
+    threshold: true
+    severity: high
+    event: virsh_slow
+    message: "virsh list exceeded threshold"
+
+  - id: memory_pressure
+    match_field: memory.mem_available_kb
+    operator: ratio_lt
+    threshold_field: memory.mem_total_kb
+    ratio: 0.05
+    severity: high
+    event: memory_pressure
+    message: "Memory available below 5%"
+
+  - id: swap_storm
+    match_field: swap.vmstat.pswpin
+    operator: gt
+    threshold: 1000
+    severity: medium
+    event: swap_storm
+    message: "High swap activity detected"
+
+  - id: scheduler_blocked
+    match_field: scheduler.procs_blocked
+    operator: gt
+    threshold: 20
+    severity: high
+    event: scheduler_blocked
+    message: "{value} blocked tasks in runqueue"
+
+  - id: xfs_error
+    match_field: xfs.xfs_errors.stdout
+    operator: contains
+    threshold: "error"
+    severity: critical
+    event: xfs_freeze
+    message: "XFS errors in kernel log"
+
+  - id: smart_degraded
+    match_field: smart.scsi.stdout
+    operator: contains
+    threshold: "FAILING"
+    severity: critical
+    event: smart_error
+    message: "SMART reports disk degradation"
+
+  - id: ipmi_power_loss
+    match_field: ipmi.sel.stdout
+    operator: contains
+    threshold: "Power"
+    severity: high
+    event: power_loss
+    message: "IPMI SEL power event detected"

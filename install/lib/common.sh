@@ -139,6 +139,27 @@ setup_web_permissions() {
     chmod 755 "${OBIORA_INSTALL_DIR}/public"
 }
 
+# git pull / checkout remet souvent obiOra-agent en 644 — systemd ne peut plus l'exécuter
+ensure_agent_executables() {
+    local root="${OBIORA_INSTALL_DIR:-/opt/obiora-panel}"
+    local bin="${root}/agent/bin/obiOra-agent"
+
+    if [[ -f "${bin}" ]]; then
+        chmod +x "${bin}" 2>/dev/null || true
+        if id "${OBIORA_USER:-obiora}" &>/dev/null; then
+            chown "${OBIORA_USER:-obiora}:${OBIORA_GROUP:-obiora}" "${bin}" 2>/dev/null || true
+        fi
+    fi
+
+    if [[ -d "${root}/agent/scripts" ]]; then
+        chmod +x "${root}"/agent/scripts/*.sh 2>/dev/null || true
+    fi
+
+    if [[ -d "${root}/packages" ]]; then
+        find "${root}/packages" \( -name 'install.sh' -o -name 'uninstall.sh' \) -exec chmod +x {} + 2>/dev/null || true
+    fi
+}
+
 setup_selinux_panel() {
     if command -v getenforce &>/dev/null && [[ "$(getenforce)" != "Disabled" ]]; then
         info "Configuration SELinux pour le panel..."

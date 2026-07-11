@@ -112,6 +112,7 @@ final class DoctorRemoteDeployFlowTest extends TestCase
         $response->assertOk();
         $response->assertSee('Tester la connexion');
         $response->assertSee('Installer sur le serveur');
+        $response->assertSee('Date et fuseau horaire');
         $response->assertSee('Comment installer les agents');
     }
 

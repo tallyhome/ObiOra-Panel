@@ -17,8 +17,10 @@ use App\Services\Diagnostics\DoctorRemoteDeployService;
 use App\Services\Diagnostics\DoctorSuiteService;
 use App\Services\Diagnostics\LocalDoctorDeployService;
 use App\Services\Diagnostics\ServerSshKeyService;
+use App\Services\Diagnostics\ServerTimezoneService;
 use App\Support\DoctorInstallHelper;
 use App\Support\PanelLocalTarget;
+use App\Support\TimezoneCatalog;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -80,8 +82,24 @@ final class DoctorSuiteIndex extends Component
 
     public ?string $sshRemoteHostname = null;
 
-    public function mount(ServerManager $servers, DoctorInstallHelper $doctor, ServerSshKeyService $sshKeys): void
-    {
+    public string $selectedTimezone = 'Europe/Paris';
+
+    public ?string $serverTimezone = null;
+
+    public ?string $serverDateTime = null;
+
+    public ?string $serverNtp = null;
+
+    public ?string $timezoneMessage = null;
+
+    public bool $timezoneLoading = false;
+
+    public function mount(
+        ServerManager $servers,
+        DoctorInstallHelper $doctor,
+        ServerSshKeyService $sshKeys,
+        ServerTimezoneService $timezone,
+    ): void {
         abort_unless(auth()->user()?->can('modules.view'), 403);
 
         $current = $servers->getCurrentServer();
@@ -89,11 +107,15 @@ final class DoctorSuiteIndex extends Component
         $this->refreshInstallCommands($doctor, $current);
         $this->refreshSshState($current, $sshKeys);
         $this->sshHost = $current?->ip_address ?? '';
+        $this->refreshServerTimezone($timezone);
         $this->resumeDeployIfRunning();
     }
 
-    public function updatedServerId(DoctorInstallHelper $doctor, ServerSshKeyService $sshKeys): void
-    {
+    public function updatedServerId(
+        DoctorInstallHelper $doctor,
+        ServerSshKeyService $sshKeys,
+        ServerTimezoneService $timezone,
+    ): void {
         $server = Server::query()->find($this->serverId);
         $this->refreshInstallCommands($doctor, $server);
         $this->refreshSshState($server, $sshKeys);
@@ -103,6 +125,8 @@ final class DoctorSuiteIndex extends Component
         $this->sshTestOk = false;
         $this->sshBootstrapResult = null;
         $this->deployError = null;
+        $this->timezoneMessage = null;
+        $this->refreshServerTimezone($timezone);
         $this->resumeDeployIfRunning();
     }
 
@@ -176,6 +200,67 @@ final class DoctorSuiteIndex extends Component
         }
 
         $this->deployError = null;
+    }
+
+    public function refreshServerTimezone(ServerTimezoneService $timezone): void
+    {
+        if ($this->serverId === null) {
+            $this->serverTimezone = null;
+            $this->serverDateTime = null;
+            $this->serverNtp = null;
+
+            return;
+        }
+
+        $server = Server::query()->find($this->serverId);
+
+        if ($server === null) {
+            return;
+        }
+
+        $this->timezoneLoading = true;
+
+        try {
+            $status = $timezone->status($server);
+            $this->serverTimezone = $status['timezone'];
+            $this->serverDateTime = $status['datetime'];
+            $this->serverNtp = $status['ntp'];
+
+            if ($status['timezone'] !== null && TimezoneCatalog::isValid($status['timezone'])) {
+                $this->selectedTimezone = $status['timezone'];
+            }
+        } finally {
+            $this->timezoneLoading = false;
+        }
+    }
+
+    public function applyServerTimezone(ServerTimezoneService $timezone): void
+    {
+        $this->authorizeDeploy();
+        abort_unless(TimezoneCatalog::isValid($this->selectedTimezone), 422, 'Fuseau horaire invalide.');
+
+        $server = Server::query()->findOrFail($this->serverId);
+        $this->timezoneLoading = true;
+        $this->timezoneMessage = null;
+
+        try {
+            $result = $timezone->apply($server, $this->selectedTimezone);
+            $this->serverTimezone = $result['status']['timezone'];
+            $this->serverDateTime = $result['status']['datetime'];
+            $this->serverNtp = $result['status']['ntp'];
+            $this->timezoneMessage = $result['message'];
+
+            $this->dispatch(
+                'notify',
+                type: $result['success'] ? 'success' : 'danger',
+                message: $result['message'],
+            );
+        } catch (\Throwable $e) {
+            $this->timezoneMessage = $e->getMessage();
+            $this->dispatch('notify', type: 'danger', message: $e->getMessage());
+        } finally {
+            $this->timezoneLoading = false;
+        }
     }
 
     public function deployRemote(
@@ -347,6 +432,7 @@ final class DoctorSuiteIndex extends Component
             'panelDeployLogs' => $this->serverId !== null
                 ? $deployLog->recentForServer($this->serverId, 'doctor')
                 : collect(),
+            'timezoneChoices' => TimezoneCatalog::choices(),
         ]);
     }
 
