@@ -126,7 +126,7 @@ final class DoctorSuiteIndex extends Component
         $this->refreshInstallCommands($doctor, $current);
         $this->refreshSshState($current, $sshKeys);
         $this->sshHost = $current?->ip_address ?? '';
-        $this->refreshServerTimezone($timezone);
+        $this->refreshServerTimezone($timezone, $sshKeys);
         $this->resumeDeployIfRunning();
     }
 
@@ -145,7 +145,7 @@ final class DoctorSuiteIndex extends Component
         $this->sshBootstrapResult = null;
         $this->deployError = null;
         $this->timezoneMessage = null;
-        $this->refreshServerTimezone($timezone);
+        $this->refreshServerTimezone($timezone, $sshKeys);
         $this->resumeDeployIfRunning();
     }
 

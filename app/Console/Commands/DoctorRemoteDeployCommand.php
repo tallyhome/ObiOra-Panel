@@ -18,8 +18,8 @@ final class DoctorRemoteDeployCommand extends Command
                             {crash : Installer Crash Analyzer (yes/no)}
                             {crashhunter : Installer CrashHunter (yes/no)}
                             {slave : Installer agent seedbox (yes/no)}
-                            {upgrade : Mise à jour agents uniquement (yes/no)}
-                            {components : Composants à mettre à jour (csv)}';
+                            {upgrade=no : Mise à jour agents uniquement (yes/no)}
+                            {components=none : Composants à mettre à jour (csv, ou none)}';
 
     protected $description = 'Déploie ou met à jour Doctor, Crash Analyzer, CrashHunter';
 
@@ -27,8 +27,8 @@ final class DoctorRemoteDeployCommand extends Command
     {
         set_time_limit(0);
 
-        $componentsArg = (string) ($this->argument('components') ?? '');
-        $components = $componentsArg !== ''
+        $componentsArg = (string) ($this->argument('components') ?? 'none');
+        $components = ($componentsArg !== '' && $componentsArg !== 'none')
             ? array_values(array_filter(array_map('trim', explode(',', $componentsArg))))
             : [];
 

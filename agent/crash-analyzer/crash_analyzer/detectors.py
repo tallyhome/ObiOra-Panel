@@ -12,6 +12,36 @@ from typing import Any
 from crash_analyzer.util import run_cmd
 from crash_analyzer.storage import MetricsStorage
 
+# Enregistrement / init EDAC — pas une erreur matérielle (cf. doc kernel EDAC)
+EDAC_INIT_NOISE = re.compile(
+    r"Giving out device|Successfully registered|registered with EDAC|"
+    r"EDAC MC\d+:\s*(?:Giving|Registering|Allocated|created)",
+    re.I,
+)
+
+# Erreurs ECC/MCE réelles — compteurs CE/UE, pas sous-chaîne dans "device"
+ECC_ERROR_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r"EDAC MC\d+:\s+\d+\s+(?:UE|CE)\b", re.I),
+    re.compile(r"EDAC.*\b(?:uncorrected|corrected)\s+error\b", re.I),
+    re.compile(r"Machine check events logged", re.I),
+    re.compile(r"mce:\s*.*Hardware error", re.I),
+    re.compile(r"Memory failure(?:\s+on|\s+at|\s+from|\s+in)", re.I),
+    re.compile(r"DIMM failure", re.I),
+    re.compile(r"MCA:\s*(?:Bank|Fatal|Uncorrected|Machine check)", re.I),
+]
+
+
+def is_edac_controller_init(line: str) -> bool:
+    """True si la ligne EDAC est une init contrôleur, pas un événement d'erreur."""
+    return bool(EDAC_INIT_NOISE.search(line))
+
+
+def matches_ecc_error(line: str) -> bool:
+    """Détecte une vraie erreur ECC/MCE/EDAC (exclut l'enregistrement skx_edac, etc.)."""
+    if is_edac_controller_init(line):
+        return False
+    return any(pattern.search(line) for pattern in ECC_ERROR_PATTERNS)
+
 
 @dataclass
 class DetectedEvent:
@@ -95,15 +125,6 @@ class EventDetector:
                 re.I,
             ),
             "Alerte SMART",
-        ),
-        (
-            "ecc_error",
-            "critical",
-            re.compile(
-                r"EDAC.*(UE|CE|error)|Machine check events|mce:.*Hardware error|Memory failure|DIMM failure|MCA:",
-                re.I,
-            ),
-            "Erreur ECC / Machine Check",
         ),
         (
             "filesystem_ro",
@@ -212,6 +233,21 @@ class EventDetector:
                         details=line[:500],
                         payload={"source": source, "matched": match.group(0)[:200]},
                     ))
+            for line in content.splitlines():
+                stripped = line.strip()
+                if not stripped or not matches_ecc_error(stripped):
+                    continue
+                signature = f"ecc_error:{hash(stripped)}"
+                if signature in self._seen_signatures:
+                    continue
+                self._seen_signatures.add(signature)
+                events.append(DetectedEvent(
+                    event_type="ecc_error",
+                    severity="critical",
+                    title="Erreur ECC / Machine Check",
+                    details=stripped[:500],
+                    payload={"source": source, "matched": "ecc_error_pattern"},
+                ))
         return events
 
     def scan_metrics(self, metrics: dict[str, dict[str, Any]]) -> list[DetectedEvent]:

@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from crash_analyzer.detectors import EventDetector
+from crash_analyzer.detectors import EventDetector, matches_ecc_error, is_edac_controller_init
 
 
 class TestEventDetectorPatterns(unittest.TestCase):
@@ -27,6 +27,31 @@ class TestEventDetectorPatterns(unittest.TestCase):
 
     def test_filesystem_ro_pattern(self) -> None:
         self.assertTrue(self._matches("filesystem_ro", "EXT4-fs error (device sda1): Remounting filesystem read-only"))
+
+    def test_edac_init_not_ecc_error(self) -> None:
+        line = (
+            "EDAC MC1: Giving out device to module skx_edac controller "
+            "Skylake Socket#0 IMC#1: DEV 0000:64:0c.0 (INTERRUPT)"
+        )
+        self.assertTrue(is_edac_controller_init(line))
+        self.assertFalse(matches_ecc_error(line))
+
+    def test_edac_ce_count_is_ecc_error(self) -> None:
+        line = "EDAC MC0: 1 CE memory read error on CPU_SrcID#0_Ha#0_Chan#0_DIMM#0"
+        self.assertFalse(is_edac_controller_init(line))
+        self.assertTrue(matches_ecc_error(line))
+
+    def test_edac_ue_is_ecc_error(self) -> None:
+        line = "EDAC MC0: 1 UE memory scrubbing error on CPU_SrcID#0_Ha#0_Chan#0_DIMM#0"
+        self.assertTrue(matches_ecc_error(line))
+
+    def test_device_substring_not_ecc_error(self) -> None:
+        """Régression : 'CE' dans 'device' ne doit pas déclencher ecc_error."""
+        line = "EDAC MC1: Giving out device to module skx_edac"
+        self.assertFalse(matches_ecc_error(line))
+
+    def test_mce_hardware_error(self) -> None:
+        self.assertTrue(matches_ecc_error("mce: [Hardware Error]: Machine check events logged"))
 
     def _matches(self, event_type: str, line: str) -> bool:
         for etype, _severity, pattern, _title in EventDetector.CRITICAL_PATTERNS:
