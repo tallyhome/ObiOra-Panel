@@ -292,7 +292,7 @@
                     </div>
 
                     @if($canManageServers)
-                    <div class="border rounded p-3 mb-3 bg-body-secondary">
+                    <div class="border rounded p-3 mb-3 obiora-inset-block">
                         <span class="small fw-medium d-block mb-2">Contrôle des agents distants</span>
                         @if(!empty($agentVersionRows))
                         <div class="table-responsive mb-2">
@@ -483,7 +483,7 @@
             @if(!empty($plainSummary['items']))
             <div class="vstack gap-3">
                 @foreach($plainSummary['items'] as $item)
-                <div class="border rounded p-3 bg-body-secondary">
+                <div class="rounded p-3 obiora-inset-block">
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                         <span class="badge text-bg-secondary">{{ $item['source'] ?? '' }}</span>
                         @if(($item['kind'] ?? '') === 'freeze')
@@ -678,6 +678,20 @@
     @php($hunter = $overview['crash_hunter']['summary'] ?? [])
     @php($hunterCharts = $overview['crash_hunter']['charts'] ?? [])
     @php($hunterInsights = $overview['crash_hunter']['latest_report_insights'] ?? null)
+    @php
+        $hunterChartDefs = [
+            ['id' => 'ch-hunter-cpu', 'title' => 'CPU %', 'series' => $hunterCharts['cpu'] ?? [], 'color' => '#ef4444', 'col' => 6],
+            ['id' => 'ch-hunter-load', 'title' => 'Load 1m', 'series' => $hunterCharts['load'] ?? [], 'color' => '#3b82f6', 'col' => 6],
+            ['id' => 'ch-hunter-iowait', 'title' => 'IOWait %', 'series' => $hunterCharts['iowait'] ?? [], 'color' => '#8b5cf6', 'col' => 6],
+            ['id' => 'ch-hunter-psi', 'title' => 'PSI IO avg10', 'series' => $hunterCharts['pressure_io'] ?? [], 'color' => '#f97316', 'col' => 6],
+        ];
+        $hunterChartsActive = array_values(array_filter(
+            $hunterChartDefs,
+            static fn (array $def): bool => collect($def['series'] ?? [])->contains(
+                static fn ($p): bool => is_array($p) && array_key_exists('v', $p) && $p['v'] !== null,
+            ),
+        ));
+    @endphp
     <div class="row g-4 mt-1">
         <div class="col-12">
             <div class="card obiora-card border-warning border-opacity-50">
@@ -698,18 +712,19 @@
                         <div class="col-md-2"><span class="small text-muted d-block">Mode incident</span><strong>{{ ($hunter['incident_mode'] ?? false) ? 'OUI' : 'non' }}</strong></div>
                     </div>
 
-                    @if(!empty($hunterCharts['cpu']) || !empty($hunterCharts['load']))
+                    @if(count($hunterChartsActive) > 0)
                     <h3 class="h6">Métriques (dernière heure)</h3>
                     <div class="row g-3 mb-3" wire:ignore>
-                        <div class="col-md-6"><div id="ch-hunter-cpu" style="min-height:200px"></div></div>
-                        <div class="col-md-6"><div id="ch-hunter-load" style="min-height:200px"></div></div>
-                        <div class="col-md-6"><div id="ch-hunter-iowait" style="min-height:200px"></div></div>
-                        <div class="col-md-6"><div id="ch-hunter-psi" style="min-height:200px"></div></div>
+                        @foreach($hunterChartsActive as $chartDef)
+                        <div class="col-md-{{ $chartDef['col'] }}">
+                            <div id="{{ $chartDef['id'] }}" style="min-height:200px"></div>
+                        </div>
+                        @endforeach
                     </div>
                     <script>
                     (function () {
                         if (typeof ApexCharts === 'undefined') return;
-                        const charts = @json($hunterCharts);
+                        const defs = @json($hunterChartsActive);
                         function render(id, title, series, color) {
                             const el = document.getElementById(id);
                             if (!el || !series || !series.length) return;
@@ -721,13 +736,12 @@
                                 xaxis: { type: 'datetime', labels: { datetimeUTC: false } },
                                 stroke: { width: 2, curve: 'smooth' },
                                 colors: [color || '#f59e0b'],
-                                title: { text: title, style: { fontSize: '13px' } },
+                                title: { text: title, style: { fontSize: '13px', color: '#8b8ba3' } },
                             }).render();
                         }
-                        render('ch-hunter-cpu', 'CPU %', charts.cpu || [], '#ef4444');
-                        render('ch-hunter-load', 'Load 1m', charts.load || [], '#3b82f6');
-                        render('ch-hunter-iowait', 'IOWait %', charts.iowait || [], '#8b5cf6');
-                        render('ch-hunter-psi', 'PSI IO avg10', charts.pressure_io || [], '#f97316');
+                        defs.forEach(function (def) {
+                            render(def.id, def.title, def.series || [], def.color);
+                        });
                     })();
                     </script>
                     @endif
@@ -850,7 +864,7 @@
                         <li>{{ $rpt['external_id'] ?? '' }} — {{ $rpt['verdict'] ?? $rpt['trigger_type'] ?? '—' }} ({{ $rpt['generated_at'] ?? '' }})</li>
                         @endforeach
                     </ul>
-                    @else
+                    @elseif(empty($overview['crash_hunter']['events']) && empty($overview['crash_hunter']['snapshots']) && count($hunterChartsActive) === 0)
                     <p class="small text-muted mb-0">Aucune donnée CrashHunter reçue — cochez « CrashHunter Enterprise » et installez les agents.</p>
                     @endif
                 </div>

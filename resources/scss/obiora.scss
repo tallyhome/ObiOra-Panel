@@ -593,6 +593,43 @@ body {
     }
 }
 
+.obiora-inset-block {
+    background: var(--obiora-bg-elevated);
+    border: 1px solid var(--obiora-border);
+    border-radius: 0.5rem;
+    color: var(--obiora-text);
+
+    p, li, strong, .fw-medium {
+        color: var(--obiora-text);
+    }
+
+    .text-muted {
+        color: var(--obiora-text-muted) !important;
+    }
+}
+
+.alert-info {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.35);
+    color: var(--obiora-text);
+
+    .text-muted {
+        color: var(--obiora-text-muted) !important;
+    }
+}
+
+.alert-warning {
+    background: rgba(251, 191, 36, 0.12);
+    border-color: rgba(251, 191, 36, 0.35);
+    color: var(--obiora-text);
+}
+
+.alert-danger {
+    background: rgba(248, 113, 113, 0.12);
+    border-color: rgba(248, 113, 113, 0.35);
+    color: var(--obiora-text);
+}
+
 .alert-success {
     background: rgba(61, 214, 140, 0.12);
     border-color: rgba(61, 214, 140, 0.3);

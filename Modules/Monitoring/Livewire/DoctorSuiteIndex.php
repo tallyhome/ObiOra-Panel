@@ -26,12 +26,14 @@ use App\Support\PanelLocalTarget;
 use App\Support\TimezoneCatalog;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 #[Layout('layouts.app')]
 #[Title('Doctor & Suite')]
 final class DoctorSuiteIndex extends Component
 {
+    #[Url(as: 'server')]
     public ?int $serverId = null;
 
     public string $localInstall = '';
@@ -121,8 +123,18 @@ final class DoctorSuiteIndex extends Component
     ): void {
         abort_unless(auth()->user()?->can('modules.view'), 403);
 
-        $current = $servers->getCurrentServer();
-        $this->serverId = $current?->id;
+        if ($this->serverId === null) {
+            $this->serverId = $servers->getCurrentServer()?->id;
+        }
+
+        $current = Server::query()->find($this->serverId)
+            ?? Server::query()->where('is_master', true)->first();
+
+        if ($current !== null) {
+            $this->serverId = $current->id;
+            $servers->setCurrentServer($current);
+        }
+
         $this->refreshInstallCommands($doctor, $current);
         $this->refreshSshState($current, $sshKeys);
         $this->sshHost = $current?->ip_address ?? '';
@@ -134,8 +146,12 @@ final class DoctorSuiteIndex extends Component
         DoctorInstallHelper $doctor,
         ServerSshKeyService $sshKeys,
         ServerTimezoneService $timezone,
+        ServerManager $servers,
     ): void {
         $server = Server::query()->find($this->serverId);
+        if ($server !== null) {
+            $servers->setCurrentServer($server);
+        }
         $this->refreshInstallCommands($doctor, $server);
         $this->refreshSshState($server, $sshKeys);
         if ($server !== null) {
