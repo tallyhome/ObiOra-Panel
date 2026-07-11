@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.44 - 2026-07-11
+
+- CrashHunter : push incidents/rapports freeze live, timeline events, sync post-reboot
+- CrashHunter : witness basé sur timestamp agent, graphiques et recommandations UI Doctor
+- CrashHunter : job rétention BDD (PruneOldCrashHunterDataJob)
+
 ## v2.1.43 - 2026-07-11
 
 - CrashHunter : intégration panel (Doctor & Suite, API ingest, tables BDD, déploiement SSH)

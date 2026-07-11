@@ -76,30 +76,47 @@ final class CrashHunterIngestService
     public function ingestWitness(Server $server, array $payload): CrashHunterWitness
     {
         $receivedAt = now();
+        $agentAt = $this->parseTime($payload['timestamp'] ?? $payload['timestamp_us'] ?? null);
+
         $last = CrashHunterWitness::query()
             ->where('server_id', $server->id)
             ->latest('received_at')
             ->first();
 
-        $ageSeconds = $last?->received_at ? $receivedAt->diffInSeconds($last->received_at) : 0;
         $timeout = (int) config('crash_hunter.witness_timeout_seconds', 15);
         $death = (int) config('crash_hunter.witness_death_seconds', 30);
 
         $status = 'alive';
-        if ($ageSeconds > $death) {
-            $status = 'dead';
-        } elseif ($ageSeconds > $timeout) {
-            $status = 'timeout';
+        if ($last !== null) {
+            $lastAgentAt = $this->parseTime(
+                $last->payload['timestamp'] ?? $last->payload['timestamp_us'] ?? $last->received_at,
+            );
+            $gapSeconds = abs($agentAt->diffInSeconds($lastAgentAt));
+            if ($gapSeconds > $death) {
+                $status = 'dead';
+            } elseif ($gapSeconds > $timeout) {
+                $status = 'timeout';
+            }
         }
 
         $record = CrashHunterWitness::query()->create([
             'server_id' => $server->id,
             'status' => $status,
             'received_at' => $receivedAt,
-            'payload' => $payload,
+            'payload' => array_merge($payload, [
+                'agent_timestamp' => $agentAt->toIso8601String(),
+                'gap_seconds' => $last !== null
+                    ? abs($agentAt->diffInSeconds($this->parseTime(
+                        $last->payload['timestamp'] ?? $last->payload['timestamp_us'] ?? $last->received_at,
+                    )))
+                    : 0,
+            ]),
         ]);
 
-        $this->touchServer($server, $receivedAt, array_merge($payload, ['witness_status' => $status]));
+        $this->touchServer($server, $receivedAt, array_merge($payload, [
+            'witness_status' => $status,
+            'witness_gap_seconds' => $record->payload['gap_seconds'] ?? 0,
+        ]));
 
         return $record;
     }
@@ -110,15 +127,18 @@ final class CrashHunterIngestService
     public function ingestIncident(Server $server, array $payload): CrashHunterIncident
     {
         $externalId = (string) ($payload['incident_id'] ?? $payload['external_id'] ?? uniqid('inc_', true));
+        $summary = is_array($payload['summary'] ?? null) ? $payload['summary'] : $payload;
 
         return CrashHunterIncident::query()->updateOrCreate(
             ['server_id' => $server->id, 'external_id' => $externalId],
             [
-                'triggers' => $payload['triggers'] ?? [],
-                'snapshot_count' => (int) ($payload['snapshot_count'] ?? 0),
-                'started_at' => $this->parseTime($payload['started_at'] ?? null),
-                'ended_at' => $this->parseTime($payload['ended_at'] ?? null),
-                'summary' => is_array($payload['summary'] ?? null) ? $payload['summary'] : ['raw' => $payload],
+                'triggers' => $payload['triggers'] ?? $summary['triggers'] ?? [],
+                'snapshot_count' => (int) ($payload['snapshot_count'] ?? $summary['snapshot_count'] ?? 0),
+                'started_at' => $this->parseTime($payload['started_at'] ?? $summary['started_at'] ?? null),
+                'ended_at' => $this->parseTime($payload['ended_at'] ?? $summary['ended_at'] ?? null),
+                'summary' => array_merge($summary, [
+                    'status' => $payload['status'] ?? $summary['status'] ?? null,
+                ]),
             ],
         );
     }
@@ -136,19 +156,52 @@ final class CrashHunterIngestService
             $reportJson['generated_at'] ?? $payload['generated_at'] ?? null,
         );
 
-        $record = CrashHunterReport::query()->create([
-            'server_id' => $server->id,
-            'external_id' => (string) ($reportJson['report_id'] ?? $payload['report_id'] ?? null),
-            'hostname' => (string) ($reportJson['hostname'] ?? $payload['hostname'] ?? $server->hostname),
-            'trigger_type' => (string) ($reportJson['reboot_detection']['reason'] ?? $payload['trigger_type'] ?? 'unknown'),
-            'generated_at' => $generatedAt,
-            'report_json' => $reportJson,
-            'bundle_path' => $payload['bundle_path'] ?? null,
-        ]);
+        $triggerType = (string) (
+            $payload['trigger_type']
+            ?? ($reportJson['reboot_detection']['reason'] ?? null)
+            ?? 'unknown'
+        );
 
-        $this->touchServer($server, $generatedAt, $payload);
+        $record = CrashHunterReport::query()->updateOrCreate(
+            [
+                'server_id' => $server->id,
+                'external_id' => (string) ($reportJson['report_id'] ?? $payload['report_id'] ?? uniqid('rpt_', true)),
+            ],
+            [
+                'hostname' => (string) ($reportJson['hostname'] ?? $payload['hostname'] ?? $server->hostname),
+                'trigger_type' => $triggerType,
+                'generated_at' => $generatedAt,
+                'report_json' => $reportJson,
+                'bundle_path' => $payload['bundle_path'] ?? null,
+            ],
+        );
+
+        $this->touchServer($server, $generatedAt, array_merge($payload, [
+            'last_report_id' => $record->external_id,
+            'last_report_verdict' => $reportJson['diagnosis']['verdict'] ?? null,
+        ]));
 
         return $record;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    public function ingestEvents(Server $server, array $payload): int
+    {
+        $inserted = 0;
+        foreach ($payload['events'] ?? [] as $event) {
+            if (is_array($event)) {
+                $this->ingestEvent($server, $event);
+                $inserted++;
+            }
+        }
+
+        if ($inserted > 0) {
+            $this->touchServer($server, now(), $payload);
+        }
+
+        return $inserted;
     }
 
     /**
@@ -156,14 +209,27 @@ final class CrashHunterIngestService
      */
     public function ingestEvent(Server $server, array $event): CrashHunterEvent
     {
+        $eventType = (string) ($event['event_type'] ?? $event['event'] ?? 'unknown');
+        $detectedAt = $this->parseTime($event['detected_at'] ?? $event['timestamp_us'] ?? $event['timestamp'] ?? null);
+
+        $existing = CrashHunterEvent::query()
+            ->where('server_id', $server->id)
+            ->where('event_type', $eventType)
+            ->where('detected_at', $detectedAt)
+            ->first();
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
         return CrashHunterEvent::query()->create([
             'server_id' => $server->id,
-            'event_type' => (string) ($event['event_type'] ?? $event['event'] ?? 'unknown'),
+            'event_type' => $eventType,
             'severity' => (string) ($event['severity'] ?? 'warning'),
             'title' => (string) ($event['title'] ?? $event['event'] ?? 'Événement'),
             'details' => (string) ($event['details'] ?? $event['detail'] ?? ''),
             'payload' => is_array($event['payload'] ?? null) ? $event['payload'] : $event,
-            'detected_at' => $this->parseTime($event['detected_at'] ?? $event['timestamp_us'] ?? null),
+            'detected_at' => $detectedAt,
             'notified' => false,
         ]);
     }
@@ -173,18 +239,23 @@ final class CrashHunterIngestService
      */
     private function touchServer(Server $server, Carbon $sampledAt, array $payload): void
     {
+        $existingMeta = ($server->metadata ?? [])['crash_hunter'] ?? [];
+
         $server->forceFill([
             'last_seen_at' => now(),
             'status' => 'online',
             'metadata' => array_merge($server->metadata ?? [], [
-                'crash_hunter' => [
+                'crash_hunter' => array_merge($existingMeta, [
                     'last_metrics_at' => $sampledAt->toIso8601String(),
-                    'hostname' => $payload['hostname'] ?? $server->hostname,
-                    'incident_mode' => (bool) ($payload['incident_mode'] ?? false),
-                    'witness_status' => $payload['witness_status'] ?? 'alive',
-                    'ring_count' => $payload['ring_count'] ?? null,
-                    'version' => $payload['crashhunter_version'] ?? null,
-                ],
+                    'hostname' => $payload['hostname'] ?? $existingMeta['hostname'] ?? $server->hostname,
+                    'incident_mode' => (bool) ($payload['incident_mode'] ?? $existingMeta['incident_mode'] ?? false),
+                    'witness_status' => $payload['witness_status'] ?? $existingMeta['witness_status'] ?? 'alive',
+                    'witness_gap_seconds' => $payload['witness_gap_seconds'] ?? $existingMeta['witness_gap_seconds'] ?? null,
+                    'ring_count' => $payload['ring_count'] ?? $existingMeta['ring_count'] ?? null,
+                    'version' => $payload['crashhunter_version'] ?? $existingMeta['version'] ?? null,
+                    'last_report_id' => $payload['last_report_id'] ?? $existingMeta['last_report_id'] ?? null,
+                    'last_report_verdict' => $payload['last_report_verdict'] ?? $existingMeta['last_report_verdict'] ?? null,
+                ]),
             ]),
         ])->save();
     }
@@ -196,7 +267,12 @@ final class CrashHunterIngestService
         }
 
         if (is_numeric($value)) {
-            return Carbon::createFromTimestamp((int) $value);
+            $numeric = (float) $value;
+            if ($numeric > 1_000_000_000_000) {
+                return Carbon::createFromTimestampMs((int) $numeric);
+            }
+
+            return Carbon::createFromTimestamp((int) $numeric);
         }
 
         try {

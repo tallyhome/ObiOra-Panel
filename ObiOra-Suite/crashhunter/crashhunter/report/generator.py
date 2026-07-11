@@ -152,6 +152,7 @@ class ReportGenerator:
             "incident_id": incident_id,
             "triggers": triggers,
             "snapshot_count": self.incident_store.count(incident_id),
+            "started_at": datetime.now(timezone.utc).isoformat(),
             "ended_at": datetime.now(timezone.utc).isoformat(),
         }
         reboot_info = {

@@ -58,3 +58,13 @@ class IncidentStore:
             d.name for d in self.incident_dir.iterdir()
             if d.is_dir() and not d.name.startswith(".")
         )
+
+    def load_summary(self, incident_id: str) -> dict[str, Any] | None:
+        path = self.incident_dir / incident_id / "summary.json"
+        if not path.exists():
+            return None
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            return data if isinstance(data, dict) else None
+        except (OSError, json.JSONDecodeError):
+            return None

@@ -11,6 +11,18 @@ from typing import Any
 logger = logging.getLogger("crashhunter.panel_bridge")
 
 
+def format_timeline_event(entry: dict[str, Any]) -> dict[str, Any]:
+    """Convert internal timeline entry to panel ingest format."""
+    return {
+        "event_type": str(entry.get("event", "unknown")),
+        "title": str(entry.get("event", "Événement")),
+        "details": str(entry.get("detail", "")),
+        "severity": str(entry.get("severity", "info")),
+        "detected_at": entry.get("timestamp") or entry.get("timestamp_us"),
+        "payload": entry,
+    }
+
+
 class PanelBridge:
     """Remote ingest client for ObiOra Panel CrashHunter API."""
 
@@ -79,15 +91,32 @@ class PanelBridge:
             return False
         return self._post("crash-hunter/snapshots", {"snapshots": snapshots})
 
+    def push_snapshots_batched(self, snapshots: list[dict[str, Any]], batch_size: int = 50) -> int:
+        pushed = 0
+        for index in range(0, len(snapshots), batch_size):
+            if self.push_snapshots(snapshots[index : index + batch_size]):
+                pushed += min(batch_size, len(snapshots) - index)
+        return pushed
+
     def push_report(self, report: dict[str, Any], bundle_path: str | None = None) -> bool:
         return self._post("crash-hunter/reports", {
             "report_json": report,
             "report_id": report.get("report_id"),
             "bundle_path": bundle_path,
+            "trigger_type": (
+                report.get("reboot_detection", {}).get("reason")
+                if isinstance(report.get("reboot_detection"), dict)
+                else None
+            ),
         })
 
     def push_incident(self, summary: dict[str, Any]) -> bool:
         return self._post("crash-hunter/incidents", summary)
+
+    def push_events(self, events: list[dict[str, Any]]) -> bool:
+        if not events:
+            return False
+        return self._post("crash-hunter/events", {"events": events})
 
     def should_push(self, now: float, interval: float) -> bool:
         return (now - self._last_push) >= interval

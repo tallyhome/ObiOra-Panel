@@ -33,5 +33,6 @@ Route::prefix('v1')->group(function () {
         Route::post('/servers/{server}/crash-hunter/witness', [CrashHunterController::class, 'storeWitness']);
         Route::post('/servers/{server}/crash-hunter/incidents', [CrashHunterController::class, 'storeIncident']);
         Route::post('/servers/{server}/crash-hunter/reports', [CrashHunterController::class, 'storeReport']);
+        Route::post('/servers/{server}/crash-hunter/events', [CrashHunterController::class, 'storeEvents']);
     });
 });

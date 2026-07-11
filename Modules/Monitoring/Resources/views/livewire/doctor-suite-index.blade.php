@@ -562,26 +562,135 @@
     @endif
 
     @if($overview && !empty($overview['crash_hunter']))
+    @php($hunter = $overview['crash_hunter']['summary'] ?? [])
+    @php($hunterCharts = $overview['crash_hunter']['charts'] ?? [])
+    @php($hunterInsights = $overview['crash_hunter']['latest_report_insights'] ?? null)
     <div class="row g-4 mt-1">
         <div class="col-12">
             <div class="card obiora-card border-warning border-opacity-50">
                 <div class="card-header">CrashHunter Enterprise — Black Box &amp; Witness</div>
                 <div class="card-body">
-                    @php($hunter = $overview['crash_hunter']['summary'] ?? [])
                     <div class="row g-3 mb-3">
-                        <div class="col-md-3"><span class="small text-muted d-block">Witness</span><strong>{{ $hunter['witness_status'] ?? '—' }}</strong></div>
-                        <div class="col-md-3"><span class="small text-muted d-block">Ring buffer</span><strong>{{ $hunter['ring_count'] ?? '—' }}</strong> slots</div>
-                        <div class="col-md-3"><span class="small text-muted d-block">Snapshots reçus</span><strong>{{ $hunter['snapshots_in_window'] ?? 0 }}</strong></div>
-                        <div class="col-md-3"><span class="small text-muted d-block">Critiques 24h</span><span class="badge text-bg-danger">{{ $hunter['critical_events_24h'] ?? 0 }}</span></div>
+                        <div class="col-md-2"><span class="small text-muted d-block">Witness</span>
+                            @php($ws = $hunter['witness_status'] ?? 'unknown')
+                            <span class="badge {{ $ws === 'alive' ? 'text-bg-success' : ($ws === 'timeout' ? 'text-bg-warning' : 'text-bg-danger') }}">{{ $ws }}</span>
+                            @if(!empty($hunter['witness_gap_seconds']))
+                                <span class="small text-muted d-block">gap {{ $hunter['witness_gap_seconds'] }}s</span>
+                            @endif
+                        </div>
+                        <div class="col-md-2"><span class="small text-muted d-block">Ring buffer</span><strong>{{ $hunter['ring_count'] ?? '—' }}</strong> slots</div>
+                        <div class="col-md-2"><span class="small text-muted d-block">Snapshots reçus</span><strong>{{ $hunter['snapshots_in_window'] ?? 0 }}</strong></div>
+                        <div class="col-md-2"><span class="small text-muted d-block">CPU max</span><strong>{{ $hunter['cpu_max'] ?? '—' }}%</strong></div>
+                        <div class="col-md-2"><span class="small text-muted d-block">Critiques 24h</span><span class="badge text-bg-danger">{{ $hunter['critical_events_24h'] ?? 0 }}</span></div>
+                        <div class="col-md-2"><span class="small text-muted d-block">Mode incident</span><strong>{{ ($hunter['incident_mode'] ?? false) ? 'OUI' : 'non' }}</strong></div>
                     </div>
+
+                    @if(!empty($hunterCharts['cpu']) || !empty($hunterCharts['load']))
+                    <h3 class="h6">Métriques (dernière heure)</h3>
+                    <div class="row g-3 mb-3" wire:ignore>
+                        <div class="col-md-6"><div id="ch-hunter-cpu" style="min-height:200px"></div></div>
+                        <div class="col-md-6"><div id="ch-hunter-load" style="min-height:200px"></div></div>
+                        <div class="col-md-6"><div id="ch-hunter-iowait" style="min-height:200px"></div></div>
+                        <div class="col-md-6"><div id="ch-hunter-psi" style="min-height:200px"></div></div>
+                    </div>
+                    <script>
+                    (function () {
+                        if (typeof ApexCharts === 'undefined') return;
+                        const charts = @json($hunterCharts);
+                        function render(id, title, series, color) {
+                            const el = document.getElementById(id);
+                            if (!el || !series || !series.length) return;
+                            const data = series.filter(p => p.v !== null && p.v !== undefined).map(p => [p.t * 1000, p.v]);
+                            if (!data.length) return;
+                            new ApexCharts(el, {
+                                chart: { type: 'line', height: 200, toolbar: { show: false }, animations: { enabled: false } },
+                                series: [{ name: title, data }],
+                                xaxis: { type: 'datetime', labels: { datetimeUTC: false } },
+                                stroke: { width: 2, curve: 'smooth' },
+                                colors: [color || '#f59e0b'],
+                                title: { text: title, style: { fontSize: '13px' } },
+                            }).render();
+                        }
+                        render('ch-hunter-cpu', 'CPU %', charts.cpu || [], '#ef4444');
+                        render('ch-hunter-load', 'Load 1m', charts.load || [], '#3b82f6');
+                        render('ch-hunter-iowait', 'IOWait %', charts.iowait || [], '#8b5cf6');
+                        render('ch-hunter-psi', 'PSI IO avg10', charts.pressure_io || [], '#f97316');
+                    })();
+                    </script>
+                    @endif
+
+                    @if($hunterInsights)
+                    <div class="alert alert-{{ ($hunterInsights['reboot_detected'] ?? false) ? 'danger' : 'warning' }} py-3 mb-3">
+                        <h3 class="h6 mb-2">Analyse post-reboot — {{ $hunterInsights['report_id'] ?? '' }}</h3>
+                        <p class="small mb-2">
+                            <strong>Verdict :</strong> {{ $hunterInsights['verdict'] ?? '—' }}
+                            @if(!empty($hunterInsights['reboot_classification']))
+                                · <strong>Type :</strong> {{ $hunterInsights['reboot_classification'] }}
+                            @endif
+                            @if(!empty($hunterInsights['reboot_reason']))
+                                · <strong>Cause :</strong> {{ $hunterInsights['reboot_reason'] }}
+                            @endif
+                        </p>
+                        @if(!empty($hunterInsights['causal_story']))
+                        <p class="small mb-2"><strong>Chronologie :</strong> {{ Str::limit($hunterInsights['causal_story'], 500) }}</p>
+                        @endif
+                        @if(!empty($hunterInsights['recommendations']))
+                        <h4 class="h6 mt-2">Pistes de résolution</h4>
+                        <ul class="small mb-0">
+                            @foreach($hunterInsights['recommendations'] as $rec)
+                            <li>
+                                @if(is_array($rec))
+                                    <strong>{{ $rec['priority'] ?? '' }}</strong> — {{ $rec['action'] ?? $rec['title'] ?? json_encode($rec) }}
+                                    @if(!empty($rec['detail']))<br><span class="text-muted">{{ $rec['detail'] }}</span>@endif
+                                @else
+                                    {{ $rec }}
+                                @endif
+                            </li>
+                            @endforeach
+                        </ul>
+                        @endif
+                    </div>
+                    @endif
+
+                    @if(!empty($overview['crash_hunter']['events']))
+                    <h3 class="h6">Timeline événements</h3>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm obiora-table mb-0">
+                            <thead class="obiora-table-head"><tr><th>Date</th><th>Sévérité</th><th>Type</th><th>Détail</th></tr></thead>
+                            <tbody>
+                                @foreach(array_slice($overview['crash_hunter']['events'], 0, 12) as $event)
+                                <tr>
+                                    <td class="small text-nowrap">{{ $event['detected_at'] ?? '' }}</td>
+                                    <td><span class="badge {{ ($event['severity'] ?? '') === 'critical' ? 'text-bg-danger' : 'text-bg-secondary' }}">{{ $event['severity'] ?? '' }}</span></td>
+                                    <td><code class="small">{{ $event['event_type'] ?? '' }}</code></td>
+                                    <td class="small">{{ Str::limit($event['details'] ?? $event['title'] ?? '', 60) }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @endif
+
                     @if(!empty($overview['crash_hunter']['incidents']))
                     <h3 class="h6">Incidents (freeze silencieux)</h3>
-                    <ul class="small">
-                        @foreach($overview['crash_hunter']['incidents'] as $inc)
-                        <li><code>{{ $inc['external_id'] ?? '' }}</code> — {{ implode(', ', $inc['triggers'] ?? []) }} ({{ $inc['snapshot_count'] ?? 0 }} snapshots)</li>
-                        @endforeach
-                    </ul>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm obiora-table mb-0">
+                            <thead class="obiora-table-head"><tr><th>ID</th><th>Triggers</th><th>Snapshots</th><th>Statut</th><th>Début</th></tr></thead>
+                            <tbody>
+                                @foreach($overview['crash_hunter']['incidents'] as $inc)
+                                <tr>
+                                    <td><code class="small">{{ $inc['external_id'] ?? '' }}</code></td>
+                                    <td class="small">{{ implode(', ', $inc['triggers'] ?? []) }}</td>
+                                    <td>{{ $inc['snapshot_count'] ?? 0 }}</td>
+                                    <td><span class="badge {{ ($inc['status'] ?? '') === 'active' ? 'text-bg-warning' : 'text-bg-secondary' }}">{{ $inc['status'] ?? 'ended' }}</span></td>
+                                    <td class="small text-nowrap">{{ $inc['started_at'] ?? '' }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                     @endif
+
                     @if(!empty($overview['crash_hunter']['reports']))
                     <h3 class="h6">Rapports Black Box</h3>
                     <ul class="small mb-0">

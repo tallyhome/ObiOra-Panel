@@ -119,6 +119,26 @@ final class CrashHunterController extends Controller
         }
     }
 
+    public function storeEvents(Request $request, Server $server, CrashHunterIngestService $ingest): JsonResponse
+    {
+        if (! $this->authorizeAgent($request, $server)) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        /** @var array<string, mixed> $payload */
+        $payload = $request->json()->all();
+
+        try {
+            $count = $ingest->ingestEvents($server, $payload);
+
+            return response()->json(['ok' => true, 'events_ingested' => $count]);
+        } catch (Throwable $e) {
+            Log::error('CrashHunter events ingest failed', ['server_id' => $server->id, 'message' => $e->getMessage()]);
+
+            return response()->json(['error' => 'Events ingest failed'], 500);
+        }
+    }
+
     public function dashboard(Server $server, CrashHunterMetricsService $metrics): JsonResponse
     {
         $minutes = (int) request()->query('minutes', config('crash_hunter.history_minutes', 60));

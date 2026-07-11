@@ -12,7 +12,7 @@ from crashhunter import __version__
 from crashhunter.analysis.rules_engine import RulesEngine
 from crashhunter.config.settings import Settings, load_settings
 from crashhunter.diagnostics.benchmark import PostRebootBenchmark
-from crashhunter.export.panel_bridge import PanelBridge
+from crashhunter.export.panel_bridge import PanelBridge, format_timeline_event
 from crashhunter.export.prometheus import PrometheusExporter
 from crashhunter.freeze.detector import SilentFreezeDetector
 from crashhunter.freeze.emergency_collector import EmergencyCollector
@@ -90,6 +90,7 @@ class CrashHunterDaemon:
         self._last_triggers: list[str] = []
         self._cycle_count = 0
         self._last_ring_sync = time.monotonic()
+        self._timeline_push_index = 0
 
     def handle_shutdown(self, signum: int, _frame: object) -> None:
         logger.info("Signal %s received, shutting down", signum)
@@ -138,9 +139,33 @@ class CrashHunterDaemon:
             )
             if self.settings.panel.enabled:
                 self.panel_bridge.push_report(report, report.get("bundle_path"))
+                self._sync_post_reboot_to_panel(report)
             reboot_info["report_id"] = report.get("report_id")
             return reboot_info
         return None
+
+    def _sync_post_reboot_to_panel(self, report: dict[str, object]) -> None:
+        """After reboot: flush ring buffer, timeline, and pending incidents to panel."""
+        ordered = self.ring.get_all_ordered()
+        if ordered:
+            pushed = self.panel_bridge.push_snapshots_batched(ordered, batch_size=50)
+            logger.info("Post-reboot panel sync: %d snapshots pushed", pushed)
+
+        self._push_new_timeline_events()
+
+        for incident_id in self.incident_store.list_incidents():
+            summary = self.incident_store.load_summary(incident_id)
+            if summary:
+                self.panel_bridge.push_incident(summary)
+
+        event_timeline = report.get("event_timeline")
+        if isinstance(event_timeline, list) and event_timeline:
+            formatted = [
+                format_timeline_event(entry)
+                for entry in event_timeline
+                if isinstance(entry, dict)
+            ]
+            self.panel_bridge.push_events(formatted)
 
     def run_normal_cycle(self) -> dict[str, Any]:
         """Single normal-mode sampling cycle with freeze detection."""
@@ -185,11 +210,28 @@ class CrashHunterDaemon:
             incident_id = self.incident_manager.trigger(signals)
             self._last_incident_id = incident_id
             self._last_triggers = [s.trigger for s in signals]
+            if self.settings.panel.enabled:
+                self.panel_bridge.push_incident({
+                    "incident_id": incident_id,
+                    "triggers": self._last_triggers,
+                    "started_at": self.incident_manager.started_at_iso,
+                    "status": "active",
+                    "snapshot_count": 0,
+                })
+                self._push_new_timeline_events()
             self._run_incident_mode()
             report = self.reporter.generate_from_incident(
                 self.blackbox, incident_id, self.timeline, self._last_triggers,
             )
             logger.critical("Silent freeze incident report: %s", report.get("report_id"))
+            if self.settings.panel.enabled:
+                summary = self.incident_store.load_summary(incident_id) or {
+                    "incident_id": incident_id,
+                    "triggers": self._last_triggers,
+                }
+                self.panel_bridge.push_incident(summary)
+                self.panel_bridge.push_report(report, report.get("bundle_path"))
+                self._push_new_timeline_events()
             self.detector.reset_timeout_counter()
 
         return snapshot
@@ -220,8 +262,20 @@ class CrashHunterDaemon:
         batch = ordered[-self.settings.panel.snapshot_batch_size :]
         if batch:
             self.panel_bridge.push_snapshots(batch)
+        self._push_new_timeline_events()
         self.panel_bridge.mark_pushed(now)
         self._last_panel_push = now
+
+    def _push_new_timeline_events(self) -> None:
+        if not self.settings.panel.enabled:
+            return
+        events = self.timeline.get_events()
+        new_events = events[self._timeline_push_index :]
+        if not new_events:
+            return
+        formatted = [format_timeline_event(entry) for entry in new_events]
+        if self.panel_bridge.push_events(formatted):
+            self._timeline_push_index = len(events)
 
     def _sync_ring_buffer(self) -> None:
         if not self.settings.ring.use_tmpfs:

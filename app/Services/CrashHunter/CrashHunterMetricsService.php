@@ -11,7 +11,6 @@ use App\Models\CrashHunterReport;
 use App\Models\CrashHunterSnapshot;
 use App\Models\CrashHunterWitness;
 use App\Models\Server;
-use Illuminate\Support\Carbon;
 
 final class CrashHunterMetricsService
 {
@@ -48,6 +47,7 @@ final class CrashHunterMetricsService
             ->limit(5)
             ->get();
 
+        $latestReport = $reports->first();
         $witness = CrashHunterWitness::query()
             ->where('server_id', $server->id)
             ->latest('received_at')
@@ -58,6 +58,8 @@ final class CrashHunterMetricsService
             ->where('sampled_at', '>=', $since)
             ->count();
 
+        $cpuValues = $metrics->where('collector', 'cpu')->pluck('payload.total_percent')->filter();
+
         return [
             'summary' => [
                 'hostname' => $meta['hostname'] ?? $server->hostname,
@@ -66,9 +68,12 @@ final class CrashHunterMetricsService
                 'incident_mode' => (bool) ($meta['incident_mode'] ?? false),
                 'witness_status' => $witness?->status ?? ($meta['witness_status'] ?? 'unknown'),
                 'witness_last_at' => $witness?->received_at?->toIso8601String(),
+                'witness_gap_seconds' => $witness?->payload['gap_seconds'] ?? ($meta['witness_gap_seconds'] ?? null),
                 'ring_count' => $meta['ring_count'] ?? null,
                 'snapshots_in_window' => $snapshotCount,
                 'metrics_in_window' => $metrics->count(),
+                'cpu_avg' => $cpuValues->isNotEmpty() ? round((float) $cpuValues->avg(), 1) : null,
+                'cpu_max' => $cpuValues->isNotEmpty() ? round((float) $cpuValues->max(), 1) : null,
                 'critical_events_24h' => CrashHunterEvent::query()
                     ->where('server_id', $server->id)
                     ->where('severity', 'critical')
@@ -89,6 +94,7 @@ final class CrashHunterMetricsService
                 'snapshot_count' => $i->snapshot_count,
                 'started_at' => $i->started_at?->toIso8601String(),
                 'ended_at' => $i->ended_at?->toIso8601String(),
+                'status' => is_array($i->summary) ? ($i->summary['status'] ?? null) : null,
             ])->all(),
             'reports' => $reports->map(fn (CrashHunterReport $r) => [
                 'id' => $r->id,
@@ -96,8 +102,71 @@ final class CrashHunterMetricsService
                 'trigger_type' => $r->trigger_type,
                 'generated_at' => $r->generated_at?->toIso8601String(),
                 'verdict' => $r->report_json['diagnosis']['verdict'] ?? null,
+                'recommendations_count' => count($r->report_json['recommendations'] ?? []),
             ])->all(),
+            'latest_report_insights' => $this->buildReportInsights($latestReport),
             'latest_collectors' => $this->latestCollectors($server),
+        ];
+    }
+
+    public function pruneOld(Server $server, int $snapshotRetentionHours): int
+    {
+        $metricsRetention = (int) config('crash_hunter.metrics_retention_hours', 72);
+        $metricsCutoff = now()->subHours($metricsRetention);
+        $snapshotCutoff = now()->subHours($snapshotRetentionHours);
+        $witnessCutoff = now()->subDays(7);
+
+        $deleted = CrashHunterMetric::query()
+            ->where('server_id', $server->id)
+            ->where('sampled_at', '<', $metricsCutoff)
+            ->delete();
+
+        $deleted += CrashHunterSnapshot::query()
+            ->where('server_id', $server->id)
+            ->where('sampled_at', '<', $snapshotCutoff)
+            ->delete();
+
+        $deleted += CrashHunterEvent::query()
+            ->where('server_id', $server->id)
+            ->where('detected_at', '<', $metricsCutoff)
+            ->where('severity', '!=', 'critical')
+            ->delete();
+
+        CrashHunterWitness::query()
+            ->where('server_id', $server->id)
+            ->where('received_at', '<', $witnessCutoff)
+            ->delete();
+
+        return $deleted;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function buildReportInsights(?CrashHunterReport $report): ?array
+    {
+        if ($report === null) {
+            return null;
+        }
+
+        $json = $report->report_json ?? [];
+        $reboot = is_array($json['reboot_detection'] ?? null) ? $json['reboot_detection'] : [];
+        $diagnosis = is_array($json['diagnosis'] ?? null) ? $json['diagnosis'] : [];
+        $chrono = is_array($json['chronological_report'] ?? null) ? $json['chronological_report'] : [];
+
+        return [
+            'report_id' => $report->external_id,
+            'trigger_type' => $report->trigger_type,
+            'generated_at' => $report->generated_at?->toIso8601String(),
+            'reboot_detected' => (bool) ($reboot['reboot_detected'] ?? false),
+            'reboot_reason' => $reboot['reason'] ?? null,
+            'reboot_classification' => $json['reboot_classification']['label'] ?? null,
+            'verdict' => $diagnosis['verdict'] ?? null,
+            'confidence' => $diagnosis['confidence'] ?? null,
+            'causal_story' => $chrono['causal_story'] ?? ($json['causal_correlation']['story_text'] ?? null),
+            'recommendations' => array_slice($json['recommendations'] ?? [], 0, 10),
+            'similar_crashes' => array_slice($json['similar_crashes'] ?? [], 0, 3),
+            'ml_prediction' => $json['ml_prediction'] ?? null,
         ];
     }
 

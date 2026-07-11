@@ -51,10 +51,19 @@ class IncidentManager:
         self._triggers: list[str] = []
         self._sysrq_done = False
         self._deep_collectors_started = False
+        self._started_at_iso: str | None = None
 
     @property
     def is_incident(self) -> bool:
         return self.mode == DaemonMode.INCIDENT
+
+    @property
+    def started_at_iso(self) -> str | None:
+        return self._started_at_iso
+
+    @property
+    def incident_id(self) -> str | None:
+        return self._incident_id
 
     def trigger(self, signals: list[FreezeSignal]) -> str:
         """Enter incident mode immediately."""
@@ -62,6 +71,7 @@ class IncidentManager:
         self._incident_start = time.monotonic()
         self._triggers = [s.trigger for s in signals]
         self._incident_id = datetime.now().strftime("Incident_%Y%m%d_%H%M%S")
+        self._started_at_iso = datetime.now(timezone.utc).isoformat()
         self._sysrq_done = False
         self._deep_collectors_started = False
         trigger_detail = ", ".join(self._triggers)
@@ -125,6 +135,8 @@ class IncidentManager:
         summary = {
             "incident_id": self._incident_id,
             "triggers": self._triggers,
+            "status": "ended",
+            "started_at": self._started_at_iso,
             "duration_seconds": self.settings.incident.emergency_duration_seconds,
             "snapshot_count": self.incident_store.count(self._incident_id or ""),
             "ended_at": datetime.now(timezone.utc).isoformat(),

@@ -76,7 +76,7 @@ final class CrashHunterApiTest extends TestCase
         ]);
 
         $response = $this->getJson(route('crash-hunter.api.dashboard', $server));
-        $response->assertOk()->assertJsonStructure(['summary', 'charts', 'events']);
+        $response->assertOk()->assertJsonStructure(['summary', 'charts', 'events', 'latest_report_insights']);
     }
 
     public function test_install_crash_hunter_script_is_public(): void
@@ -84,5 +84,96 @@ final class CrashHunterApiTest extends TestCase
         $response = $this->get(route('install.crash-hunter'));
         $response->assertOk();
         $this->assertStringContainsString('CrashHunter', $response->getContent());
+    }
+
+    public function test_crash_hunter_incident_ingest(): void
+    {
+        $server = Server::factory()->create(['agent_token' => str_repeat('i', 64)]);
+
+        $response = $this->postJson("/api/v1/servers/{$server->id}/crash-hunter/incidents", [
+            'incident_id' => 'Incident_20260711_120000',
+            'triggers' => ['ssh_timeout', 'iowait_high'],
+            'started_at' => now()->subMinutes(2)->toIso8601String(),
+            'ended_at' => now()->toIso8601String(),
+            'snapshot_count' => 42,
+            'status' => 'ended',
+        ], [
+            'Authorization' => 'Bearer '.str_repeat('i', 64),
+        ]);
+
+        $response->assertOk();
+        $this->assertDatabaseHas('crash_hunter_incidents', [
+            'server_id' => $server->id,
+            'external_id' => 'Incident_20260711_120000',
+            'snapshot_count' => 42,
+        ]);
+    }
+
+    public function test_crash_hunter_events_ingest(): void
+    {
+        $server = Server::factory()->create(['agent_token' => str_repeat('e', 64)]);
+
+        $response = $this->postJson("/api/v1/servers/{$server->id}/crash-hunter/events", [
+            'events' => [
+                [
+                    'event_type' => 'incident_mode_started',
+                    'severity' => 'critical',
+                    'title' => 'incident_mode_started',
+                    'details' => 'Emergency mode activated',
+                    'detected_at' => now()->toIso8601String(),
+                ],
+            ],
+        ], [
+            'Authorization' => 'Bearer '.str_repeat('e', 64),
+        ]);
+
+        $response->assertOk()->assertJson(['events_ingested' => 1]);
+        $this->assertDatabaseHas('crash_hunter_events', [
+            'server_id' => $server->id,
+            'event_type' => 'incident_mode_started',
+        ]);
+    }
+
+    public function test_crash_hunter_witness_uses_agent_timestamp_gap(): void
+    {
+        $server = Server::factory()->create(['agent_token' => str_repeat('g', 64)]);
+        $token = 'Bearer '.str_repeat('g', 64);
+
+        $this->postJson("/api/v1/servers/{$server->id}/crash-hunter/witness", [
+            'timestamp' => now()->subSeconds(60)->toIso8601String(),
+            'host' => 'dedie-01',
+        ], ['Authorization' => $token])->assertOk();
+
+        $response = $this->postJson("/api/v1/servers/{$server->id}/crash-hunter/witness", [
+            'timestamp' => now()->toIso8601String(),
+            'host' => 'dedie-01',
+        ], ['Authorization' => $token]);
+
+        $response->assertOk()->assertJsonPath('status', 'dead');
+    }
+
+    public function test_crash_hunter_report_ingest_with_recommendations(): void
+    {
+        $server = Server::factory()->create(['agent_token' => str_repeat('r', 64)]);
+
+        $response = $this->postJson("/api/v1/servers/{$server->id}/crash-hunter/reports", [
+            'report_json' => [
+                'report_id' => 'CrashReport_test',
+                'generated_at' => now()->toIso8601String(),
+                'reboot_detection' => ['reboot_detected' => true, 'reason' => 'hard_reset'],
+                'diagnosis' => ['verdict' => 'Probable I/O stall'],
+                'recommendations' => [
+                    ['priority' => 'high', 'action' => 'Vérifier SMART disque', 'detail' => 'smartctl -a /dev/sda'],
+                ],
+            ],
+        ], [
+            'Authorization' => 'Bearer '.str_repeat('r', 64),
+        ]);
+
+        $response->assertOk();
+        $this->assertDatabaseHas('crash_hunter_reports', [
+            'server_id' => $server->id,
+            'external_id' => 'CrashReport_test',
+        ]);
     }
 }
