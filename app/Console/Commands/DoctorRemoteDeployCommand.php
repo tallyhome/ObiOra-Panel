@@ -16,9 +16,10 @@ final class DoctorRemoteDeployCommand extends Command
                             {user : Utilisateur SSH}
                             {doctor : Installer Doctor (yes/no)}
                             {crash : Installer Crash Analyzer (yes/no)}
-                            {crashhunter : Installer CrashHunter (yes/no)}';
+                            {crashhunter : Installer CrashHunter (yes/no)}
+                            {slave : Installer agent seedbox (yes/no)}';
 
-    protected $description = 'Déploie Doctor, Crash Analyzer et CrashHunter sur un serveur distant';
+    protected $description = 'Déploie Doctor, Crash Analyzer, CrashHunter et optionnellement l\'agent seedbox';
 
     public function handle(DoctorDeployRunner $runner): int
     {
@@ -32,6 +33,7 @@ final class DoctorRemoteDeployCommand extends Command
             installDoctor: $this->argument('doctor') === 'yes',
             installCrashAnalyzer: $this->argument('crash') === 'yes',
             installCrashHunter: $this->argument('crashhunter') === 'yes',
+            installSlave: $this->argument('slave') === 'yes',
         );
 
         return self::SUCCESS;

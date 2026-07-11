@@ -36,12 +36,14 @@ final class RemoteDeployLauncher
         bool $installDoctor,
         bool $installCrashAnalyzer,
         bool $installCrashHunter = true,
+        bool $installSlave = false,
     ): void {
         $this->deployLog->log($serverId, 'doctor', 'Demande d\'installation Doctor & Suite', 'info', [
             'host' => $sshHost,
             'port' => $sshPort,
             'user' => $sshUser,
             'crash_hunter' => $installCrashHunter,
+            'slave' => $installSlave,
         ]);
 
         $workerOk = $this->queue->ensureWorkerRunning();
@@ -55,6 +57,7 @@ final class RemoteDeployLauncher
                 $installDoctor,
                 $installCrashAnalyzer,
                 $installCrashHunter,
+                $installSlave,
             );
 
             $this->doctorProgress->appendLog(
@@ -71,7 +74,7 @@ final class RemoteDeployLauncher
             ]);
         }
 
-        $this->launchDoctorCli($serverId, $sshHost, $sshPort, $sshUser, $installDoctor, $installCrashAnalyzer, $installCrashHunter);
+        $this->launchDoctorCli($serverId, $sshHost, $sshPort, $sshUser, $installDoctor, $installCrashAnalyzer, $installCrashHunter, $installSlave);
     }
 
     public function launchSlave(
@@ -116,6 +119,7 @@ final class RemoteDeployLauncher
         bool $installDoctor,
         bool $installCrashAnalyzer,
         bool $installCrashHunter = true,
+        bool $installSlave = false,
     ): void {
         $logFile = storage_path('logs/deploy-doctor.log');
         $command = $this->buildArtisanCommand([
@@ -127,6 +131,7 @@ final class RemoteDeployLauncher
             $installDoctor ? 'yes' : 'no',
             $installCrashAnalyzer ? 'yes' : 'no',
             $installCrashHunter ? 'yes' : 'no',
+            $installSlave ? 'yes' : 'no',
         ], $logFile);
 
         $this->doctorProgress->appendLog($serverId, 'Fallback : lancement CLI en arrière-plan…');

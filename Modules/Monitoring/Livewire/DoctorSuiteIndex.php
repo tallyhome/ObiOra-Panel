@@ -53,6 +53,8 @@ final class DoctorSuiteIndex extends Component
 
     public bool $deployCrashHunter = true;
 
+    public bool $deploySlave = false;
+
     /** @var list<array<string, mixed>> */
     public array $runningAgents = [];
 
@@ -327,6 +329,7 @@ final class DoctorSuiteIndex extends Component
                 $this->deployDoctor,
                 $this->deployCrashAnalyzer,
                 $this->deployCrashHunter,
+                $this->deploySlave,
             );
 
             $this->deployRunning = true;
@@ -438,7 +441,8 @@ final class DoctorSuiteIndex extends Component
 
         try {
             $server = Server::query()->findOrFail($this->serverId);
-            $result = $control->listAgents($server, $this->sshHost, $this->sshPort, $this->sshUser);
+            $connection = $this->resolveAgentConnection($server, app(ServerSshKeyService::class));
+            $result = $control->listAgents($server, $this->sshHost, $this->sshPort, $this->sshUser, $connection);
             $this->runningAgents = $result['services'];
             $this->agentControlOk = $result['success'];
             $this->agentControlMessage = $result['message'];
@@ -464,7 +468,8 @@ final class DoctorSuiteIndex extends Component
 
         try {
             $server = Server::query()->findOrFail($this->serverId);
-            $result = $control->stopAllDiagnostics($server, $this->sshHost, $this->sshPort, $this->sshUser);
+            $connection = $this->resolveAgentConnection($server, app(ServerSshKeyService::class));
+            $result = $control->stopAllDiagnostics($server, $this->sshHost, $this->sshPort, $this->sshUser, $connection);
             $this->agentControlOk = $result['success'];
             $this->agentControlMessage = $result['message'];
             $this->runningAgents = [];
@@ -476,6 +481,54 @@ final class DoctorSuiteIndex extends Component
         } finally {
             $this->agentsLoading = false;
         }
+    }
+
+    public function purgeAllAgents(RemoteAgentControlService $control): void
+    {
+        $this->authorizeDeploy();
+        if (! $this->sshTestOk) {
+            $this->dispatch('notify', type: 'warning', message: 'Testez d\'abord la connexion SSH.');
+
+            return;
+        }
+
+        $this->agentsLoading = true;
+
+        try {
+            $server = Server::query()->findOrFail($this->serverId);
+            $connection = $this->resolveAgentConnection($server, app(ServerSshKeyService::class));
+            $result = $control->purgeAllDiagnostics(
+                $server,
+                $this->sshHost,
+                $this->sshPort,
+                $this->sshUser,
+                $connection,
+                true,
+            );
+            $this->agentControlOk = $result['success'];
+            $this->agentControlMessage = $result['message'];
+            $this->runningAgents = [];
+            $this->sshKeyInstalled = false;
+            $this->refreshSshState($server, app(ServerSshKeyService::class));
+            $this->dispatch('notify', type: $result['success'] ? 'success' : 'danger', message: $result['message']);
+        } catch (\Throwable $e) {
+            $this->agentControlOk = false;
+            $this->agentControlMessage = $e->getMessage();
+            $this->dispatch('notify', type: 'danger', message: $e->getMessage());
+        } finally {
+            $this->agentsLoading = false;
+        }
+    }
+
+    private function resolveAgentConnection(Server $server, ServerSshKeyService $sshKeys): ?SshConnection
+    {
+        $connection = $this->resolveConnection($server, $sshKeys);
+
+        if ($connection === null && $this->sshPassword !== '') {
+            return $this->bootstrapConnection();
+        }
+
+        return $connection;
     }
 
     public function render(DoctorSuiteService $suite, DeployLogService $deployLog)

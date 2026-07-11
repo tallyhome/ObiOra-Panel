@@ -27,6 +27,7 @@ final class DoctorSuiteService
         private readonly CrashAnalyzerMetricsService $crashMetrics,
         private readonly CrashHunterMetricsService $crashHunterMetrics,
         private readonly ServerAgentStatus $agentStatus,
+        private readonly DoctorSuitePlainLanguage $plainLanguage,
     ) {}
 
     /**
@@ -37,9 +38,10 @@ final class DoctorSuiteService
         $report = $server->latestDiagnosticReport;
         $crashDashboard = $this->crashMetrics->dashboardData($server, $historyMinutes);
         $hunterDashboard = $this->crashHunterMetrics->dashboardData($server, $historyMinutes);
+        $doctor = $this->formatDoctorReport($report);
 
         return [
-            'doctor' => $this->formatDoctorReport($report),
+            'doctor' => $doctor,
             'crash_analyzer' => [
                 'summary' => $crashDashboard['summary'] ?? [],
                 'events' => array_slice($crashDashboard['events'] ?? [], 0, 20),
@@ -50,6 +52,14 @@ final class DoctorSuiteService
                 'tools' => $this->latestMetricPayload($server, 'tools'),
             ],
             'crash_hunter' => $hunterDashboard,
+            'plain_summary' => $this->plainLanguage->summarize([
+                'doctor' => $doctor,
+                'crash_analyzer' => [
+                    'summary' => $crashDashboard['summary'] ?? [],
+                    'events' => array_slice($crashDashboard['events'] ?? [], 0, 20),
+                ],
+                'crash_hunter' => $hunterDashboard,
+            ]),
         ];
     }
 
@@ -151,6 +161,7 @@ final class DoctorSuiteService
             'doctor_version' => $report->doctor_version,
             'generated_at' => $report->generated_at?->toIso8601String(),
             'critical_findings' => $report->critical_findings ?? [],
+            'action_findings' => $this->plainLanguage->extractActionFindings($json),
             'modules' => $modules,
             'signature_verified' => $report->signature_verified,
         ];

@@ -284,12 +284,17 @@
                             <input class="form-check-input" type="checkbox" wire:model="deployCrashHunter" id="deployCrashHunter">
                             <label class="form-check-label small" for="deployCrashHunter">CrashHunter Enterprise</label>
                         </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" wire:model="deploySlave" id="deploySlave">
+                            <label class="form-check-label small" for="deploySlave">Agent seedbox (slave)</label>
+                        </div>
+                        <p class="small text-muted mt-2 mb-0">Décochez l'agent seedbox sur un dédié Virtualizor ou tout serveur qui n'héberge pas de seedbox.</p>
                     </div>
 
                     @if($canManageServers)
                     <div class="border rounded p-3 mb-3 bg-light">
                         <span class="small fw-medium d-block mb-2">Contrôle des agents distants</span>
-                        <p class="small text-muted mb-2">Une fois le problème identifié et résolu, arrêtez les agents diagnostics pour libérer les ressources du serveur.</p>
+                        <p class="small text-muted mb-2">Une fois le problème identifié et résolu, arrêtez les agents diagnostics ou supprimez-les entièrement (services, logs, snapshots, répertoires).</p>
                         <div class="d-flex flex-wrap gap-2 mb-2">
                             <button type="button" wire:click="refreshRunningAgents" wire:loading.attr="disabled" class="btn btn-outline-secondary btn-sm"
                                     @if(!$sshTestOk) disabled @endif>
@@ -298,9 +303,15 @@
                             </button>
                             <button type="button" wire:click="stopAllAgents" wire:loading.attr="disabled" class="btn btn-outline-danger btn-sm"
                                     @if(!$sshTestOk) disabled @endif
-                                    onclick="return confirm('Arrêter et désactiver tous les agents diagnostics (CrashHunter, Crash Analyzer, Doctor) ?')">
+                                    onclick="return confirm('Arrêter et désactiver tous les agents diagnostics (CrashHunter, Crash Analyzer, Doctor, seedbox) ?')">
                                 <span wire:loading.remove wire:target="stopAllAgents">Arrêter tous les agents</span>
                                 <span wire:loading wire:target="stopAllAgents">Arrêt…</span>
+                            </button>
+                            <button type="button" wire:click="purgeAllAgents" wire:loading.attr="disabled" class="btn btn-danger btn-sm"
+                                    @if(!$sshTestOk) disabled @endif
+                                    onclick="return confirm('Supprimer définitivement tous les agents ObiOra Suite (services, fichiers, logs, snapshots) ? Cette action est irréversible.')">
+                                <span wire:loading.remove wire:target="purgeAllAgents">Supprimer agents et fichiers</span>
+                                <span wire:loading wire:target="purgeAllAgents">Suppression…</span>
                             </button>
                         </div>
                         @if($agentControlMessage)
@@ -412,6 +423,58 @@
     </div>
 
     @if($overview)
+    @php($plainSummary = $overview['plain_summary'] ?? null)
+    @if($plainSummary)
+    <div class="card obiora-card mb-4 border-{{ $plainSummary['severity'] === 'critical' ? 'danger' : ($plainSummary['severity'] === 'warning' ? 'warning' : 'success') }} border-opacity-50">
+        <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <span>Ce qui s'est passé — synthèse</span>
+            <span class="badge {{ $plainSummary['severity'] === 'critical' ? 'text-bg-danger' : ($plainSummary['severity'] === 'warning' ? 'text-bg-warning' : 'text-bg-success') }}">
+                {{ $plainSummary['severity'] === 'critical' ? 'Problème détecté' : ($plainSummary['severity'] === 'warning' ? 'À surveiller' : 'RAS') }}
+            </span>
+        </div>
+        <div class="card-body">
+            <h2 class="h5 mb-1">{{ $plainSummary['headline'] ?? '—' }}</h2>
+            @if(!empty($plainSummary['subtitle']))
+                <p class="text-muted small mb-3">{{ $plainSummary['subtitle'] }}</p>
+            @endif
+
+            @if(!empty($plainSummary['items']))
+            <div class="vstack gap-3">
+                @foreach($plainSummary['items'] as $item)
+                <div class="border rounded p-3 bg-light">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <span class="badge text-bg-secondary">{{ $item['source'] ?? '' }}</span>
+                        @if(($item['kind'] ?? '') === 'freeze')
+                            <span class="badge text-bg-warning">Freeze</span>
+                        @elseif(($item['kind'] ?? '') === 'crash')
+                            <span class="badge text-bg-danger">Crash / reboot</span>
+                        @endif
+                        @if(($item['severity'] ?? '') === 'critical')
+                            <span class="badge text-bg-danger">Critique</span>
+                        @endif
+                    </div>
+                    <p class="fw-medium mb-1">{{ $item['title'] ?? '' }}</p>
+                    @if(!empty($item['explanation']))
+                        <p class="small text-muted mb-2">{{ Str::limit($item['explanation'], 400) }}</p>
+                    @endif
+                    @if(!empty($item['actions']))
+                        <p class="small fw-medium mb-1">Que faire :</p>
+                        <ul class="small mb-0">
+                            @foreach($item['actions'] as $action)
+                            <li>{{ $action }}</li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+                @endforeach
+            </div>
+            @else
+                <p class="small text-muted mb-0">Les trois agents envoient leurs métriques au panel. Installez-les sur le serveur à diagnostiquer pour alimenter cette synthèse.</p>
+            @endif
+        </div>
+    </div>
+    @endif
+
     <div class="row g-4">
         <div class="col-lg-6">
             <div class="card obiora-card h-100">
@@ -433,7 +496,12 @@
                         <h3 class="h6 text-danger">Findings critiques</h3>
                         <ul class="small mb-3">
                             @foreach($overview['doctor']['critical_findings'] as $finding)
-                            <li><strong>{{ $finding['module'] ?? '' }}</strong> — {{ $finding['title'] ?? '' }}</li>
+                            <li class="mb-2">
+                                <strong>{{ $finding['module'] ?? '' }}</strong> — {{ $finding['title'] ?? '' }}
+                                @if(!empty($finding['recommendation']))
+                                    <br><span class="text-muted">→ {{ $finding['recommendation'] }}</span>
+                                @endif
+                            </li>
                             @endforeach
                         </ul>
                         @endif
@@ -638,10 +706,19 @@
                         <h4 class="h6 mt-2">Pistes de résolution</h4>
                         <ul class="small mb-0">
                             @foreach($hunterInsights['recommendations'] as $rec)
-                            <li>
+                            <li class="mb-2">
                                 @if(is_array($rec))
-                                    <strong>{{ $rec['priority'] ?? '' }}</strong> — {{ $rec['action'] ?? $rec['title'] ?? json_encode($rec) }}
-                                    @if(!empty($rec['detail']))<br><span class="text-muted">{{ $rec['detail'] }}</span>@endif
+                                    <strong>{{ $rec['title'] ?? $rec['category'] ?? 'Recommandation' }}</strong>
+                                    @if(!empty($rec['actions']) && is_array($rec['actions']))
+                                        <ul class="mt-1 mb-0">
+                                            @foreach($rec['actions'] as $action)
+                                            <li>{{ $action }}</li>
+                                            @endforeach
+                                        </ul>
+                                    @elseif(!empty($rec['action']))
+                                        — {{ $rec['action'] }}
+                                        @if(!empty($rec['detail']))<br><span class="text-muted">{{ $rec['detail'] }}</span>@endif
+                                    @endif
                                 @else
                                     {{ $rec }}
                                 @endif

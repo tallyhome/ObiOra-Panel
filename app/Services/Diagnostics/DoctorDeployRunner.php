@@ -6,7 +6,9 @@ namespace App\Services\Diagnostics;
 
 use App\DTOs\SshConnection;
 use App\Models\Server;
+use App\Services\Servers\SlaveRemoteDeployService;
 use App\Support\PanelLocalTarget;
+use App\Support\SlaveInstallHelper;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 
@@ -20,6 +22,8 @@ final class DoctorDeployRunner
         private readonly DoctorRemoteDeployService $deploy,
         private readonly LocalDoctorDeployService $localDeploy,
         private readonly ServerSshKeyService $sshKeys,
+        private readonly SlaveRemoteDeployService $slaveDeploy,
+        private readonly SlaveInstallHelper $slaveInstall,
     ) {}
 
     public function run(
@@ -30,6 +34,7 @@ final class DoctorDeployRunner
         bool $installDoctor = true,
         bool $installCrashAnalyzer = true,
         bool $installCrashHunter = true,
+        bool $installSlave = false,
     ): void {
         $server = Server::query()->find($serverId);
 
@@ -44,7 +49,7 @@ final class DoctorDeployRunner
             $this->progress->appendLog($serverId, "Cible : {$sshUser}@{$sshHost}:{$sshPort}");
 
             if (PanelLocalTarget::isPanelServer($server, $sshHost)) {
-                $this->runLocalDeploy($server, $installDoctor, $installCrashAnalyzer, $installCrashHunter);
+                $this->runLocalDeploy($server, $installDoctor, $installCrashAnalyzer, $installCrashHunter, $installSlave);
 
                 return;
             }
@@ -112,13 +117,56 @@ final class DoctorDeployRunner
             }
 
             if ($result['success']) {
-                $this->progress->appendLog($serverId, 'Installation terminée avec succès.');
+                $slaveOk = true;
+                $slaveOutput = '';
+
+                if ($installSlave) {
+                    $this->progress->update($serverId, 92, 'Installation agent seedbox…');
+                    $this->progress->appendLog($serverId, 'Installation agent seedbox (slave)…');
+
+                    $slaveResult = $this->slaveDeploy->deploySlave(
+                        $server,
+                        $ssh,
+                        function (int $pct, string $msg) use ($serverId): void {
+                            $this->progress->update($serverId, $pct, $msg);
+                            $this->progress->appendLog($serverId, $msg);
+                        },
+                    );
+
+                    $slaveOk = $slaveResult['success'];
+                    $slaveOutput = (string) ($slaveResult['output'] ?? '');
+
+                    if ($slaveOutput !== '') {
+                        $this->progress->appendLog($serverId, '--- Agent seedbox ---');
+                        foreach (explode("\n", $slaveOutput) as $line) {
+                            if (trim($line) !== '') {
+                                $this->progress->appendLog($serverId, $line);
+                            }
+                        }
+                    }
+
+                    if ($slaveOk) {
+                        $meta = $server->metadata ?? [];
+                        $meta['agent_installed'] = true;
+                        $meta['slave_deploy'] = [
+                            'deployed_at' => now()->toIso8601String(),
+                            'method' => 'doctor_suite',
+                        ];
+                        $server->forceFill(['metadata' => $meta])->save();
+                    }
+                }
+
+                $message = $installSlave && ! $slaveOk
+                    ? 'Diagnostics installés — échec agent seedbox (voir console).'
+                    : 'Installation terminée — les agents envoient les données au panel.';
+
+                $this->progress->appendLog($serverId, $slaveOk ? 'Installation terminée avec succès.' : 'Diagnostics OK — agent seedbox en échec.');
                 $this->progress->finish(
                     $serverId,
-                    true,
-                    'Installation terminée — les agents envoient les données au panel.',
+                    $slaveOk,
+                    $message,
                     $result['steps'],
-                    $log,
+                    trim($log."\n\n".$slaveOutput),
                 );
             } else {
                 $this->progress->appendLog($serverId, 'Une ou plusieurs étapes ont échoué.');
@@ -177,8 +225,13 @@ final class DoctorDeployRunner
         return 'doctor_deploy_bootstrap:'.$serverId;
     }
 
-    private function runLocalDeploy(Server $server, bool $installDoctor, bool $installCrashAnalyzer, bool $installCrashHunter = true): void
-    {
+    private function runLocalDeploy(
+        Server $server,
+        bool $installDoctor,
+        bool $installCrashAnalyzer,
+        bool $installCrashHunter = true,
+        bool $installSlave = false,
+    ): void {
         $serverId = $server->id;
 
         $this->progress->appendLog($serverId, 'Serveur local du panel — installation directe (sans SSH).');
@@ -221,13 +274,48 @@ final class DoctorDeployRunner
         }
 
         if ($result['success']) {
-            $this->progress->appendLog($serverId, 'Installation locale terminée avec succès.');
+            $slaveOk = true;
+            $slaveOutput = '';
+
+            if ($installSlave) {
+                $this->progress->update($serverId, 92, 'Installation agent seedbox…');
+                $this->progress->appendLog($serverId, 'Installation agent seedbox (local)…');
+
+                $slaveCmd = $this->slaveInstall->remoteCommand($server);
+                $slaveResult = $this->localDeploy->runCommand($slaveCmd, 900);
+                $slaveOk = ($slaveResult['exit_code'] ?? 1) === 0;
+                $slaveOutput = (string) ($slaveResult['output'] ?? '');
+
+                if ($slaveOutput !== '') {
+                    foreach (explode("\n", $slaveOutput) as $line) {
+                        if (trim($line) !== '') {
+                            $this->progress->appendLog($serverId, $line);
+                        }
+                    }
+                }
+
+                if ($slaveOk) {
+                    $meta = $server->metadata ?? [];
+                    $meta['agent_installed'] = true;
+                    $meta['slave_deploy'] = [
+                        'deployed_at' => now()->toIso8601String(),
+                        'method' => 'doctor_suite_local',
+                    ];
+                    $server->forceFill(['metadata' => $meta])->save();
+                }
+            }
+
+            $message = $installSlave && ! $slaveOk
+                ? 'Diagnostics installés localement — échec agent seedbox.'
+                : 'Installation terminée — les agents envoient les données au panel.';
+
+            $this->progress->appendLog($serverId, $slaveOk ? 'Installation locale terminée avec succès.' : 'Diagnostics OK — agent seedbox en échec.');
             $this->progress->finish(
                 $serverId,
-                true,
-                'Installation terminée — les agents envoient les données au panel.',
+                $slaveOk,
+                $message,
                 $result['steps'],
-                $log,
+                trim($log."\n\n".$slaveOutput),
             );
         } else {
             $this->progress->appendLog($serverId, 'Une ou plusieurs étapes ont échoué.');

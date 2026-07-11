@@ -9,7 +9,7 @@ use App\Models\Server;
 use App\Support\PanelLocalTarget;
 
 /**
- * Liste et arrête les agents diagnostics (CrashHunter, Crash Analyzer, Doctor) via SSH.
+ * Liste, arrête et désinstalle les agents diagnostics via SSH.
  */
 final class RemoteAgentControlService
 {
@@ -19,6 +19,7 @@ final class RemoteAgentControlService
         'obiora-crash-analyzer.service',
         'obiora-doctor-agent.service',
         'obiora-doctor-agent.timer',
+        'obiora-agent.service',
     ];
 
     public function __construct(
@@ -30,11 +31,16 @@ final class RemoteAgentControlService
     /**
      * @return array{success: bool, services: list<array<string, mixed>>, message: string}
      */
-    public function listAgents(Server $server, string $sshHost, int $sshPort, string $sshUser): array
-    {
-        $command = 'systemctl list-units crashhunter.service obiora-crash-analyzer.service obiora-doctor-agent.service obiora-doctor-agent.timer --all --no-pager --plain 2>/dev/null || systemctl list-units \'obiora-*\' \'crashhunter*\' --all --no-pager --plain 2>/dev/null';
+    public function listAgents(
+        Server $server,
+        string $sshHost,
+        int $sshPort,
+        string $sshUser,
+        ?SshConnection $connection = null,
+    ): array {
+        $command = 'systemctl list-units crashhunter.service obiora-crash-analyzer.service obiora-doctor-agent.service obiora-doctor-agent.timer obiora-agent.service --all --no-pager --plain 2>/dev/null || systemctl list-units \'obiora-*\' \'crashhunter*\' --all --no-pager --plain 2>/dev/null';
 
-        $result = $this->runOnServer($server, $sshHost, $sshPort, $sshUser, $command);
+        $result = $this->runOnServer($server, $sshHost, $sshPort, $sshUser, $command, $connection);
 
         if (! $result['success']) {
             return [
@@ -56,8 +62,13 @@ final class RemoteAgentControlService
     /**
      * @return array{success: bool, stopped: list<string>, message: string, output: string}
      */
-    public function stopAllDiagnostics(Server $server, string $sshHost, int $sshPort, string $sshUser): array
-    {
+    public function stopAllDiagnostics(
+        Server $server,
+        string $sshHost,
+        int $sshPort,
+        string $sshUser,
+        ?SshConnection $connection = null,
+    ): array {
         $services = implode(' ', array_map(
             static fn (string $s) => escapeshellarg(str_replace('.service', '', str_replace('.timer', '', $s))),
             self::SERVICE_PATTERNS,
@@ -68,7 +79,7 @@ final class RemoteAgentControlService
             $services,
         );
 
-        $result = $this->runOnServer($server, $sshHost, $sshPort, $sshUser, $command);
+        $result = $this->runOnServer($server, $sshHost, $sshPort, $sshUser, $command, $connection, 120);
 
         $stopped = [];
         if ($result['success'] && str_contains($result['output'], 'OBIORA_AGENTS_STOPPED')) {
@@ -92,12 +103,75 @@ final class RemoteAgentControlService
     }
 
     /**
+     * @return array{success: bool, message: string, output: string}
+     */
+    public function purgeAllDiagnostics(
+        Server $server,
+        string $sshHost,
+        int $sshPort,
+        string $sshUser,
+        ?SshConnection $connection = null,
+        bool $purgeSlave = true,
+    ): array {
+        if (PanelLocalTarget::isPanelServer($server, $sshHost)) {
+            $script = base_path('agent/scripts/uninstall-doctor-suite.sh');
+            if (! is_readable($script)) {
+                return ['success' => false, 'message' => 'Script de désinstallation introuvable.', 'output' => ''];
+            }
+
+            $result = $this->localDeploy->runCommand('bash '.escapeshellarg($script), 300);
+            $ok = $result['success'] && str_contains($result['output'], 'OBIORA_SUITE_PURGED');
+
+            if ($ok) {
+                $this->clearDiagnosticsMetadata($server);
+            }
+
+            return [
+                'success' => $ok,
+                'message' => $ok
+                    ? 'Agents supprimés et fichiers diagnostics nettoyés sur le serveur local.'
+                    : ($result['output'] ?: 'Échec du nettoyage.'),
+                'output' => $result['output'],
+            ];
+        }
+
+        $panelUrl = rtrim((string) config('app.url'), '/');
+        $command = sprintf(
+            'curl -fsSL %s/install/uninstall-doctor-suite.sh | sudo OBIORA_PURGE_SLAVE=%s bash',
+            $panelUrl,
+            $purgeSlave ? 'yes' : 'no',
+        );
+
+        $result = $this->runOnServer($server, $sshHost, $sshPort, $sshUser, $command, $connection, 300);
+        $ok = $result['success'] && str_contains($result['output'], 'OBIORA_SUITE_PURGED');
+
+        if ($ok) {
+            $this->clearDiagnosticsMetadata($server);
+        }
+
+        return [
+            'success' => $ok,
+            'message' => $ok
+                ? 'Agents supprimés — services, logs, snapshots et répertoires diagnostics effacés.'
+                : ($result['output'] ?: 'Échec du nettoyage complet.'),
+            'output' => $result['output'],
+        ];
+    }
+
+    /**
      * @return array{success: bool, output: string}
      */
-    private function runOnServer(Server $server, string $sshHost, int $sshPort, string $sshUser, string $command): array
-    {
+    private function runOnServer(
+        Server $server,
+        string $sshHost,
+        int $sshPort,
+        string $sshUser,
+        string $command,
+        ?SshConnection $connection = null,
+        int $timeout = 300,
+    ): array {
         if (PanelLocalTarget::isPanelServer($server, $sshHost)) {
-            $local = $this->localDeploy->runCommand($command);
+            $local = $this->localDeploy->runCommand($command, $timeout);
 
             return [
                 'success' => ($local['exit_code'] ?? 1) === 0,
@@ -105,17 +179,48 @@ final class RemoteAgentControlService
             ];
         }
 
-        $connection = $this->sshKeys->connection($server, $sshHost, $sshPort, $sshUser);
+        $connection ??= $this->resolveConnection($server, $sshHost, $sshPort, $sshUser);
+
         if ($connection === null) {
-            return ['success' => false, 'output' => 'Clé SSH non configurée pour ce serveur.'];
+            return ['success' => false, 'output' => 'Connexion SSH indisponible — retestez avec le mot de passe root.'];
         }
 
-        $result = $this->ssh->run($connection, $command);
+        $result = $this->ssh->run($connection, $command, $timeout);
 
         return [
             'success' => $result['success'],
             'output' => $result['output'],
         ];
+    }
+
+    private function resolveConnection(Server $server, string $sshHost, int $sshPort, string $sshUser): ?SshConnection
+    {
+        if ($this->sshKeys->keyAppliesToHost($server, $sshHost)) {
+            return $this->sshKeys->connection($server, $sshHost, $sshPort, $sshUser);
+        }
+
+        return null;
+    }
+
+    private function clearDiagnosticsMetadata(Server $server): void
+    {
+        $meta = $server->metadata ?? [];
+        unset(
+            $meta['doctor_deploy'],
+            $meta['crash_hunter'],
+            $meta['diagnostics_agents_stopped_at'],
+            $meta['agent_installed'],
+            $meta['slave_deploy'],
+        );
+
+        if (isset($meta['ssh_deploy']) && is_array($meta['ssh_deploy'])) {
+            unset($meta['ssh_deploy']['installed_on_remote_at']);
+        }
+
+        $server->forceFill([
+            'metadata' => $meta,
+            'status' => 'offline',
+        ])->save();
     }
 
     /**

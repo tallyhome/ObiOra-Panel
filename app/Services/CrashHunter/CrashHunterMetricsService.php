@@ -162,6 +162,7 @@ final class CrashHunterMetricsService
             'reboot_reason' => $reboot['reason'] ?? null,
             'reboot_classification' => $json['reboot_classification']['label'] ?? null,
             'verdict' => $diagnosis['verdict'] ?? null,
+            'diagnosis_summary' => $diagnosis['summary'] ?? null,
             'confidence' => $diagnosis['confidence'] ?? null,
             'causal_story' => $chrono['causal_story'] ?? ($json['causal_correlation']['story_text'] ?? null),
             'recommendations' => array_slice($json['recommendations'] ?? [], 0, 10),

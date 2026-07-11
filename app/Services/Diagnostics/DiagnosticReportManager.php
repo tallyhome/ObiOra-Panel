@@ -113,6 +113,7 @@ final class DiagnosticReportManager
                         'module' => $result['module'] ?? 'unknown',
                         'title' => $finding['title'] ?? '',
                         'details' => $finding['details'] ?? '',
+                        'recommendation' => $finding['recommendation'] ?? null,
                     ];
                 }
             }

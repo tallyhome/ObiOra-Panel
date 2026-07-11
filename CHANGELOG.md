@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.47 - 2026-07-11
+
+- Doctor & Suite : synthèse « Ce qui s'est passé » en langage clair (crash, freeze, OOM, recommandations)
+- Doctor : affichage des recommandations sur les findings critiques
+- CrashHunter : pistes de résolution affichées correctement (format actions[])
+
+## v2.1.46 - 2026-07-11
+
+- Doctor & Suite : option « Agent seedbox (slave) » décochée par défaut (dédié Virtualizor sans seedbox)
+- Doctor & Suite : bouton « Supprimer agents et fichiers » — désinstallation complète (services, logs, snapshots, répertoires)
+- Route publique `/install/uninstall-doctor-suite.sh` pour le nettoyage distant via SSH
+
 ## v2.1.45 - 2026-07-11
 
 - Doctor & Suite : SSH mot de passe si IP cible ≠ serveur panel (fix clé sur mauvais hôte)

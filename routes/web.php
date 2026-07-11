@@ -110,6 +110,18 @@ Route::get('/install/doctor-suite.sh', function () {
     );
 })->name('install.doctor-suite');
 
+Route::get('/install/uninstall-doctor-suite.sh', function () {
+    $path = base_path('agent/scripts/uninstall-doctor-suite.sh');
+
+    abort_unless(is_readable($path), 404);
+
+    return response(
+        (string) file_get_contents($path),
+        200,
+        ['Content-Type' => 'text/x-shellscript; charset=utf-8'],
+    );
+})->name('install.uninstall-doctor-suite');
+
 Route::middleware(['setup', 'auth', 'demo.active', 'server'])->group(function () {
     Route::get('/', fn () => redirect()->route('dashboard'));
     Route::get('/profile', \Modules\Users\Livewire\ProfileIndex::class)->name('profile.index');
