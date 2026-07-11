@@ -26,12 +26,23 @@ run_as_obiora() {
 
 ensure_frontend_manifest() {
     local manifest="${OBIORA_INSTALL_DIR}/public/build/manifest.json"
+    local version_file="${OBIORA_INSTALL_DIR}/VERSION"
+    local stamp="${OBIORA_INSTALL_DIR}/storage/app/.frontend-build-version"
+    local need_build=0
 
-    if [[ -f "${manifest}" ]]; then
+    if [[ ! -f "${manifest}" ]]; then
+        need_build=1
+    elif [[ -f "${version_file}" ]]; then
+        if [[ ! -f "${stamp}" ]] || [[ "$(tr -d '\r\n' < "${version_file}")" != "$(tr -d '\r\n' < "${stamp}")" ]]; then
+            need_build=1
+        fi
+    fi
+
+    if [[ "${need_build}" -eq 0 ]]; then
         return 0
     fi
 
-    echo "[recover] Manifest Vite absent — tentative de compilation frontend…"
+    echo "[recover] Assets frontend absents ou version panel changée — recompilation…"
 
     if ! command -v npm &>/dev/null || [[ ! -f package.json ]]; then
         echo "[recover] WARN: npm indisponible — impossible de recompiler les assets"
@@ -51,7 +62,12 @@ ensure_frontend_manifest() {
         run_as_obiora env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" npm run build
     fi
 
-    [[ -f "${manifest}" ]]
+    [[ -f "${manifest}" ]] || return 1
+
+    if [[ -f "${version_file}" ]]; then
+        install -d -m 775 -o "${OBIORA_USER}" -g "${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}/storage/app" 2>/dev/null || true
+        cp "${version_file}" "${stamp}" 2>/dev/null || true
+    fi
 }
 
 ensure_composer_autoload() {

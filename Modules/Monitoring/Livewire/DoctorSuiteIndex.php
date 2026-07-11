@@ -7,6 +7,7 @@ namespace Modules\Monitoring\Livewire;
 use App\DTOs\SshConnection;
 use App\Models\DiagnosticReport;
 use App\Models\Server;
+use App\Services\CrashHunter\CrashHunterMetricsService;
 use App\Services\Core\ServerManager;
 use App\Services\Diagnostics\DoctorDeployTargetResolver;
 use App\Services\Deploy\DeployLogService;
@@ -63,6 +64,9 @@ final class DoctorSuiteIndex extends Component
     public ?string $agentControlMessage = null;
 
     public bool $agentControlOk = false;
+
+    /** @var array<string, mixed>|null */
+    public ?array $selectedSnapshot = null;
 
     public bool $deployRunning = false;
 
@@ -225,9 +229,10 @@ final class DoctorSuiteIndex extends Component
         }
 
         $this->deployError = null;
+        $this->refreshServerTimezone(app(ServerTimezoneService::class), $sshKeys);
     }
 
-    public function refreshServerTimezone(ServerTimezoneService $timezone): void
+    public function refreshServerTimezone(ServerTimezoneService $timezone, ServerSshKeyService $sshKeys): void
     {
         if ($this->serverId === null) {
             $this->serverTimezone = null;
@@ -246,7 +251,9 @@ final class DoctorSuiteIndex extends Component
         $this->timezoneLoading = true;
 
         try {
-            $status = $timezone->status($server);
+            $host = $this->resolveTimezoneHost($server);
+            $connection = $this->resolveAgentConnection($server, $sshKeys);
+            $status = $timezone->status($server, $connection, $host);
             $this->serverTimezone = $status['timezone'];
             $this->serverDateTime = $status['datetime'];
             $this->serverNtp = $status['ntp'];
@@ -254,12 +261,16 @@ final class DoctorSuiteIndex extends Component
             if ($status['timezone'] !== null && TimezoneCatalog::isValid($status['timezone'])) {
                 $this->selectedTimezone = $status['timezone'];
             }
+
+            if (($status['timezone'] ?? null) === null && ($status['error'] ?? null) !== null) {
+                $this->timezoneMessage = $status['error'];
+            }
         } finally {
             $this->timezoneLoading = false;
         }
     }
 
-    public function applyServerTimezone(ServerTimezoneService $timezone): void
+    public function applyServerTimezone(ServerTimezoneService $timezone, ServerSshKeyService $sshKeys): void
     {
         $this->authorizeDeploy();
         abort_unless(TimezoneCatalog::isValid($this->selectedTimezone), 422, 'Fuseau horaire invalide.');
@@ -269,7 +280,9 @@ final class DoctorSuiteIndex extends Component
         $this->timezoneMessage = null;
 
         try {
-            $result = $timezone->apply($server, $this->selectedTimezone);
+            $host = $this->resolveTimezoneHost($server);
+            $connection = $this->resolveAgentConnection($server, $sshKeys);
+            $result = $timezone->apply($server, $this->selectedTimezone, $connection, $host);
             $this->serverTimezone = $result['status']['timezone'];
             $this->serverDateTime = $result['status']['datetime'];
             $this->serverNtp = $result['status']['ntp'];
@@ -518,6 +531,42 @@ final class DoctorSuiteIndex extends Component
         } finally {
             $this->agentsLoading = false;
         }
+    }
+
+    public function closeSnapshot(): void
+    {
+        $this->selectedSnapshot = null;
+    }
+
+    public function inspectSnapshot(int $snapshotId, CrashHunterMetricsService $metrics): void
+    {
+        if ($this->serverId === null) {
+            return;
+        }
+
+        $server = Server::query()->findOrFail($this->serverId);
+        $detail = $metrics->snapshotDetail($server, $snapshotId);
+
+        if ($detail === null) {
+            $this->dispatch('notify', type: 'warning', message: 'Snapshot introuvable.');
+
+            return;
+        }
+
+        $this->selectedSnapshot = $detail;
+    }
+
+    private function resolveTimezoneHost(Server $server): string
+    {
+        $host = trim($this->sshHost);
+
+        if ($host !== '') {
+            return $host;
+        }
+
+        $meta = $server->metadata ?? [];
+
+        return trim((string) ($meta['doctor_deploy']['remote_host'] ?? $server->ip_address));
     }
 
     private function resolveAgentConnection(Server $server, ServerSshKeyService $sshKeys): ?SshConnection

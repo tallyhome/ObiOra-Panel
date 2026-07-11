@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Diagnostics;
 
+use App\Support\DiagnosticConfidence;
+
 /**
  * Transforme les données brutes Doctor / Crash Analyzer / CrashHunter
  * en synthèse lisible pour la page Doctor & Suite.
@@ -68,7 +70,9 @@ final class DoctorSuitePlainLanguage
         $items = [];
 
         $hunter = $overview['crash_hunter']['latest_report_insights'] ?? null;
+        $confidence = null;
         if (is_array($hunter) && ($hunter['verdict'] ?? null) !== null) {
+            $confidence = $hunter['confidence_display'] ?? DiagnosticConfidence::format($hunter['confidence'] ?? null);
             $items[] = [
                 'source' => 'CrashHunter',
                 'kind' => 'crash',
@@ -80,6 +84,7 @@ final class DoctorSuitePlainLanguage
                 ]),
                 'explanation' => (string) ($hunter['diagnosis_summary'] ?? $hunter['causal_story'] ?? ''),
                 'actions' => $this->normalizeRecommendations($hunter['recommendations'] ?? []),
+                'confidence' => $confidence,
             ];
         }
 
@@ -156,6 +161,7 @@ final class DoctorSuitePlainLanguage
             'severity' => $severity,
             'headline' => $this->buildHeadline($items, $severity),
             'subtitle' => $this->buildSubtitle($overview, $items),
+            'confidence' => $confidence,
             'items' => array_slice($items, 0, 8),
             'agents_status' => [
                 'doctor' => ($overview['doctor']['score'] ?? null) !== null,

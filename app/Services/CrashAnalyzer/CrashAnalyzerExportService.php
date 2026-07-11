@@ -8,6 +8,7 @@ use App\Models\CrashAnalyzerEvent;
 use App\Models\CrashAnalyzerMetric;
 use App\Models\CrashAnalyzerReport;
 use App\Models\Server;
+use App\Support\CrashAnalyzerTriggerLabels;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
@@ -72,17 +73,31 @@ final class CrashAnalyzerExportService
             ]);
         }
 
-        $html = view('crash-analyzer::exports.report-pdf', [
+        return response($this->renderReportHtml($server, $report), 200, [
+            'Content-Type' => 'text/html',
+            'Content-Disposition' => 'attachment; filename="crash-report-'.$report->external_id.'.html"',
+        ]);
+    }
+
+    public function viewReport(Server $server, CrashAnalyzerReport $report): \Illuminate\Http\Response
+    {
+        return response($this->renderReportHtml($server, $report, inline: true), 200, [
+            'Content-Type' => 'text/html; charset=utf-8',
+        ]);
+    }
+
+    private function renderReportHtml(Server $server, CrashAnalyzerReport $report, bool $inline = false): string
+    {
+        $trigger = $report->trigger_type;
+
+        return view($inline ? 'crash-analyzer::exports.report-view' : 'crash-analyzer::exports.report-pdf', [
             'server' => $server,
             'report' => $report,
             'events' => $report->report_json['events'] ?? [],
             'summary' => $report->report_json['metrics_summary'] ?? [],
+            'triggerLabel' => CrashAnalyzerTriggerLabels::label($trigger),
+            'hints' => CrashAnalyzerTriggerLabels::hints($trigger),
         ])->render();
-
-        return response($html, 200, [
-            'Content-Type' => 'text/html',
-            'Content-Disposition' => 'inline; filename="crash-report-'.$report->external_id.'.html"',
-        ]);
     }
 
     /**

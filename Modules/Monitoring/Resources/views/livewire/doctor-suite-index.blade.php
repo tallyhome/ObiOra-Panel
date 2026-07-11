@@ -112,10 +112,10 @@
                 </div>
             </div>
             <p class="small text-muted mb-0 mt-3">
-                Le panel applique <code>timedatectl set-timezone</code> et active la synchronisation NTP pour corriger la date et l'heure du serveur sélectionné.
+                Sur le serveur local du panel, lecture directe. Sur un serveur distant, le panel utilise SSH (Doctor) ou l'agent slave pour exécuter <code>timedatectl</code>.
             </p>
             @if($timezoneMessage)
-            <div class="alert py-2 small mt-3 mb-0 alert-info">{{ $timezoneMessage }}</div>
+            <div class="alert py-2 small mt-3 mb-0 {{ str_contains($timezoneMessage, 'Échec') || str_contains($timezoneMessage, 'Impossible') ? 'alert-warning' : 'alert-info' }}">{{ $timezoneMessage }}</div>
             @endif
         </div>
     </div>
@@ -292,7 +292,7 @@
                     </div>
 
                     @if($canManageServers)
-                    <div class="border rounded p-3 mb-3 bg-light">
+                    <div class="border rounded p-3 mb-3 bg-body-secondary">
                         <span class="small fw-medium d-block mb-2">Contrôle des agents distants</span>
                         <p class="small text-muted mb-2">Une fois le problème identifié et résolu, arrêtez les agents diagnostics ou supprimez-les entièrement (services, logs, snapshots, répertoires).</p>
                         <div class="d-flex flex-wrap gap-2 mb-2">
@@ -435,13 +435,25 @@
         <div class="card-body">
             <h2 class="h5 mb-1">{{ $plainSummary['headline'] ?? '—' }}</h2>
             @if(!empty($plainSummary['subtitle']))
-                <p class="text-muted small mb-3">{{ $plainSummary['subtitle'] }}</p>
+                <p class="text-muted small mb-2">{{ $plainSummary['subtitle'] }}</p>
+            @endif
+            @if(!empty($plainSummary['confidence']))
+                <div class="mb-3" style="max-width:320px">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="text-muted">Score de confiance</span>
+                        <strong>{{ $plainSummary['confidence']['label'] ?? '' }}</strong>
+                    </div>
+                    <div class="progress" style="height:8px">
+                        <div class="progress-bar {{ ($plainSummary['confidence']['level'] ?? '') === 'high' ? 'bg-success' : (($plainSummary['confidence']['level'] ?? '') === 'medium' ? 'bg-warning' : 'bg-secondary') }}"
+                             style="width: {{ $plainSummary['confidence']['percent'] ?? 0 }}%"></div>
+                    </div>
+                </div>
             @endif
 
             @if(!empty($plainSummary['items']))
             <div class="vstack gap-3">
                 @foreach($plainSummary['items'] as $item)
-                <div class="border rounded p-3 bg-light">
+                <div class="border rounded p-3 bg-body-secondary">
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                         <span class="badge text-bg-secondary">{{ $item['source'] ?? '' }}</span>
                         @if(($item['kind'] ?? '') === 'freeze')
@@ -451,6 +463,9 @@
                         @endif
                         @if(($item['severity'] ?? '') === 'critical')
                             <span class="badge text-bg-danger">Critique</span>
+                        @endif
+                        @if(!empty($item['confidence']))
+                            <span class="badge text-bg-info">{{ $item['confidence']['label'] ?? '' }}</span>
                         @endif
                     </div>
                     <p class="fw-medium mb-1">{{ $item['title'] ?? '' }}</p>
@@ -692,6 +707,9 @@
                         <h3 class="h6 mb-2">Analyse post-reboot — {{ $hunterInsights['report_id'] ?? '' }}</h3>
                         <p class="small mb-2">
                             <strong>Verdict :</strong> {{ $hunterInsights['verdict'] ?? '—' }}
+                            @if(!empty($hunterInsights['confidence_display']))
+                                · <strong>Confiance :</strong> {{ $hunterInsights['confidence_display']['label'] ?? '' }}
+                            @endif
                             @if(!empty($hunterInsights['reboot_classification']))
                                 · <strong>Type :</strong> {{ $hunterInsights['reboot_classification'] }}
                             @endif
@@ -748,6 +766,33 @@
                     </div>
                     @endif
 
+                    @if(!empty($overview['crash_hunter']['snapshots']))
+                    <h3 class="h6">Ring buffer — snapshots Black Box</h3>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm obiora-table mb-0">
+                            <thead class="obiora-table-head">
+                                <tr><th>Slot</th><th>Date</th><th>Mode</th><th>CPU</th><th>Load</th><th>IOWait</th><th>Triggers</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach($overview['crash_hunter']['snapshots'] as $snap)
+                                <tr>
+                                    <td><code class="small">#{{ $snap['slot'] ?? '—' }}</code></td>
+                                    <td class="small text-nowrap">{{ $snap['sampled_at'] ?? '' }}</td>
+                                    <td class="small">{{ $snap['mode'] ?? '—' }}</td>
+                                    <td class="small">{{ $snap['cpu_percent'] ?? '—' }}%</td>
+                                    <td class="small">{{ $snap['load_1'] ?? '—' }}</td>
+                                    <td class="small">{{ $snap['iowait_percent'] ?? '—' }}%</td>
+                                    <td class="small">{{ Str::limit(implode(', ', $snap['triggers'] ?? []), 40) }}</td>
+                                    <td>
+                                        <button type="button" wire:click="inspectSnapshot({{ $snap['id'] }})" class="btn btn-outline-primary btn-sm">Voir</button>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @endif
+
                     @if(!empty($overview['crash_hunter']['incidents']))
                     <h3 class="h6">Incidents (freeze silencieux)</h3>
                     <div class="table-responsive mb-3">
@@ -778,6 +823,33 @@
                     @else
                     <p class="small text-muted mb-0">Aucune donnée CrashHunter reçue — cochez « CrashHunter Enterprise » et installez les agents.</p>
                     @endif
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    @if($selectedSnapshot)
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.55)" wire:keydown.escape.window="closeSnapshot">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Snapshot ring buffer #{{ $selectedSnapshot['summary']['slot'] ?? '—' }}</h5>
+                    <button type="button" class="btn-close" wire:click="closeSnapshot"></button>
+                </div>
+                <div class="modal-body">
+                    <dl class="row small mb-3">
+                        <dt class="col-sm-3">Date</dt><dd class="col-sm-9">{{ $selectedSnapshot['summary']['sampled_at'] ?? '—' }}</dd>
+                        <dt class="col-sm-3">Mode</dt><dd class="col-sm-9">{{ $selectedSnapshot['summary']['mode'] ?? '—' }}</dd>
+                        <dt class="col-sm-3">CPU / Load / IOWait</dt>
+                        <dd class="col-sm-9">{{ $selectedSnapshot['summary']['cpu_percent'] ?? '—' }}% · load {{ $selectedSnapshot['summary']['load_1'] ?? '—' }} · iowait {{ $selectedSnapshot['summary']['iowait_percent'] ?? '—' }}%</dd>
+                        <dt class="col-sm-3">Triggers</dt><dd class="col-sm-9"><code>{{ implode(', ', $selectedSnapshot['summary']['triggers'] ?? []) }}</code></dd>
+                    </dl>
+                    <h6 class="small fw-medium">Contenu complet du snapshot</h6>
+                    <pre class="small bg-dark text-light p-3 rounded mb-0" style="max-height:420px;overflow:auto">{{ json_encode($selectedSnapshot['payload'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" wire:click="closeSnapshot">Fermer</button>
                 </div>
             </div>
         </div>

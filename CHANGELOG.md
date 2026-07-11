@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.49 - 2026-07-11
+
+- Doctor & Suite : fuseau horaire distant via SSH (serveurs Doctor sans agent slave)
+- Doctor & Suite : contraste dark mode corrigé sur les blocs synthèse (fin du fond blanc illisible)
+- MAJ panel : recompilation auto des assets si VERSION change (recovery + tampon build)
+
+## v2.1.48 - 2026-07-11
+
+- Crash Analyzer : layout compact, 6 graphiques (CPU/load, RAM, swap, PSI, réseau, température), badges collecteurs
+- Crash Analyzer : bouton « Voir » sur les rapports post-crash (HTML lisible) + export PDF/HTML conservé
+- Doctor & Suite : drill-down snapshots ring buffer CrashHunter + score de confiance diagnostic
+
 ## v2.1.47 - 2026-07-11
 
 - Doctor & Suite : synthèse « Ce qui s'est passé » en langage clair (crash, freeze, OOM, recommandations)

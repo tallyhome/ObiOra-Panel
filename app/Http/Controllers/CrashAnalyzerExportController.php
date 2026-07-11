@@ -37,4 +37,11 @@ final class CrashAnalyzerExportController extends Controller
 
         return $export->exportPdf($server, $report);
     }
+
+    public function view(Server $server, CrashAnalyzerReport $report, CrashAnalyzerExportService $export): \Illuminate\Http\Response
+    {
+        abort_unless($report->server_id === $server->id, 404);
+
+        return $export->viewReport($server, $report);
+    }
 }

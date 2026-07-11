@@ -46,6 +46,7 @@ final class CrashAnalyzerMetricsService
                 'hostname' => $server->hostname,
             ],
             'charts' => $this->buildChartSeries($metrics),
+            'collectors' => $this->buildCollectorSummary($metrics),
             'events' => $events->map(fn (CrashAnalyzerEvent $e) => [
                 'id' => $e->id,
                 'event_type' => $e->event_type,
@@ -85,8 +86,11 @@ final class CrashAnalyzerMetricsService
         $cpu = [];
         $memory = [];
         $load = [];
-        $disk = [];
+        $swap = [];
+        $psiIo = [];
+        $psiMemory = [];
         $network = [];
+        $thermal = [];
 
         foreach ($metrics as $metric) {
             $label = $metric->sampled_at?->format('H:i:s') ?? '';
@@ -94,31 +98,102 @@ final class CrashAnalyzerMetricsService
 
             match ($metric->collector) {
                 'cpu' => $cpu[] = [
-                    'x' => $label,
+                    'label' => $label,
                     'y' => (float) ($payload['usage_percent'] ?? 0),
-                    'load_1' => (float) ($payload['load_1'] ?? 0),
                 ],
                 'memory' => $memory[] = [
-                    'x' => $label,
+                    'label' => $label,
                     'y' => (float) ($payload['used_percent'] ?? 0),
                 ],
-                'load' => $load[] = [
-                    'x' => $label,
-                    'uptime' => (float) ($payload['uptime_seconds'] ?? 0),
+                'swap' => $swap[] = [
+                    'label' => $label,
+                    'y' => (float) ($payload['used_percent'] ?? 0),
                 ],
-                'disk' => $disk[] = [
-                    'x' => $label,
-                    'y' => (float) ($payload['io_wait_percent'] ?? 0),
-                ],
+                'psi' => $this->appendPsiPoints($psiIo, $psiMemory, $label, $payload),
+                'disk' => null,
                 'network' => $network[] = [
-                    'x' => $label,
+                    'label' => $label,
                     'connections' => (int) ($payload['tcp_connections'] ?? 0),
                 ],
+                'thermal' => $this->appendThermalPoint($thermal, $label, $payload),
                 default => null,
             };
+
+            if ($metric->collector === 'cpu' && isset($payload['load_1'])) {
+                $load[] = [
+                    'label' => $label,
+                    'y' => (float) $payload['load_1'],
+                ];
+            }
         }
 
-        return compact('cpu', 'memory', 'load', 'disk', 'network');
+        return [
+            'cpu' => $cpu,
+            'memory' => $memory,
+            'load' => $load,
+            'swap' => $swap,
+            'psi_io' => $psiIo,
+            'psi_memory' => $psiMemory,
+            'disk' => [],
+            'network' => $network,
+            'thermal' => $thermal,
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $psiIo
+     * @param  list<array<string, mixed>>  $psiMemory
+     * @param  array<string, mixed>  $payload
+     */
+    private function appendPsiPoints(array &$psiIo, array &$psiMemory, string $label, array $payload): void
+    {
+        if (isset($payload['io']['avg10'])) {
+            $psiIo[] = ['label' => $label, 'y' => (float) $payload['io']['avg10']];
+        }
+        if (isset($payload['memory']['avg10'])) {
+            $psiMemory[] = ['label' => $label, 'y' => (float) $payload['memory']['avg10']];
+        }
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $thermal
+     * @param  array<string, mixed>  $payload
+     */
+    private function appendThermalPoint(array &$thermal, string $label, array $payload): void
+    {
+        $sensors = $payload['sensors'] ?? [];
+        if (! is_array($sensors) || $sensors === []) {
+            return;
+        }
+
+        $max = 0.0;
+        foreach ($sensors as $sensor) {
+            if (is_array($sensor) && isset($sensor['celsius'])) {
+                $max = max($max, (float) $sensor['celsius']);
+            }
+        }
+
+        if ($max > 0) {
+            $thermal[] = ['label' => $label, 'y' => $max];
+        }
+    }
+
+    /**
+     * @param  Collection<int, CrashAnalyzerMetric>  $metrics
+     * @return array{active: list<string>, counts: array<string, int>}
+     */
+    private function buildCollectorSummary(Collection $metrics): array
+    {
+        $counts = [];
+        foreach ($metrics->groupBy('collector') as $collector => $group) {
+            $counts[(string) $collector] = $group->count();
+        }
+        ksort($counts);
+
+        return [
+            'active' => array_keys($counts),
+            'counts' => $counts,
+        ];
     }
 
     /**

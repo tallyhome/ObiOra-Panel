@@ -234,6 +234,11 @@ if command -v npm &>/dev/null && [[ -f package.json ]]; then
     fi
 
     rm -rf "${BUILD_BACKUP_DIR}"
+    if [[ -f "${OBIORA_INSTALL_DIR}/VERSION" ]]; then
+        install -d -m 775 -o "${OBIORA_USER}" -g "${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}/storage/app"
+        cp "${OBIORA_INSTALL_DIR}/VERSION" "${OBIORA_INSTALL_DIR}/storage/app/.frontend-build-version"
+        chown "${OBIORA_USER}:${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}/storage/app/.frontend-build-version" 2>/dev/null || true
+    fi
 fi
 
 echo "[5/8] artisan post-deploy..."

@@ -11,6 +11,7 @@ use App\Models\CrashHunterReport;
 use App\Models\CrashHunterSnapshot;
 use App\Models\CrashHunterWitness;
 use App\Models\Server;
+use App\Support\DiagnosticConfidence;
 
 final class CrashHunterMetricsService
 {
@@ -106,6 +107,7 @@ final class CrashHunterMetricsService
             ])->all(),
             'latest_report_insights' => $this->buildReportInsights($latestReport),
             'latest_collectors' => $this->latestCollectors($server),
+            'snapshots' => $this->recentSnapshots($server, $since),
         ];
     }
 
@@ -164,6 +166,7 @@ final class CrashHunterMetricsService
             'verdict' => $diagnosis['verdict'] ?? null,
             'diagnosis_summary' => $diagnosis['summary'] ?? null,
             'confidence' => $diagnosis['confidence'] ?? null,
+            'confidence_display' => DiagnosticConfidence::format($diagnosis['confidence'] ?? null),
             'causal_story' => $chrono['causal_story'] ?? ($json['causal_correlation']['story_text'] ?? null),
             'recommendations' => array_slice($json['recommendations'] ?? [], 0, 10),
             'similar_crashes' => array_slice($json['similar_crashes'] ?? [], 0, 3),
@@ -223,6 +226,62 @@ final class CrashHunterMetricsService
             'load' => $load,
             'iowait' => $iowait,
             'pressure_io' => $pressureIo,
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function recentSnapshots(Server $server, \Illuminate\Support\Carbon $since, int $limit = 24): array
+    {
+        return CrashHunterSnapshot::query()
+            ->where('server_id', $server->id)
+            ->where('sampled_at', '>=', $since)
+            ->latest('sampled_at')
+            ->limit($limit)
+            ->get()
+            ->map(fn (CrashHunterSnapshot $snapshot) => $this->formatSnapshotSummary($snapshot))
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function snapshotDetail(Server $server, int $snapshotId): ?array
+    {
+        $snapshot = CrashHunterSnapshot::query()
+            ->where('server_id', $server->id)
+            ->where('id', $snapshotId)
+            ->first();
+
+        if ($snapshot === null) {
+            return null;
+        }
+
+        return [
+            'summary' => $this->formatSnapshotSummary($snapshot),
+            'payload' => $snapshot->payload ?? [],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function formatSnapshotSummary(CrashHunterSnapshot $snapshot): array
+    {
+        $payload = $snapshot->payload ?? [];
+
+        return [
+            'id' => $snapshot->id,
+            'slot' => $snapshot->slot,
+            'sampled_at' => $snapshot->sampled_at?->toIso8601String(),
+            'mode' => $payload['mode'] ?? null,
+            'triggers' => is_array($payload['triggers'] ?? null) ? $payload['triggers'] : [],
+            'cpu_percent' => data_get($payload, 'cpu.total_percent') ?? data_get($payload, 'system.cpu_percent'),
+            'load_1' => data_get($payload, 'system.load_1'),
+            'iowait_percent' => data_get($payload, 'cpu.iowait_percent'),
+            'memory_percent' => data_get($payload, 'memory.used_percent'),
+            'vm_count' => data_get($payload, 'virtualizor.running_vms'),
         ];
     }
 }

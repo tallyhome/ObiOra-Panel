@@ -122,6 +122,18 @@ Route::get('/install/uninstall-doctor-suite.sh', function () {
     );
 })->name('install.uninstall-doctor-suite');
 
+Route::get('/install/server-timezone.sh', function () {
+    $path = base_path('agent/scripts/server-timezone.sh');
+
+    abort_unless(is_readable($path), 404);
+
+    return response(
+        (string) file_get_contents($path),
+        200,
+        ['Content-Type' => 'text/x-shellscript; charset=utf-8'],
+    );
+})->name('install.server-timezone');
+
 Route::middleware(['setup', 'auth', 'demo.active', 'server'])->group(function () {
     Route::get('/', fn () => redirect()->route('dashboard'));
     Route::get('/profile', \Modules\Users\Livewire\ProfileIndex::class)->name('profile.index');
@@ -240,6 +252,8 @@ Route::middleware(['setup', 'auth', 'demo.active', 'server'])->group(function ()
                 ->name('export.csv');
             Route::get('/servers/{server}/reports/{report}/export', [CrashAnalyzerExportController::class, 'pdf'])
                 ->name('export.pdf');
+            Route::get('/servers/{server}/reports/{report}/view', [CrashAnalyzerExportController::class, 'view'])
+                ->name('report.view');
         });
     });
 
