@@ -99,6 +99,8 @@ final class DoctorSuiteIndex extends Component
 
     public bool $deployDismissed = true;
 
+    public bool $panelJournalOpen = false;
+
     public ?bool $deploySuccess = null;
 
     public ?string $sshRemoteHostname = null;
@@ -371,6 +373,7 @@ final class DoctorSuiteIndex extends Component
             $this->deployError = null;
             $this->deploySteps = [];
             $this->deployConsole = ['['.now()->format('H:i:s').'] Déploiement démarré…'];
+            $this->panelJournalOpen = true;
             $this->sshPassword = '';
 
             $this->dispatch('deploy-console-scroll');
@@ -438,6 +441,7 @@ final class DoctorSuiteIndex extends Component
             $this->deployError = null;
             $this->deploySteps = [];
             $this->deployConsole = ['['.now()->format('H:i:s').'] Mise à jour agents démarrée…'];
+            $this->panelJournalOpen = true;
             $this->sshPassword = '';
 
             $this->dispatch('deploy-console-scroll');
@@ -719,6 +723,7 @@ final class DoctorSuiteIndex extends Component
             $this->deployProgressMessage = (string) ($status['message'] ?? '');
             $this->deploySteps = is_array($status['steps'] ?? null) ? $status['steps'] : [];
             $this->deployConsole = is_array($status['console'] ?? null) ? $status['console'] : [];
+            $this->panelJournalOpen = true;
 
             return;
         }

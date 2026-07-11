@@ -1,4 +1,4 @@
-<div @if($deployRunning) wire:poll.2s="pollDeploy" @endif
+<div @if($deployRunning) wire:poll.2s="pollDeploy" @elseif($panelJournalOpen && count($panelDeployLogs) > 0) wire:poll.5s="$refresh" @endif
      x-data="{ scrollConsole() { const el = document.getElementById('obiora-deploy-console'); if (el) el.scrollTop = el.scrollHeight; } }"
      x-on:deploy-console-scroll.window="scrollConsole()"
      x-init="$watch('$wire.deployConsole', () => scrollConsole())">
@@ -232,14 +232,22 @@
                 <pre id="obiora-deploy-console" class="obiora-deploy-console mb-0">@foreach($deployConsole as $line){{ $line }}
 @endforeach</pre>
             </div>
+        </div>
+    </div>
+    @endif
 
-            @if(count($panelDeployLogs) > 0)
-            <details class="mt-3">
-                <summary class="small fw-medium">Journal panel (persistant)</summary>
-                <pre class="small bg-dark text-light p-2 rounded mt-2 mb-0 obiora-deploy-journal">@foreach($panelDeployLogs->reverse() as $logEntry)[{{ $logEntry->created_at->format('d/m H:i:s') }}] {{ strtoupper($logEntry->level) }} — {{ $logEntry->message }}
+    @if(count($panelDeployLogs) > 0)
+    <div class="card obiora-card mb-4">
+        <div class="card-body py-3">
+            <button type="button" wire:click="$toggle('panelJournalOpen')" class="btn btn-link btn-sm text-start p-0 text-decoration-none">
+                <span class="fw-medium">Journal panel (persistant)</span>
+                <span class="text-muted ms-1">({{ count($panelDeployLogs) }} entrée{{ count($panelDeployLogs) > 1 ? 's' : '' }})</span>
+                <span class="ms-1">{{ $panelJournalOpen ? '▾' : '▸' }}</span>
+            </button>
+            @if($panelJournalOpen)
+            <pre class="small bg-dark text-light p-2 rounded mt-2 mb-0 obiora-deploy-journal">@foreach($panelDeployLogs->reverse() as $logEntry)[{{ $logEntry->created_at->format('d/m H:i:s') }}] {{ strtoupper($logEntry->level) }} — {{ $logEntry->message }}
 @endforeach</pre>
-                <p class="small text-muted mt-1 mb-0">Fichier serveur : <code>storage/logs/deploy.log</code></p>
-            </details>
+            <p class="small text-muted mt-1 mb-0">Fichier serveur : <code>storage/logs/deploy.log</code></p>
             @endif
         </div>
     </div>
