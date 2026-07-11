@@ -676,22 +676,8 @@
 
     @if($overview && !empty($overview['crash_hunter']))
     @php($hunter = $overview['crash_hunter']['summary'] ?? [])
-    @php($hunterCharts = $overview['crash_hunter']['charts'] ?? [])
+    @php($hunterChartsActive = $overview['crash_hunter']['charts_active'] ?? [])
     @php($hunterInsights = $overview['crash_hunter']['latest_report_insights'] ?? null)
-    @php
-        $hunterChartDefs = [
-            ['id' => 'ch-hunter-cpu', 'title' => 'CPU %', 'series' => $hunterCharts['cpu'] ?? [], 'color' => '#ef4444', 'col' => 6],
-            ['id' => 'ch-hunter-load', 'title' => 'Load 1m', 'series' => $hunterCharts['load'] ?? [], 'color' => '#3b82f6', 'col' => 6],
-            ['id' => 'ch-hunter-iowait', 'title' => 'IOWait %', 'series' => $hunterCharts['iowait'] ?? [], 'color' => '#8b5cf6', 'col' => 6],
-            ['id' => 'ch-hunter-psi', 'title' => 'PSI IO avg10', 'series' => $hunterCharts['pressure_io'] ?? [], 'color' => '#f97316', 'col' => 6],
-        ];
-        $hunterChartsActive = array_values(array_filter(
-            $hunterChartDefs,
-            static fn (array $def): bool => collect($def['series'] ?? [])->contains(
-                static fn ($p): bool => is_array($p) && array_key_exists('v', $p) && $p['v'] !== null,
-            ),
-        ));
-    @endphp
     <div class="row g-4 mt-1">
         <div class="col-12">
             <div class="card obiora-card border-warning border-opacity-50">

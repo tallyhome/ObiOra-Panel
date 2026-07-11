@@ -60,6 +60,7 @@ final class CrashHunterMetricsService
             ->count();
 
         $cpuValues = $metrics->where('collector', 'cpu')->pluck('payload.total_percent')->filter();
+        $charts = $this->buildCharts($metrics);
 
         return [
             'summary' => [
@@ -81,7 +82,8 @@ final class CrashHunterMetricsService
                     ->where('detected_at', '>=', now()->subDay())
                     ->count(),
             ],
-            'charts' => $this->buildCharts($metrics),
+            'charts' => $charts,
+            'charts_active' => $this->activeChartDefinitions($charts),
             'events' => $events->map(fn (CrashHunterEvent $e) => [
                 'event_type' => $e->event_type,
                 'severity' => $e->severity,
@@ -227,6 +229,55 @@ final class CrashHunterMetricsService
             'iowait' => $iowait,
             'pressure_io' => $pressureIo,
         ];
+    }
+
+    /**
+     * Graphiques ApexCharts à afficher (séries avec au moins un point non null).
+     *
+     * @param  array<string, list<array{t: int, v: mixed}>>  $charts
+     * @return list<array{id: string, title: string, series: list<array{t: int, v: mixed}>, color: string, col: int}>
+     */
+    public function activeChartDefinitions(array $charts): array
+    {
+        $definitions = [
+            ['id' => 'ch-hunter-cpu', 'title' => 'CPU %', 'key' => 'cpu', 'color' => '#ef4444', 'col' => 6],
+            ['id' => 'ch-hunter-load', 'title' => 'Load 1m', 'key' => 'load', 'color' => '#3b82f6', 'col' => 6],
+            ['id' => 'ch-hunter-iowait', 'title' => 'IOWait %', 'key' => 'iowait', 'color' => '#8b5cf6', 'col' => 6],
+            ['id' => 'ch-hunter-psi', 'title' => 'PSI IO avg10', 'key' => 'pressure_io', 'color' => '#f97316', 'col' => 6],
+        ];
+
+        $active = [];
+
+        foreach ($definitions as $def) {
+            $series = $charts[$def['key']] ?? [];
+            if (! is_array($series) || ! $this->seriesHasPlottablePoints($series)) {
+                continue;
+            }
+
+            $active[] = [
+                'id' => $def['id'],
+                'title' => $def['title'],
+                'series' => $series,
+                'color' => $def['color'],
+                'col' => $def['col'],
+            ];
+        }
+
+        return $active;
+    }
+
+    /**
+     * @param  list<array{t: int, v: mixed}>  $series
+     */
+    private function seriesHasPlottablePoints(array $series): bool
+    {
+        foreach ($series as $point) {
+            if (is_array($point) && array_key_exists('v', $point) && $point['v'] !== null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
