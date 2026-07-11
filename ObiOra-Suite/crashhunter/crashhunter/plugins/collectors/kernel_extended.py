@@ -59,10 +59,14 @@ class PressureCollector(TimedCollector):
 
     def collect(self) -> dict[str, Any]:
         self.reset_alerts()
-        psi: dict[str, str] = {}
-        for resource in ("cpu", "memory", "io"):
-            psi[resource] = self.read_proc(f"/proc/pressure/{resource}")
-        return {**self.collect_meta(), "psi": psi, "parsed": ProcReader.pressure()}
+        detailed = ProcReader.pressure_detailed()
+        return {
+            **self.collect_meta(),
+            "available": detailed.get("available", False),
+            "psi": detailed.get("psi", {}),
+            "parsed": detailed.get("parsed", {}),
+            "errors": detailed.get("errors", {}),
+        }
 
 
 class WatchdogCollector(TimedCollector):

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from crashhunter.plugins.collectors.timed_base import TimedCollector
+from crashhunter.utils.ssh_probe import SSH_LOCALHOST_BASE
 
 
 class SshCollector(TimedCollector):
@@ -18,8 +19,7 @@ class SshCollector(TimedCollector):
             **self.collect_meta(),
             "localhost": self.timed_command(
                 "ssh_localhost",
-                ["ssh", "-o", "ConnectTimeout=2", "-o", "BatchMode=yes",
-                 "-o", "StrictHostKeyChecking=no", "localhost", "true"],
+                list(SSH_LOCALHOST_BASE),
                 timeout=inc.ssh_timeout_seconds,
             ),
         }

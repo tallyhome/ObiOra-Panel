@@ -93,22 +93,39 @@ class SilentFreezeDetector:
         if ssh.get("timed_out"):
             self._state.command_timeouts += 1
             signals.append(FreezeSignal("ssh_timeout", "critical", "SSH localhost timeout", 0.95))
+        elif (
+            ssh.get("responsive") is False
+            and ssh.get("classification") not in ("local_config_error", "auth_refused")
+        ):
+            self._state.command_timeouts += 1
+            signals.append(FreezeSignal(
+                "ssh_unresponsive",
+                "high",
+                f"SSH localhost unresponsive ({ssh.get('classification', 'unknown')})",
+                0.90,
+            ))
 
         for key, label in (("ping_loopback", "loopback"), ("ping_external", "external")):
             ping = resp.get(key, {})
-            if ping.get("timed_out") or (ping and not ping.get("ok", True)):
+            if ping.get("timed_out"):
                 self._state.command_timeouts += 1
                 signals.append(FreezeSignal(
                     "ping_timeout", "critical", f"Ping {label} failed ({ping.get('target', '')})", 0.93,
                 ))
 
         virsh = resp.get("virsh_list", {})
-        if virsh.get("timed_out") or virsh.get("slow"):
+        if virsh.get("timed_out"):
             self._state.command_timeouts += 1
             signals.append(FreezeSignal(
-                "virsh_slow", "high",
-                f"virsh list took {virsh.get('latency_ms', 0)}ms (threshold {inc.virsh_timeout_seconds}s)",
-                0.88,
+                "virsh_timeout", "high",
+                f"virsh list timed out after {virsh.get('latency_ms', 0)}ms",
+                0.90,
+            ))
+        elif virsh.get("slow"):
+            signals.append(FreezeSignal(
+                "virsh_slow", "medium",
+                f"virsh list slow {virsh.get('latency_ms', 0)}ms (threshold {inc.virsh_timeout_seconds}s)",
+                0.75,
             ))
 
         virt = resp.get("virtualizor", {})

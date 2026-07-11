@@ -17,6 +17,7 @@ from crashhunter.storage.sequence_store import SequenceStore
 from crashhunter.utils.proc import ProcReader
 from crashhunter.utils.subprocess_runner import SubprocessRunner
 from crashhunter.utils.timestamp import now_us
+from crashhunter.utils.virsh_capabilities import VirshCapabilities
 
 logger = logging.getLogger("crashhunter.emergency")
 
@@ -35,7 +36,6 @@ class EmergencyCollector:
         ("ss_antup", ["ss", "-antup"]),
         ("netstat", ["netstat", "-antup"]),
         ("virsh_list", ["virsh", "list", "--all"]),
-        ("virsh_domstats", ["virsh", "domstats", "--state", "--cpu", "--balloon", "--block", "--interface"]),
         ("virsh_dominfo", ["bash", "-c", "for vm in $(virsh list --all --name 2>/dev/null); do virsh dominfo \"$vm\"; done"]),
         ("virsh_cpu_stats", ["bash", "-c", "for vm in $(virsh list --name 2>/dev/null); do echo \"=== $vm ===\"; virsh cpu-stats \"$vm\" 2>/dev/null; done"]),
         ("virsh_dommemstat", ["bash", "-c", "for vm in $(virsh list --name 2>/dev/null); do echo \"=== $vm ===\"; virsh dommemstat \"$vm\" 2>/dev/null; done"]),
@@ -65,10 +65,12 @@ class EmergencyCollector:
         settings: Settings,
         registry: CollectorRegistry,
         sequence_store: SequenceStore | None = None,
+        shutdown_event: threading.Event | None = None,
     ) -> None:
         self.settings = settings
         self.registry = registry
         self.sequence_store = sequence_store
+        self.shutdown_event = shutdown_event or threading.Event()
         self.runner = SubprocessRunner(default_timeout=settings.subprocess_timeout)
         self._deep_results: dict[str, Any] = {}
         self._deep_lock = threading.Lock()
@@ -76,39 +78,82 @@ class EmergencyCollector:
         self.budget = DiagnosticBudget(
             psi_io_threshold=budget_cfg.psi_io_threshold,
             command_slow_ms=budget_cfg.command_slow_ms,
+            heavy_cooldown_seconds=budget_cfg.heavy_cooldown_seconds,
         )
         diag_dir = settings.diagnostics_dir
         self._perf = PerfRecorder(diag_dir / "perf", settings.perf.duration_seconds, settings.perf.enabled)
-        self._ftrace = FtraceRecorder(diag_dir / "ftrace", settings.ftrace.duration_seconds, settings.ftrace.enabled)
+        self._ftrace = FtraceRecorder(
+            diag_dir / "ftrace",
+            settings.ftrace,
+            settings.state_dir,
+            shutdown_event=self.shutdown_event,
+        )
         self._qemu_gdb = QemuGdbCollector(settings.qemu_gdb.timeout_seconds, settings.qemu_gdb.max_processes)
+        self._emergency_commands = self._build_emergency_commands()
+
+    def _build_emergency_commands(self) -> list[tuple[str, list[str]]]:
+        commands = list(self.EMERGENCY_COMMANDS)
+        domstats = VirshCapabilities.domstats_command(self.runner)
+        commands.insert(10, ("virsh_domstats", domstats))
+        return commands
 
     def collect_quick_snapshot(self) -> dict[str, Any]:
         """Lightweight capture between SysRq steps."""
+        pressure = ProcReader.pressure()
         snap = {
             "loadavg": ProcReader.loadavg(),
             "procs_blocked": ProcReader.stat().get("procs_blocked", 0),
-            "pressure": ProcReader.pressure(),
+            "pressure": {"parsed": pressure},
             "timestamp": now_us(),
         }
         if self.settings.diagnostic_budget.enabled:
-            self.budget.evaluate({"pressure": {"parsed": snap["pressure"]}})
+            self.budget.evaluate({"pressure": {"parsed": pressure}})
         return snap
 
     def run_deep_diagnostics(self) -> None:
-        """Background: perf, ftrace, QEMU gdb backtraces."""
+        """Background: perf, ftrace, QEMU gdb — one HEAVY tool at a time."""
+        if self.shutdown_event.is_set():
+            return
         if not self.budget.allow_heavy_diagnostics():
             logger.warning("Deep diagnostics skipped — MINIMAL SURVIVAL mode active")
             return
+
         results: dict[str, Any] = {}
-        if self.settings.perf.enabled:
-            results["perf"] = self._perf.record()
-        if self.settings.ftrace.enabled:
-            results["ftrace"] = self._ftrace.record_all()
-        if self.settings.qemu_gdb.enabled:
-            results["qemu_gdb"] = self._qemu_gdb.collect()
+        heavy_sequence = (
+            ("perf", self.settings.perf.enabled, self._run_perf),
+            ("ftrace", self.settings.ftrace.enabled, self._run_ftrace),
+            ("qemu_gdb", self.settings.qemu_gdb.enabled, self._run_qemu_gdb),
+        )
+        for tool, enabled, runner in heavy_sequence:
+            if self.shutdown_event.is_set():
+                break
+            if not enabled:
+                continue
+            if not self.budget.acquire_heavy(tool):
+                continue
+            timed_out = False
+            try:
+                results[tool] = runner()
+                if isinstance(results[tool], dict) and results[tool].get("timed_out"):
+                    timed_out = True
+            except Exception as exc:
+                logger.exception("Deep diagnostic %s failed: %s", tool, exc)
+                results[tool] = {"recorded": False, "reason": str(exc)}
+            finally:
+                self.budget.release_heavy(tool, timed_out=timed_out)
+
         with self._deep_lock:
             self._deep_results = results
         logger.info("Deep incident diagnostics complete: %s", list(results.keys()))
+
+    def _run_perf(self) -> dict[str, Any]:
+        return self._perf.record()
+
+    def _run_ftrace(self) -> dict[str, Any]:
+        return self._ftrace.record_all()
+
+    def _run_qemu_gdb(self) -> dict[str, Any]:
+        return self._qemu_gdb.collect()
 
     def get_deep_results(self) -> dict[str, Any]:
         with self._deep_lock:
@@ -126,7 +171,7 @@ class EmergencyCollector:
             snapshot = self._collect_minimal(triggers, pressure)
         else:
             snapshot = self.registry.collect_all(emergency=True)
-            snapshot["commands"] = self._run_commands(self.EMERGENCY_COMMANDS)
+            snapshot["commands"] = self._run_commands(self._emergency_commands)
             snapshot["deep_diagnostics"] = self.get_deep_results()
 
         snapshot["emergency_timestamp"] = now_us()
@@ -149,7 +194,7 @@ class EmergencyCollector:
 
     def _collect_minimal(self, triggers: list[str], pressure: dict[str, Any]) -> dict[str, Any]:
         """MINIMAL SURVIVAL CAPTURE — /proc, /sys, no heavy tools."""
-        allowed = self.budget.filter_emergency_commands(self.EMERGENCY_COMMANDS)
+        allowed = self.budget.filter_emergency_commands(self._emergency_commands)
         return {
             "schema_version": 3,
             "collector": "crashhunter-enterprise",
@@ -172,9 +217,13 @@ class EmergencyCollector:
                 "returncode": result.returncode,
                 "timed_out": result.timed_out,
                 "latency_ms": latency_ms,
+                "pid": result.pid,
+                "termination_method": result.termination_method,
             }
             if self.settings.diagnostic_budget.enabled:
                 self.budget.evaluate({"pressure": {}}, last_command_ms=latency_ms)
+                if result.timed_out:
+                    self.budget.evaluate({"pressure": {}}, last_command_ms=self.settings.command_slow_ms + 1)
         return results
 
     def _read_proc_dumps(self) -> dict[str, str]:

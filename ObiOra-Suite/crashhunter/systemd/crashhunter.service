@@ -15,9 +15,11 @@ Environment=CRASHHUNTER_LOG_LEVEL=INFO
 ExecStart=/opt/crashhunter/venv/bin/crashhunter run
 Restart=always
 RestartSec=10
+# Allow graceful ftrace/subprocess cleanup on systemctl stop (SIGTERM → cleanup → exit).
+TimeoutStopSec=20
 Nice=10
 IOSchedulingClass=idle
-MemoryMax=50M
+MemoryMax=128M
 CPUQuota=10%
 
 # Hardening

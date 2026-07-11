@@ -128,24 +128,86 @@ class ProcReader:
         return totals
 
     @staticmethod
-    def pressure() -> dict[str, dict[str, float]]:
-        result: dict[str, dict[str, float]] = {}
+    def parse_pressure_text(text: str) -> dict[str, dict[str, float | dict[str, float]]]:
+        """Parse /proc/pressure/* content into normalized some/full blocks."""
+        result: dict[str, dict[str, float | dict[str, float]]] = {}
+        for line in text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            match = re.match(
+                r"^(some|full)\s+avg10=([\d.]+)\s+avg60=([\d.]+)\s+avg300=([\d.]+)\s+total=(\d+)",
+                line,
+            )
+            if not match:
+                continue
+            kind, avg10, avg60, avg300, total = match.groups()
+            block = {
+                "avg10": float(avg10),
+                "avg60": float(avg60),
+                "avg300": float(avg300),
+                "total": int(total),
+            }
+            # Single-line files are keyed as "some" by resource name later.
+            result[kind] = block
+        return result
+
+    @staticmethod
+    def pressure() -> dict[str, dict[str, Any]]:
+        result: dict[str, dict[str, Any]] = {}
         for resource in ("cpu", "memory", "io"):
             path = f"/proc/pressure/{resource}"
-            lines = ProcReader.read_lines(path)
-            if not lines:
+            raw = ProcReader.read_text(path)
+            if not raw:
                 continue
-            entry: dict[str, float] = {}
-            for line in lines:
-                match = re.search(r"avg10=([\d.]+).*avg60=([\d.]+).*avg300=([\d.]+)", line)
-                if match:
-                    prefix = line.split()[0]
-                    entry[f"{prefix}_avg10"] = float(match.group(1))
-                    entry[f"{prefix}_avg60"] = float(match.group(2))
-                    entry[f"{prefix}_avg300"] = float(match.group(3))
+            parsed_lines = ProcReader.parse_pressure_text(raw)
+            if not parsed_lines:
+                continue
+            some = parsed_lines.get("some")
+            full = parsed_lines.get("full")
+            entry: dict[str, Any] = {}
+            if isinstance(some, dict):
+                entry["some"] = some
+                entry["some_avg10"] = some["avg10"]
+                entry["some_avg60"] = some["avg60"]
+                entry["some_avg300"] = some["avg300"]
+                entry["avg10"] = some["avg10"]
+            if isinstance(full, dict):
+                entry["full"] = full
+                entry["full_avg10"] = full["avg10"]
             if entry:
                 result[resource] = entry
         return result
+
+    @staticmethod
+    def pressure_detailed() -> dict[str, Any]:
+        """Structured PSI read with availability and per-resource errors."""
+        out: dict[str, Any] = {"available": False, "psi": {}, "parsed": {}, "errors": {}}
+        any_data = False
+        for resource in ("cpu", "memory", "io"):
+            path = f"/proc/pressure/{resource}"
+            raw = ProcReader.read_text(path)
+            if not raw:
+                out["errors"][resource] = "missing_or_empty"
+                out["psi"][resource] = ""
+                continue
+            out["psi"][resource] = raw
+            parsed = ProcReader.parse_pressure_text(raw)
+            if not parsed:
+                out["errors"][resource] = "parse_failed"
+                continue
+            normalized: dict[str, Any] = {}
+            some = parsed.get("some")
+            full = parsed.get("full")
+            if isinstance(some, dict):
+                normalized["some"] = some
+                normalized["avg10"] = some["avg10"]
+            if isinstance(full, dict):
+                normalized["full"] = full
+            out["parsed"][resource] = normalized
+            any_data = True
+        out["available"] = any_data
+        return out
 
     @staticmethod
     def kernel_version() -> str:

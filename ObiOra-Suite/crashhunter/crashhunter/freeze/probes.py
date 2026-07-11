@@ -7,6 +7,7 @@ from typing import Any
 
 from crashhunter.config.settings import Settings
 from crashhunter.plugins.base import BaseCollector
+from crashhunter.utils.ssh_probe import probe_ssh_localhost
 from crashhunter.utils.subprocess_runner import SubprocessRunner
 
 
@@ -34,19 +35,7 @@ class ResponsivenessProbes(BaseCollector):
         }
 
     def _probe_ssh(self, timeout: float) -> dict[str, Any]:
-        start = time.monotonic()
-        result = self.runner.run(
-            ["ssh", "-o", "ConnectTimeout=2", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no",
-             "localhost", "true"],
-            timeout=timeout,
-        )
-        elapsed = round((time.monotonic() - start) * 1000, 2)
-        return {
-            "ok": result.ok,
-            "timed_out": result.timed_out,
-            "latency_ms": elapsed,
-            "returncode": result.returncode,
-        }
+        return probe_ssh_localhost(self.runner, timeout)
 
     def _probe_ping(self, target: str, timeout: float) -> dict[str, Any]:
         start = time.monotonic()
@@ -70,9 +59,9 @@ class ResponsivenessProbes(BaseCollector):
         slow = elapsed > timeout * 1000
         return {
             "ok": result.ok and not result.timed_out,
-            "timed_out": result.timed_out or slow,
-            "latency_ms": elapsed,
+            "timed_out": result.timed_out,
             "slow": slow,
+            "latency_ms": elapsed,
             "returncode": result.returncode,
         }
 

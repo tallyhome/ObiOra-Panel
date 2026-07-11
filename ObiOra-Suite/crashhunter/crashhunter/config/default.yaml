@@ -49,6 +49,15 @@ perf:
 ftrace:
   enabled: true
   duration_seconds: 10
+  function_graph_max_seconds: 4
+  irqsoff_max_seconds: 3
+  preemptoff_max_seconds: 3
+  wakeup_max_seconds: 3
+  lock_timeout_seconds: 0.5
+  buffer_size_kb: 256
+  trace_read_max_bytes: 500000
+  max_graph_functions: 24
+  watchdog_enabled: true
 
 qemu_gdb:
   enabled: true
@@ -133,6 +142,7 @@ diagnostic_budget:
   enabled: true
   psi_io_threshold: 25
   command_slow_ms: 2000
+  heavy_cooldown_seconds: 30
 
 command_thresholds:
   default_ms: 3000

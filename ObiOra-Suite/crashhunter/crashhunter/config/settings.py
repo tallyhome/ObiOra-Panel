@@ -96,6 +96,15 @@ class PerfSettings:
 class FtraceSettings:
     enabled: bool = True
     duration_seconds: float = 10.0
+    function_graph_max_seconds: float = 4.0
+    irqsoff_max_seconds: float = 3.0
+    preemptoff_max_seconds: float = 3.0
+    wakeup_max_seconds: float = 3.0
+    lock_timeout_seconds: float = 0.5
+    buffer_size_kb: int = 256
+    trace_read_max_bytes: int = 500_000
+    max_graph_functions: int = 24
+    watchdog_enabled: bool = True
 
 
 @dataclass
@@ -172,6 +181,7 @@ class DiagnosticBudgetSettings:
     enabled: bool = True
     psi_io_threshold: float = 25.0
     command_slow_ms: float = 2000.0
+    heavy_cooldown_seconds: float = 30.0
 
 
 def _default_hostname() -> str:
@@ -510,6 +520,15 @@ def load_settings(config_path: Path | None = None) -> Settings:
         ftrace=FtraceSettings(
             enabled=bool(ftrace_raw.get("enabled", True)),
             duration_seconds=float(ftrace_raw.get("duration_seconds", 10.0)),
+            function_graph_max_seconds=float(ftrace_raw.get("function_graph_max_seconds", 4.0)),
+            irqsoff_max_seconds=float(ftrace_raw.get("irqsoff_max_seconds", 3.0)),
+            preemptoff_max_seconds=float(ftrace_raw.get("preemptoff_max_seconds", 3.0)),
+            wakeup_max_seconds=float(ftrace_raw.get("wakeup_max_seconds", 3.0)),
+            lock_timeout_seconds=float(ftrace_raw.get("lock_timeout_seconds", 0.5)),
+            buffer_size_kb=int(ftrace_raw.get("buffer_size_kb", 256)),
+            trace_read_max_bytes=int(ftrace_raw.get("trace_read_max_bytes", 500_000)),
+            max_graph_functions=int(ftrace_raw.get("max_graph_functions", 24)),
+            watchdog_enabled=bool(ftrace_raw.get("watchdog_enabled", True)),
         ),
         qemu_gdb=QemuGdbSettings(
             enabled=bool(qemu_gdb_raw.get("enabled", True)),
@@ -566,6 +585,7 @@ def load_settings(config_path: Path | None = None) -> Settings:
             enabled=bool(budget_raw.get("enabled", True)),
             psi_io_threshold=float(budget_raw.get("psi_io_threshold", 25.0)),
             command_slow_ms=float(budget_raw.get("command_slow_ms", 2000.0)),
+            heavy_cooldown_seconds=float(budget_raw.get("heavy_cooldown_seconds", 30.0)),
         ),
         simulation_enabled=bool(_deep_get(yaml_data, "simulation", "enabled", default=False)),
         config_path=config_path,

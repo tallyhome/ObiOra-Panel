@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import signal
 import sys
+import threading
 import time
 from typing import Any
 
@@ -12,6 +13,7 @@ from crashhunter import __version__
 from crashhunter.analysis.rules_engine import RulesEngine
 from crashhunter.config.settings import Settings, load_settings
 from crashhunter.diagnostics.benchmark import PostRebootBenchmark
+from crashhunter.diagnostics.ftrace import FtraceRecorder
 from crashhunter.export.panel_bridge import PanelBridge, format_timeline_event
 from crashhunter.export.prometheus import PrometheusExporter
 from crashhunter.freeze.detector import SilentFreezeDetector
@@ -26,6 +28,7 @@ from crashhunter.report.event_timeline import EventTimeline
 from crashhunter.report.generator import ReportGenerator
 from crashhunter.samplers.aggregator import SnapshotAggregator
 from crashhunter.kernel.pstore import read_pstore_at_boot
+from crashhunter.storage.incident_store import IncidentStore
 from crashhunter.storage.sequence_store import SequenceStore
 from crashhunter.storage.psi_history import PsiHistoryStore
 from crashhunter.storage.ring_buffer import RingBuffer
@@ -44,6 +47,7 @@ class CrashHunterDaemon:
         self.settings = settings
         self.settings.ensure_directories()
         self._running = True
+        self._shutdown_event = threading.Event()
         self.state = StateStore(
             settings.boot_id_file,
             settings.last_uptime_file,
@@ -69,7 +73,7 @@ class CrashHunterDaemon:
             settings.sequence_file,
             tmpfs_path=settings.sequence_tmpfs_file,
         )
-        emergency = EmergencyCollector(settings, registry, self.sequence_store)
+        emergency = EmergencyCollector(settings, registry, self.sequence_store, self._shutdown_event)
         sysrq = SysRqController(settings.sysrq.enabled)
         self.incident_manager = IncidentManager(
             settings, emergency, self.incident_store, self.timeline, sysrq=sysrq,
@@ -101,12 +105,28 @@ class CrashHunterDaemon:
     def handle_shutdown(self, signum: int, _frame: object) -> None:
         logger.info("Signal %s received, shutting down", signum)
         self._running = False
+        self._shutdown_event.set()
         if self.settings.ring.use_tmpfs:
             self.ring.sync_to_disk()
         self.psi_history.flush()
 
     def startup_check(self) -> dict[str, object] | None:
         """Detect reboot and generate post-freeze report if needed."""
+        ftrace = FtraceRecorder(
+            self.settings.diagnostics_dir / "ftrace",
+            self.settings.ftrace,
+            self.settings.state_dir,
+            shutdown_event=self._shutdown_event,
+        )
+        recovery = ftrace.recover_abandoned_sessions()
+        if recovery and recovery.get("recovered"):
+            self.timeline.record(
+                "ftrace_abandoned_recovered",
+                f"Recovered abandoned ftrace session {recovery.get('capture_id')}",
+                severity="critical",
+                extra=recovery,
+            )
+
         self.incident_manager.load_state()
 
         # pstore / ramoops — aspirate before any other boot analysis

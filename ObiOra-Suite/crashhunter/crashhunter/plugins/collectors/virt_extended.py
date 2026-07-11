@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from crashhunter.plugins.collectors.timed_base import TimedCollector
+from crashhunter.utils.proc import ProcReader
+from crashhunter.utils.virsh_capabilities import VirshCapabilities
 
 
 class LibvirtCollector(TimedCollector):
@@ -14,15 +16,17 @@ class LibvirtCollector(TimedCollector):
     def collect(self) -> dict[str, Any]:
         self.reset_alerts()
         vm_list = self.timed_command("virsh_list", ["virsh", "list", "--all"], timeout=self.settings.incident.virsh_timeout_seconds)
+        domstats_cmd = VirshCapabilities.domstats_command(self.runner)
         return {
             **self.collect_meta(),
             "service": self.timed_command("libvirtd", ["systemctl", "is-active", "libvirtd"]),
             "virsh_list": vm_list,
             "virsh_domstats": self.timed_command(
                 "virsh_domstats",
-                ["virsh", "domstats", "--state", "--cpu", "--balloon", "--block", "--interface"],
+                domstats_cmd,
                 timeout=self.settings.incident.virsh_timeout_seconds,
             ),
+            "virsh_domstats_capabilities": VirshCapabilities.domstats_flags(self.runner),
             "virsh_domblkstat": self.timed_command(
                 "virsh_domblkstat",
                 ["bash", "-c", "for vm in $(virsh list --name 2>/dev/null); do echo \"=== $vm ===\"; virsh domblkstat \"$vm\" 2>/dev/null; done"],

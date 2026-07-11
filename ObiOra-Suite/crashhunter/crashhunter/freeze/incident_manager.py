@@ -74,6 +74,7 @@ class IncidentManager:
         self._started_at_iso = datetime.now(timezone.utc).isoformat()
         self._sysrq_done = False
         self._deep_collectors_started = False
+        self.incident_store.mark_active(self._incident_id)
         trigger_detail = ", ".join(self._triggers)
         self.timeline.record(
             "incident_mode_started",
@@ -146,6 +147,8 @@ class IncidentManager:
             "deep_diagnostics": deep,
         }
         self.incident_store.save_summary(self._incident_id or "unknown", summary)
+        if self._incident_id:
+            self.incident_store.mark_inactive(self._incident_id)
         logger.info("Incident mode ended: %s", self._incident_id)
         self.mode = DaemonMode.NORMAL
         self._incident_start = None
