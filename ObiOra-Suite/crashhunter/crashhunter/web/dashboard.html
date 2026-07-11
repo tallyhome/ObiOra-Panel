@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CrashHunter Dashboard</title>
+<style>
+:root { --bg:#0f1419; --card:#1a2332; --text:#e7ecf3; --accent:#3b82f6; --warn:#f59e0b; --crit:#ef4444; --ok:#22c55e; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+header { padding:1.5rem 2rem; border-bottom:1px solid #2d3748; display:flex; justify-content:space-between; align-items:center; }
+h1 { font-size:1.4rem; } h1 span { color:var(--accent); }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem; padding:1.5rem 2rem; }
+.card { background:var(--card); border-radius:12px; padding:1.25rem; border:1px solid #2d3748; }
+.card h2 { font-size:.85rem; text-transform:uppercase; letter-spacing:.05em; color:#94a3b8; margin-bottom:.75rem; }
+.metric { font-size:2rem; font-weight:700; }
+.metric small { font-size:.9rem; color:#94a3b8; font-weight:400; }
+.badge { display:inline-block; padding:.2rem .6rem; border-radius:999px; font-size:.75rem; font-weight:600; }
+.badge-ok { background:#14532d; color:var(--ok); }
+.badge-warn { background:#78350f; color:var(--warn); }
+.badge-crit { background:#7f1d1d; color:var(--crit); }
+.timeline { max-height:400px; overflow-y:auto; font-size:.85rem; }
+.timeline-item { padding:.5rem 0; border-bottom:1px solid #2d3748; }
+.timeline-item .ts { color:#64748b; font-size:.75rem; }
+.timeline-item.critical .evt { color:var(--crit); }
+nav.tabs { display:flex; gap:.5rem; padding:0 2rem 1rem; flex-wrap:wrap; }
+nav.tabs button { background:var(--card); border:1px solid #2d3748; color:var(--text); padding:.5rem 1rem; border-radius:8px; cursor:pointer; }
+nav.tabs button.active { background:var(--accent); border-color:var(--accent); }
+.panel { display:none; padding:0 2rem 2rem; }
+.panel.active { display:block; }
+table { width:100%; border-collapse:collapse; font-size:.85rem; }
+th,td { text-align:left; padding:.5rem; border-bottom:1px solid #2d3748; }
+.story { white-space:pre-wrap; font-family:monospace; font-size:.8rem; line-height:1.6; background:#0d1117; padding:1rem; border-radius:8px; max-height:300px; overflow-y:auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1><span>CrashHunter</span> Dashboard</h1>
+  <div id="status-badge"><span class="badge badge-ok">Loading…</span></div>
+</header>
+<nav class="tabs">
+  <button class="active" data-panel="overview">Overview</button>
+  <button data-panel="incidents">Incidents</button>
+  <button data-panel="timeline">Timeline</button>
+  <button data-panel="report">Last Report</button>
+</nav>
+<section id="overview" class="panel active">
+  <div class="grid" id="metrics-grid"></div>
+</section>
+<section id="incidents" class="panel">
+  <div class="card"><h2>Incidents</h2><div id="incidents-list">Loading…</div></div>
+</section>
+<section id="timeline" class="panel">
+  <div class="card"><h2>Event Timeline</h2><div class="timeline" id="timeline-list">Loading…</div></div>
+</section>
+<section id="report" class="panel">
+  <div class="card"><h2>Causal Story</h2><div class="story" id="causal-story">Loading…</div></div>
+  <div class="card" style="margin-top:1rem"><h2>Diagnosis</h2><div id="diagnosis">Loading…</div></div>
+</section>
+<script>
+const tabs = document.querySelectorAll('nav.tabs button');
+tabs.forEach(btn => btn.addEventListener('click', () => {
+  tabs.forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(btn.dataset.panel).classList.add('active');
+}));
+
+async function load() {
+  try {
+    const [status, incidents, timeline, report] = await Promise.all([
+      fetch('/api/status').then(r => r.json()),
+      fetch('/api/incidents').then(r => r.json()),
+      fetch('/api/timeline').then(r => r.json()),
+      fetch('/api/report').then(r => r.json()),
+    ]);
+    document.getElementById('status-badge').innerHTML =
+      `<span class="badge badge-ok">${status.hostname || 'unknown'}</span>`;
+    document.getElementById('metrics-grid').innerHTML = `
+      <div class="card"><h2>Uptime</h2><div class="metric">${(status.uptime||0).toFixed(0)}<small>s</small></div></div>
+      <div class="card"><h2>Ring Buffer</h2><div class="metric">${status.ring_count}<small> / ${status.ring_capacity}</small></div></div>
+      <div class="card"><h2>Incidents</h2><div class="metric">${(status.incidents||[]).length}</div></div>
+      <div class="card"><h2>Reports</h2><div class="metric">${(status.reports||[]).length}</div></div>`;
+    document.getElementById('incidents-list').innerHTML = incidents.length
+      ? `<table><tr><th>ID</th><th>Snapshots</th></tr>${incidents.map(i=>`<tr><td>${i.id}</td><td>${i.snapshots}</td></tr>`).join('')}</table>`
+      : '<p>No incidents recorded.</p>';
+    document.getElementById('timeline-list').innerHTML = timeline.length
+      ? timeline.slice().reverse().map(e=>`<div class="timeline-item ${e.severity||''}"><div class="ts">${e.timestamp_us||''}</div><div class="evt">${e.event||''}: ${e.detail||''}</div></div>`).join('')
+      : '<p>No timeline events.</p>';
+    const story = report.chronological_report?.causal_story || report.chronological_report?.story_text || 'No report yet.';
+    document.getElementById('causal-story').textContent = story;
+    const findings = report.diagnosis?.findings || [];
+    document.getElementById('diagnosis').innerHTML = findings.length
+      ? `<p><strong>${report.diagnosis?.verdict||'?'}</strong></p><ul>${findings.map(f=>`<li>[${f.severity}] ${f.category}: ${f.description}</li>`).join('')}</ul>`
+      : '<p>No diagnosis available.</p>';
+  } catch(e) { console.error(e); }
+}
+load();
+setInterval(load, 15000);
+</script>
+</body>
+</html>

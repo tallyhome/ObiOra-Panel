@@ -30,6 +30,7 @@ final class DoctorRemoteDeployJob implements ShouldQueue
         public readonly string $sshUser,
         public readonly bool $installDoctor = true,
         public readonly bool $installCrashAnalyzer = true,
+        public readonly bool $installCrashHunter = true,
     ) {}
 
     public function handle(DoctorDeployRunner $runner): void
@@ -41,6 +42,7 @@ final class DoctorRemoteDeployJob implements ShouldQueue
             $this->sshUser,
             $this->installDoctor,
             $this->installCrashAnalyzer,
+            $this->installCrashHunter,
         );
     }
 

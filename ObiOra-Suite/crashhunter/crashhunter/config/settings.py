@@ -41,6 +41,95 @@ class SimilaritySettings:
     enabled: bool = True
     min_confidence: float = 0.5
     index_file: str = "similarity_index.json"
+    min_crashes_for_ml: int = 20
+
+
+@dataclass
+class RingSettings:
+    use_tmpfs: bool = True
+    tmpfs_path: str = "/dev/shm/crashhunter-ring"
+    tmpfs_size_mb: int = 128
+    sync_interval_seconds: float = 30.0
+
+
+@dataclass
+class WitnessSettings:
+    enabled: bool = False
+    receiver_url: str = "https://panel.example.com:9876"
+    token: str = ""
+    host_id: str = ""
+    send_timeout_seconds: float = 3.0
+    listen_host: str = "0.0.0.0"
+    listen_port: int = 9876
+    monitor_enabled: bool = True
+    timeout_seconds: float = 15.0
+    death_threshold_seconds: float = 30.0
+    check_interval_seconds: float = 5.0
+
+
+@dataclass
+class SysRqSettings:
+    enabled: bool = True
+    auto_on_incident: bool = True
+    watchdog_sequence: bool = True
+    sequence_wait_seconds: float = 2.0
+    trigger_after_seconds: float = 10.0
+
+
+@dataclass
+class NetconsoleSettings:
+    enabled: bool = False
+    local_ip: str = ""
+    local_port: int = 6666
+    remote_ip: str = ""
+    remote_port: int = 6666
+    interface: str = "eth0"
+
+
+@dataclass
+class PerfSettings:
+    enabled: bool = True
+    duration_seconds: float = 30.0
+
+
+@dataclass
+class FtraceSettings:
+    enabled: bool = True
+    duration_seconds: float = 10.0
+
+
+@dataclass
+class QemuGdbSettings:
+    enabled: bool = True
+    timeout_seconds: float = 15.0
+    max_processes: int = 3
+
+
+@dataclass
+class BenchmarkSettings:
+    enabled: bool = True
+    run_fio: bool = True
+    run_stress_ng: bool = True
+    run_smart: bool = True
+    ping_target: str = "1.1.1.1"
+    max_duration_seconds: float = 120.0
+
+
+@dataclass
+class WebSettings:
+    enabled: bool = False
+    listen_host: str = "127.0.0.1"
+    listen_port: int = 8765
+
+
+@dataclass
+class PanelSettings:
+    enabled: bool = False
+    url: str = ""
+    server_id: int = 0
+    agent_token: str = ""
+    push_interval_seconds: float = 30.0
+    snapshot_batch_size: int = 5
 
 
 @dataclass
@@ -101,7 +190,7 @@ class Settings:
         "system", "cpu", "memory", "disk", "network", "processes",
         "kernel", "virtualizor", "hardware", "responsiveness", "dstate",
         "swap", "oom", "numa", "hugepages", "lvm", "xfs",
-        "libvirt", "qemu", "scheduler", "interrupt", "softirq",
+        "libvirt", "qemu", "blkmq", "scheduler", "interrupt", "softirq",
         "pressure", "watchdog", "journal", "dmesg",
         "ipmi", "smart", "raid", "temperature", "pci",
         "ssh", "ping", "ebpf",
@@ -115,6 +204,16 @@ class Settings:
     incident: IncidentSettings = field(default_factory=IncidentSettings)
     thresholds: ThresholdSettings = field(default_factory=ThresholdSettings)
     similarity: SimilaritySettings = field(default_factory=SimilaritySettings)
+    ring: RingSettings = field(default_factory=RingSettings)
+    witness: WitnessSettings = field(default_factory=WitnessSettings)
+    sysrq: SysRqSettings = field(default_factory=SysRqSettings)
+    netconsole: NetconsoleSettings = field(default_factory=NetconsoleSettings)
+    perf: PerfSettings = field(default_factory=PerfSettings)
+    ftrace: FtraceSettings = field(default_factory=FtraceSettings)
+    qemu_gdb: QemuGdbSettings = field(default_factory=QemuGdbSettings)
+    benchmark: BenchmarkSettings = field(default_factory=BenchmarkSettings)
+    web: WebSettings = field(default_factory=WebSettings)
+    panel: PanelSettings = field(default_factory=PanelSettings)
     self_monitor: SelfMonitorSettings = field(default_factory=SelfMonitorSettings)
     plugin_health: PluginHealthSettings = field(default_factory=PluginHealthSettings)
     ebpf: EbpfSettings = field(default_factory=EbpfSettings)
@@ -131,6 +230,36 @@ class Settings:
     @property
     def ring_dir(self) -> Path:
         return self.data_dir / "ring"
+
+    @property
+    def ring_tmpfs_dir(self) -> Path:
+        return Path(self.ring.tmpfs_path)
+
+    @property
+    def ring_sync_dir(self) -> Path:
+        return self.data_dir / "ring-persist"
+
+    @property
+    def effective_ring_dir(self) -> Path:
+        if self.ring.use_tmpfs:
+            return self.ring_tmpfs_dir
+        return self.ring_dir
+
+    @property
+    def witness_data_dir(self) -> Path:
+        return self.base_dir / "witness"
+
+    @property
+    def psi_history_file(self) -> Path:
+        return self.state_dir / "psi_history.json"
+
+    @property
+    def benchmark_state_file(self) -> Path:
+        return self.state_dir / "benchmark_history.json"
+
+    @property
+    def diagnostics_dir(self) -> Path:
+        return self.base_dir / "diagnostics"
 
     @property
     def incident_dir(self) -> Path:
@@ -197,11 +326,14 @@ class Settings:
             self.base_dir,
             self.data_dir,
             self.ring_dir,
+            self.ring_sync_dir,
             self.incident_dir,
             self.state_dir,
             self.reports_dir,
             self.logs_dir,
             self.bundles_dir,
+            self.witness_data_dir,
+            self.diagnostics_dir,
         ):
             path.mkdir(parents=True, exist_ok=True)
 
@@ -250,6 +382,16 @@ def load_settings(config_path: Path | None = None) -> Settings:
     ebpf_raw = _deep_get(yaml_data, "ebpf", default={}) or {}
     retention_raw = _deep_get(yaml_data, "retention", default={}) or {}
     prom_raw = _deep_get(yaml_data, "prometheus", default={}) or {}
+    ring_raw = _deep_get(yaml_data, "ring", default={}) or {}
+    witness_raw = _deep_get(yaml_data, "witness", default={}) or {}
+    sysrq_raw = _deep_get(yaml_data, "sysrq", default={}) or {}
+    netconsole_raw = _deep_get(yaml_data, "netconsole", default={}) or {}
+    perf_raw = _deep_get(yaml_data, "perf", default={}) or {}
+    ftrace_raw = _deep_get(yaml_data, "ftrace", default={}) or {}
+    qemu_gdb_raw = _deep_get(yaml_data, "qemu_gdb", default={}) or {}
+    benchmark_raw = _deep_get(yaml_data, "benchmark", default={}) or {}
+    web_raw = _deep_get(yaml_data, "web", default={}) or {}
+    panel_raw = _deep_get(yaml_data, "panel", default={}) or {}
     cmd_thresh_raw = _deep_get(yaml_data, "command_thresholds", default={}) or {}
     collectors_raw = _deep_get(yaml_data, "collectors", "enabled", default=None)
 
@@ -308,6 +450,75 @@ def load_settings(config_path: Path | None = None) -> Settings:
             enabled=bool(similarity_raw.get("enabled", True)),
             min_confidence=float(similarity_raw.get("min_confidence", 0.5)),
             index_file=str(similarity_raw.get("index_file", "similarity_index.json")),
+            min_crashes_for_ml=int(similarity_raw.get("min_crashes_for_ml", 20)),
+        ),
+        ring=RingSettings(
+            use_tmpfs=bool(ring_raw.get("use_tmpfs", True)),
+            tmpfs_path=str(ring_raw.get("tmpfs_path", "/dev/shm/crashhunter-ring")),
+            tmpfs_size_mb=int(ring_raw.get("tmpfs_size_mb", 128)),
+            sync_interval_seconds=float(ring_raw.get("sync_interval_seconds", 30.0)),
+        ),
+        witness=WitnessSettings(
+            enabled=bool(witness_raw.get("enabled", False)),
+            receiver_url=str(witness_raw.get("receiver_url", "https://panel.example.com:9876")),
+            token=str(witness_raw.get("token", os.environ.get("CRASHHUNTER_WITNESS_TOKEN", ""))),
+            host_id=str(witness_raw.get("host_id", "")),
+            send_timeout_seconds=float(witness_raw.get("send_timeout_seconds", 3.0)),
+            listen_host=str(witness_raw.get("listen_host", "0.0.0.0")),
+            listen_port=int(witness_raw.get("listen_port", 9876)),
+            monitor_enabled=bool(witness_raw.get("monitor_enabled", True)),
+            timeout_seconds=float(witness_raw.get("timeout_seconds", 15.0)),
+            death_threshold_seconds=float(witness_raw.get("death_threshold_seconds", 30.0)),
+            check_interval_seconds=float(witness_raw.get("check_interval_seconds", 5.0)),
+        ),
+        sysrq=SysRqSettings(
+            enabled=bool(sysrq_raw.get("enabled", True)),
+            auto_on_incident=bool(sysrq_raw.get("auto_on_incident", True)),
+            watchdog_sequence=bool(sysrq_raw.get("watchdog_sequence", True)),
+            sequence_wait_seconds=float(sysrq_raw.get("sequence_wait_seconds", 2.0)),
+            trigger_after_seconds=float(sysrq_raw.get("trigger_after_seconds", 10.0)),
+        ),
+        netconsole=NetconsoleSettings(
+            enabled=bool(netconsole_raw.get("enabled", False)),
+            local_ip=str(netconsole_raw.get("local_ip", "")),
+            local_port=int(netconsole_raw.get("local_port", 6666)),
+            remote_ip=str(netconsole_raw.get("remote_ip", "")),
+            remote_port=int(netconsole_raw.get("remote_port", 6666)),
+            interface=str(netconsole_raw.get("interface", "eth0")),
+        ),
+        perf=PerfSettings(
+            enabled=bool(perf_raw.get("enabled", True)),
+            duration_seconds=float(perf_raw.get("duration_seconds", 30.0)),
+        ),
+        ftrace=FtraceSettings(
+            enabled=bool(ftrace_raw.get("enabled", True)),
+            duration_seconds=float(ftrace_raw.get("duration_seconds", 10.0)),
+        ),
+        qemu_gdb=QemuGdbSettings(
+            enabled=bool(qemu_gdb_raw.get("enabled", True)),
+            timeout_seconds=float(qemu_gdb_raw.get("timeout_seconds", 15.0)),
+            max_processes=int(qemu_gdb_raw.get("max_processes", 3)),
+        ),
+        benchmark=BenchmarkSettings(
+            enabled=bool(benchmark_raw.get("enabled", True)),
+            run_fio=bool(benchmark_raw.get("run_fio", True)),
+            run_stress_ng=bool(benchmark_raw.get("run_stress_ng", True)),
+            run_smart=bool(benchmark_raw.get("run_smart", True)),
+            ping_target=str(benchmark_raw.get("ping_target", "1.1.1.1")),
+            max_duration_seconds=float(benchmark_raw.get("max_duration_seconds", 120.0)),
+        ),
+        web=WebSettings(
+            enabled=bool(web_raw.get("enabled", False)),
+            listen_host=str(web_raw.get("listen_host", "127.0.0.1")),
+            listen_port=int(web_raw.get("listen_port", 8765)),
+        ),
+        panel=PanelSettings(
+            enabled=bool(panel_raw.get("enabled", False)),
+            url=str(panel_raw.get("url", os.environ.get("OBIORA_PANEL_URL", ""))),
+            server_id=int(panel_raw.get("server_id", os.environ.get("OBIORA_SERVER_ID", 0) or 0)),
+            agent_token=str(panel_raw.get("agent_token", os.environ.get("OBIORA_AGENT_TOKEN", ""))),
+            push_interval_seconds=float(panel_raw.get("push_interval_seconds", 30.0)),
+            snapshot_batch_size=int(panel_raw.get("snapshot_batch_size", 5)),
         ),
         self_monitor=SelfMonitorSettings(
             enabled=bool(self_raw.get("enabled", True)),

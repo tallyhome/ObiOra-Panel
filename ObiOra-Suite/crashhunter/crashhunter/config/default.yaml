@@ -1,14 +1,71 @@
-# CrashHunter Enterprise — configuration
+# CrashHunter Enterprise v2.1 — configuration
 # Override via /opt/crashhunter/config.yaml or CRASHHUNTER_CONFIG env var.
 
 daemon:
   base_dir: /opt/crashhunter
-  interval_seconds: 5.0   # 1.0 or 5.0 — ring auto-sized for 60 min
+  interval_seconds: 5.0
   log_level: INFO
   hostname: ""
 
 ring:
-  capacity: 0   # 0 = auto (3600/interval_seconds)
+  capacity: 0
+  use_tmpfs: true
+  tmpfs_path: /dev/shm/crashhunter-ring
+  tmpfs_size_mb: 128
+  sync_interval_seconds: 30
+
+witness:
+  enabled: false
+  receiver_url: "http://VPS_IP:9876"
+  token: ""
+  host_id: ""
+  send_timeout_seconds: 3
+  timeout_seconds: 15
+  death_threshold_seconds: 30
+  check_interval_seconds: 5
+  listen_host: "0.0.0.0"
+  listen_port: 9876
+  monitor_enabled: true
+
+sysrq:
+  enabled: true
+  auto_on_incident: true
+  watchdog_sequence: true
+  sequence_wait_seconds: 2
+  trigger_after_seconds: 10
+
+netconsole:
+  enabled: false
+  local_ip: ""
+  local_port: 6666
+  remote_ip: ""
+  remote_port: 6666
+  interface: eth0
+
+perf:
+  enabled: true
+  duration_seconds: 30
+
+ftrace:
+  enabled: true
+  duration_seconds: 10
+
+qemu_gdb:
+  enabled: true
+  timeout_seconds: 15
+  max_processes: 3
+
+benchmark:
+  enabled: true
+  run_fio: true
+  run_stress_ng: true
+  run_smart: true
+  ping_target: "1.1.1.1"
+
+web:
+  enabled: false
+  listen_host: "127.0.0.1"
+  listen_port: 8765
 
 sampling:
   top_process_count: 50
@@ -52,6 +109,7 @@ collectors:
     - xfs
     - libvirt
     - qemu
+    - blkmq
     - scheduler
     - interrupt
     - softirq
@@ -66,7 +124,6 @@ collectors:
     - pci
     - ssh
     - ping
-    # - ebpf   # optional — enable if bpftrace installed
 
 command_thresholds:
   default_ms: 3000
@@ -86,6 +143,7 @@ thresholds:
 similarity:
   enabled: true
   min_confidence: 0.5
+  min_crashes_for_ml: 20
   index_file: similarity_index.json
 
 self_monitor:
@@ -114,7 +172,7 @@ retention:
   compress_after_days: 7
 
 rules:
-  path: ""   # empty = built-in analysis/rules/default.yaml
+  path: ""
 
 simulation:
   enabled: false

@@ -9,6 +9,7 @@ from typing import Any
 
 from crashhunter import __version__
 from crashhunter.analysis.correlation import CorrelationEngine
+from crashhunter.analysis.ml_similarity import CrashLearningEngine
 from crashhunter.analysis.reboot_classifier import RebootClassifier
 from crashhunter.analysis.recommendations import RecommendationsEngine
 from crashhunter.analysis.regression import RegressionDetector
@@ -39,6 +40,7 @@ class ReportGenerator:
         self.settings = settings
         self.diagnosis = DiagnosisEngine()
         self.similarity = SimilarityEngine(settings)
+        self.ml_learning = CrashLearningEngine(self.similarity, settings.similarity.min_crashes_for_ml)
         self.chronological = ChronologicalReportBuilder()
         self.correlation = CorrelationEngine()
         self.reboot_classifier = RebootClassifier()
@@ -68,6 +70,11 @@ class ReportGenerator:
         regression = self.regression.check(version_sig)
 
         similar = self.similarity.find_similar({
+            "report_id": report_id,
+            "diagnosis": diagnosis,
+            "blackbox": correlation_data,
+        })
+        ml_prediction = self.ml_learning.predict({
             "report_id": report_id,
             "diagnosis": diagnosis,
             "blackbox": correlation_data,
@@ -104,6 +111,7 @@ class ReportGenerator:
             "causal_correlation": causal,
             "chronological_report": chronological,
             "similar_crashes": similar,
+            "ml_prediction": ml_prediction,
             "recommendations": recommendations,
         }
 

@@ -1,9 +1,10 @@
-"""Circular ring buffer for 720 snapshots (60 minutes at 5s interval)."""
+"""Circular ring buffer with optional tmpfs + periodic disk sync."""
 
 from __future__ import annotations
 
 import json
 import logging
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -11,16 +12,27 @@ logger = logging.getLogger("crashhunter.ring")
 
 
 class RingBuffer:
-    """In-memory circular buffer with disk persistence for crash survival."""
+    """In-memory circular buffer with optional deferred disk persistence."""
 
-    def __init__(self, capacity: int, ring_dir: Path) -> None:
+    def __init__(
+        self,
+        capacity: int,
+        ring_dir: Path,
+        sync_dir: Path | None = None,
+        defer_disk_writes: bool = False,
+    ) -> None:
         self.capacity = capacity
         self.ring_dir = ring_dir
+        self.sync_dir = sync_dir or ring_dir
+        self.defer_disk_writes = defer_disk_writes
         self.ring_dir.mkdir(parents=True, exist_ok=True)
+        self.sync_dir.mkdir(parents=True, exist_ok=True)
         self._buffer: list[dict[str, Any] | None] = [None] * capacity
         self._index = 0
         self._count = 0
-        self._meta_file = ring_dir / "meta.json"
+        self._dirty_slots: set[int] = set()
+        self._meta_file = self.ring_dir / "meta.json"
+        self._sync_meta_file = self.sync_dir / "meta.json"
         self._load_meta()
 
     @property
@@ -31,11 +43,32 @@ class RingBuffer:
         """Add snapshot to ring; returns slot index."""
         slot = self._index
         self._buffer[slot] = snapshot
-        self._write_slot(slot, snapshot)
+        if self.defer_disk_writes:
+            self._dirty_slots.add(slot)
+        else:
+            self._write_slot(slot, snapshot, self.ring_dir)
+            self._write_slot(slot, snapshot, self.sync_dir)
         self._index = (self._index + 1) % self.capacity
         self._count = min(self._count + 1, self.capacity)
         self._save_meta()
         return slot
+
+    def sync_to_disk(self) -> int:
+        """Flush dirty in-memory slots to persistent sync_dir."""
+        synced = 0
+        for slot in list(self._dirty_slots):
+            snap = self._buffer[slot]
+            if snap is not None:
+                self._write_slot(slot, snap, self.sync_dir)
+                synced += 1
+        self._dirty_slots.clear()
+        if synced:
+            meta = {"index": self._index, "count": self._count, "capacity": self.capacity}
+            try:
+                self._sync_meta_file.write_text(json.dumps(meta), encoding="utf-8")
+            except OSError as exc:
+                logger.error("Failed to save sync meta: %s", exc)
+        return synced
 
     def get_all_ordered(self) -> list[dict[str, Any]]:
         """Return snapshots in chronological order."""
@@ -51,11 +84,11 @@ class RingBuffer:
                 ordered.append(snap)
         return ordered
 
-    def _slot_path(self, slot: int) -> Path:
-        return self.ring_dir / f"snap_{slot:04d}.json"
+    def _slot_path(self, slot: int, base: Path) -> Path:
+        return base / f"snap_{slot:04d}.json"
 
-    def _write_slot(self, slot: int, snapshot: dict[str, Any]) -> None:
-        path = self._slot_path(slot)
+    def _write_slot(self, slot: int, snapshot: dict[str, Any], base: Path) -> None:
+        path = self._slot_path(slot, base)
         try:
             path.write_text(json.dumps(snapshot, ensure_ascii=False), encoding="utf-8")
         except OSError as exc:
@@ -69,18 +102,21 @@ class RingBuffer:
             logger.error("Failed to save ring meta: %s", exc)
 
     def _load_meta(self) -> None:
-        if not self._meta_file.exists():
-            return
-        try:
-            meta = json.loads(self._meta_file.read_text(encoding="utf-8"))
-            self._index = int(meta.get("index", 0))
-            self._count = int(meta.get("count", 0))
-        except (OSError, json.JSONDecodeError, ValueError) as exc:
-            logger.warning("Could not load ring meta: %s", exc)
+        for meta_path in (self._meta_file, self._sync_meta_file):
+            if not meta_path.exists():
+                continue
+            try:
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                self._index = int(meta.get("index", 0))
+                self._count = int(meta.get("count", 0))
+                break
+            except (OSError, json.JSONDecodeError, ValueError) as exc:
+                logger.warning("Could not load ring meta: %s", exc)
 
     def _load_all_from_disk(self) -> list[dict[str, Any]]:
+        base = self.sync_dir if self.sync_dir.exists() else self.ring_dir
         snapshots: list[tuple[int, dict[str, Any]]] = []
-        for path in self.ring_dir.glob("snap_*.json"):
+        for path in base.glob("snap_*.json"):
             try:
                 slot = int(path.stem.split("_")[1])
                 data = json.loads(path.read_text(encoding="utf-8"))
@@ -99,10 +135,28 @@ class RingBuffer:
 
     def load_from_disk(self) -> None:
         """Hydrate in-memory buffer from persisted ring files."""
-        for path in self.ring_dir.glob("snap_*.json"):
+        base = self.sync_dir if list(self.sync_dir.glob("snap_*.json")) else self.ring_dir
+        for path in base.glob("snap_*.json"):
             try:
                 slot = int(path.stem.split("_")[1])
                 if 0 <= slot < self.capacity:
                     self._buffer[slot] = json.loads(path.read_text(encoding="utf-8"))
             except (ValueError, json.JSONDecodeError, OSError):
                 continue
+
+    @staticmethod
+    def ensure_tmpfs(tmpfs_path: Path, size_mb: int = 128) -> bool:
+        """Mount tmpfs at path if not already mounted (Linux only)."""
+        if tmpfs_path.exists() and any(tmpfs_path.iterdir()):
+            return True
+        tmpfs_path.mkdir(parents=True, exist_ok=True)
+        import shutil
+        if not shutil.which("mount"):
+            return False
+        from crashhunter.utils.subprocess_runner import SubprocessRunner
+        runner = SubprocessRunner(default_timeout=5.0)
+        result = runner.run(
+            ["mount", "-t", "tmpfs", "-o", f"size={size_mb}M", "crashhunter-ring", str(tmpfs_path)],
+            timeout=5.0,
+        )
+        return result.returncode == 0

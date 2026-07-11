@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
-# ObiOra Doctor & Suite — installation unifiée (Doctor + Crash Analyzer)
+# ObiOra Doctor & Suite — installation unifiée (Doctor + Crash Analyzer + CrashHunter)
 # Usage: curl -fsSL https://panel/install/doctor-suite.sh | sudo OBIORA_PANEL_URL=... OBIORA_SERVER_ID=... OBIORA_AGENT_TOKEN=... bash
 set -euo pipefail
 
 PANEL_URL="${OBIORA_PANEL_URL:?OBIORA_PANEL_URL requis}"
 SERVER_ID="${OBIORA_SERVER_ID:?OBIORA_SERVER_ID requis}"
 AGENT_TOKEN="${OBIORA_AGENT_TOKEN:?OBIORA_AGENT_TOKEN requis}"
+
+INSTALL_DOCTOR="${OBIORA_INSTALL_DOCTOR:-yes}"
+INSTALL_CRASH_ANALYZER="${OBIORA_INSTALL_CRASH_ANALYZER:-yes}"
+INSTALL_CRASH_HUNTER="${OBIORA_INSTALL_CRASH_HUNTER:-yes}"
 
 SCRIPT_DIR="/tmp"
 
@@ -15,23 +19,38 @@ export OBIORA_PANEL_URL="${PANEL_URL}"
 export OBIORA_SERVER_ID="${SERVER_ID}"
 export OBIORA_AGENT_TOKEN="${AGENT_TOKEN}"
 
-if [[ -f "${SCRIPT_DIR}/bootstrap-doctor-agent.sh" ]]; then
-    bash "${SCRIPT_DIR}/bootstrap-doctor-agent.sh"
-elif curl -fsSL "${PANEL_URL%/}/install/doctor-agent.sh" -o /tmp/obiora-doctor-install.sh 2>/dev/null; then
-    bash /tmp/obiora-doctor-install.sh
-    rm -f /tmp/obiora-doctor-install.sh
-else
-    echo "ERREUR: impossible de récupérer le script Doctor" >&2
-    exit 1
+if [[ "${INSTALL_DOCTOR}" == "yes" ]]; then
+    if [[ -f "${SCRIPT_DIR}/bootstrap-doctor-agent.sh" ]]; then
+        bash "${SCRIPT_DIR}/bootstrap-doctor-agent.sh"
+    elif curl -fsSL "${PANEL_URL%/}/install/doctor-agent.sh" -o /tmp/obiora-doctor-install.sh 2>/dev/null; then
+        bash /tmp/obiora-doctor-install.sh
+        rm -f /tmp/obiora-doctor-install.sh
+    else
+        echo "ERREUR: impossible de récupérer le script Doctor" >&2
+        exit 1
+    fi
 fi
 
-if [[ -f "${SCRIPT_DIR}/install-crash-analyzer.sh" ]]; then
-    bash "${SCRIPT_DIR}/install-crash-analyzer.sh"
-elif curl -fsSL "${PANEL_URL%/}/install/crash-analyzer.sh" -o /tmp/obiora-crash-install.sh 2>/dev/null; then
-    bash /tmp/obiora-crash-install.sh
-    rm -f /tmp/obiora-crash-install.sh
-else
-    echo "AVERTISSEMENT: Crash Analyzer non installé (script introuvable)" >&2
+if [[ "${INSTALL_CRASH_ANALYZER}" == "yes" ]]; then
+    if [[ -f "${SCRIPT_DIR}/install-crash-analyzer.sh" ]]; then
+        bash "${SCRIPT_DIR}/install-crash-analyzer.sh"
+    elif curl -fsSL "${PANEL_URL%/}/install/crash-analyzer.sh" -o /tmp/obiora-crash-install.sh 2>/dev/null; then
+        bash /tmp/obiora-crash-install.sh
+        rm -f /tmp/obiora-crash-install.sh
+    else
+        echo "AVERTISSEMENT: Crash Analyzer non installé (script introuvable)" >&2
+    fi
 fi
 
-echo "OK: ObiOra Doctor & Crash Analyzer installés"
+if [[ "${INSTALL_CRASH_HUNTER}" == "yes" ]]; then
+    if [[ -f "${SCRIPT_DIR}/install-crash-hunter.sh" ]]; then
+        bash "${SCRIPT_DIR}/install-crash-hunter.sh"
+    elif curl -fsSL "${PANEL_URL%/}/install/crash-hunter.sh" -o /tmp/obiora-crashhunter-install.sh 2>/dev/null; then
+        bash /tmp/obiora-crashhunter-install.sh
+        rm -f /tmp/obiora-crashhunter-install.sh
+    else
+        echo "AVERTISSEMENT: CrashHunter non installé (script introuvable)" >&2
+    fi
+fi
+
+echo "OK: ObiOra Doctor & Suite installés (Doctor=${INSTALL_DOCTOR}, CrashAnalyzer=${INSTALL_CRASH_ANALYZER}, CrashHunter=${INSTALL_CRASH_HUNTER})"

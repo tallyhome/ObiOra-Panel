@@ -6,13 +6,14 @@ namespace App\Support;
 
 use App\Enums\ServerStatus;
 use App\Models\CrashAnalyzerMetric;
+use App\Models\CrashHunterMetric;
 use App\Models\DiagnosticReport;
 use App\Models\Server;
 
 final class ServerAgentStatus
 {
     /**
-     * @return array{slave: bool, doctor: bool, crash: bool, any: bool}
+     * @return array{slave: bool, doctor: bool, crash: bool, crash_hunter: bool, any: bool}
      */
     public function flags(Server $server): array
     {
@@ -31,11 +32,16 @@ final class ServerAgentStatus
             || in_array('doctor_suite', $components, true)
             || CrashAnalyzerMetric::query()->where('server_id', $server->id)->exists();
 
+        $crashHunter = in_array('crash_hunter', $components, true)
+            || isset($meta['crash_hunter'])
+            || CrashHunterMetric::query()->where('server_id', $server->id)->exists();
+
         return [
             'slave' => $slave,
             'doctor' => $doctor,
             'crash' => $crash,
-            'any' => $slave || $doctor || $crash,
+            'crash_hunter' => $crashHunter,
+            'any' => $slave || $doctor || $crash || $crashHunter,
         ];
     }
 }

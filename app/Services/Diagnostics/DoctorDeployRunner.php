@@ -29,6 +29,7 @@ final class DoctorDeployRunner
         string $sshUser,
         bool $installDoctor = true,
         bool $installCrashAnalyzer = true,
+        bool $installCrashHunter = true,
     ): void {
         $server = Server::query()->find($serverId);
 
@@ -43,7 +44,7 @@ final class DoctorDeployRunner
             $this->progress->appendLog($serverId, "Cible : {$sshUser}@{$sshHost}:{$sshPort}");
 
             if (PanelLocalTarget::isPanelServer($server, $sshHost)) {
-                $this->runLocalDeploy($server, $installDoctor, $installCrashAnalyzer);
+                $this->runLocalDeploy($server, $installDoctor, $installCrashAnalyzer, $installCrashHunter);
 
                 return;
             }
@@ -82,6 +83,7 @@ final class DoctorDeployRunner
                 $ssh,
                 $installDoctor,
                 $installCrashAnalyzer,
+                $installCrashHunter,
                 function (int $pct, string $msg, array $steps) use ($serverId): void {
                     $this->progress->update($serverId, $pct, $msg, $steps);
                     $this->progress->appendLog($serverId, $msg);
@@ -175,7 +177,7 @@ final class DoctorDeployRunner
         return 'doctor_deploy_bootstrap:'.$serverId;
     }
 
-    private function runLocalDeploy(Server $server, bool $installDoctor, bool $installCrashAnalyzer): void
+    private function runLocalDeploy(Server $server, bool $installDoctor, bool $installCrashAnalyzer, bool $installCrashHunter = true): void
     {
         $serverId = $server->id;
 
@@ -193,6 +195,7 @@ final class DoctorDeployRunner
             $server,
             $installDoctor,
             $installCrashAnalyzer,
+            $installCrashHunter,
             function (int $pct, string $msg, array $steps) use ($serverId): void {
                 $this->progress->update($serverId, $pct, $msg, $steps);
                 $this->progress->appendLog($serverId, $msg);

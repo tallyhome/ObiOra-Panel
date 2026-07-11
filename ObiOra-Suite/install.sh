@@ -15,10 +15,11 @@ fi
 
 # Dépendances système
 if command -v dnf &>/dev/null; then
-  dnf install -y python3.12 python3.12-pip ipmitool smartmontools sysstat lm_sensors 2>/dev/null || true
+  dnf install -y python3.12 python3.12-pip ipmitool smartmontools sysstat lm_sensors \
+    gdb perf fio stress-ng zstd 2>/dev/null || true
 fi
 
-mkdir -p "$INSTALL_DIR"
+mkdir -p "$INSTALL_DIR" /dev/shm/crashhunter-ring
 rsync -a --delete \
   --exclude='.pytest_cache' \
   --exclude='__pycache__' \
@@ -55,4 +56,9 @@ echo "  Status:  systemctl status crashhunter"
 echo "  Logs:    journalctl -u crashhunter -f"
 echo "  CLI:     $INSTALL_DIR/venv/bin/crashhunter status"
 echo "  Rapport: $INSTALL_DIR/venv/bin/crashhunter report --force"
+echo "  OVH:     $INSTALL_DIR/venv/bin/crashhunter ovh-report"
+echo "  Web UI:  $INSTALL_DIR/venv/bin/crashhunter web"
+echo ""
+echo "Remote Witness (VPS): crashhunter witness-server"
+echo "Remote Witness (dédié): activer witness.enabled dans config.yaml"
 echo ""

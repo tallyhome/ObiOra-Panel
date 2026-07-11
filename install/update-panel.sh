@@ -153,10 +153,6 @@ echo "[2a/8] purge caches Laravel…"
 progress 30 "Purge des caches (routes, vues)…"
 clear_panel_caches
 
-echo "[2b/8] migrations préliminaires…"
-progress 34 "Application des migrations…"
-sudo -u "${OBIORA_USER}" php artisan migrate --force
-
 # Helper setuid APRÈS git sync (pour récupérer les correctifs avant installation)
 if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/common.sh" ]] && [[ -f "${OBIORA_INSTALL_DIR}/install/lib/panel-update-helper.sh" ]]; then
     # shellcheck source=/dev/null
@@ -170,6 +166,10 @@ echo "[3/8] composer..."
 progress 42 "Installation des dépendances PHP (composer)…"
 sudo -u "${OBIORA_USER}" env PATH=/usr/local/bin:/usr/bin:/bin \
     composer install --no-dev --optimize-autoloader --no-interaction
+
+echo "[3b/8] migrations base de données…"
+progress 46 "Application des migrations…"
+sudo -u "${OBIORA_USER}" php artisan migrate --force
 
 echo "[4/8] assets frontend..."
 if command -v npm &>/dev/null && [[ -f package.json ]]; then
@@ -237,7 +237,7 @@ if command -v npm &>/dev/null && [[ -f package.json ]]; then
 fi
 
 echo "[5/8] artisan post-deploy..."
-progress 72 "Migrations, RBAC et cache permissions…"
+progress 72 "RBAC et cache permissions…"
 sudo -u "${OBIORA_USER}" php artisan obiora:post-deploy --skip-migrate
 sudo -u "${OBIORA_USER}" php artisan obiora:setup-site-api --ensure --quiet-output 2>/dev/null || true
 clear_panel_caches

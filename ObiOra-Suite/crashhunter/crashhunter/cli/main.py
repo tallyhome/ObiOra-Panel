@@ -51,6 +51,18 @@ def build_parser() -> argparse.ArgumentParser:
     bundle_parser = sub.add_parser("bundle", help="Create diagnostic bundle from latest report")
     bundle_parser.add_argument("--report-dir", type=Path, help="Specific report directory")
 
+    sub.add_parser("witness-server", help="Start Remote Witness receiver (VPS)")
+    witness_status = sub.add_parser("witness-status", help="Show witness host status")
+    witness_status.add_argument("--json", action="store_true")
+
+    sub.add_parser("web", help="Start CrashHunter Web Dashboard")
+
+    ovh_parser = sub.add_parser("ovh-report", help="Generate OVH support ticket package")
+    ovh_parser.add_argument("--report-dir", type=Path, help="Specific report directory")
+
+    nc_parser = sub.add_parser("netconsole", help="Configure netconsole to VPS")
+    nc_parser.add_argument("--remove", action="store_true", help="Remove netconsole config")
+
     return parser
 
 
@@ -169,8 +181,6 @@ def cmd_simulate(args: argparse.Namespace) -> int:
 
 
 def cmd_bundle(args: argparse.Namespace) -> int:
-    import json
-
     settings = _settings(args)
     settings.ensure_directories()
     report_dir = args.report_dir
@@ -189,6 +199,77 @@ def cmd_bundle(args: argparse.Namespace) -> int:
     path = export_bundle(report, report_dir, settings.base_dir)
     print(f"Bundle created: {path}")
     return 0
+
+
+def cmd_witness_server(args: argparse.Namespace) -> int:
+    from crashhunter.witness.receiver import WitnessReceiver
+
+    settings = _settings(args)
+    settings.ensure_directories()
+    setup_logging(settings.log_level, settings.logs_dir / "witness.log")
+    return WitnessReceiver(settings).run()
+
+
+def cmd_witness_status(args: argparse.Namespace) -> int:
+    from crashhunter.witness.monitor import WitnessMonitor
+    from crashhunter.witness.store import WitnessStore
+
+    settings = _settings(args)
+    store = WitnessStore(settings.witness_data_dir)
+    monitor = WitnessMonitor(settings, store)
+    status = monitor.check_all()
+    if args.json:
+        print(json.dumps(status, indent=2, default=str))
+    else:
+        for host in status:
+            print(f"{host['host']}: {host['status']} (last {host['age_seconds']}s ago)")
+    return 0
+
+
+def cmd_web(args: argparse.Namespace) -> int:
+    from crashhunter.web.server import WebDashboard
+
+    settings = _settings(args)
+    settings.ensure_directories()
+    setup_logging(settings.log_level, settings.logs_dir / "web.log")
+    return WebDashboard(settings).run()
+
+
+def cmd_ovh_report(args: argparse.Namespace) -> int:
+    settings = _settings(args)
+    settings.ensure_directories()
+    report_dir = args.report_dir
+    if not report_dir:
+        reports = sorted(settings.reports_dir.glob("CrashReport_*"), key=lambda p: p.stat().st_mtime, reverse=True)
+        if not reports:
+            print("No reports found.")
+            return 1
+        report_dir = reports[0]
+    json_files = list(report_dir.glob("CrashReport_*.json"))
+    if not json_files:
+        print(f"No JSON report in {report_dir}")
+        return 1
+    report = json.loads(json_files[0].read_text(encoding="utf-8"))
+    from crashhunter.report.exporters.ovh_export import generate_ovh_report
+
+    result = generate_ovh_report(report, report_dir, settings.base_dir)
+    print(f"OVH summary: {result['summary_path']}")
+    print(f"OVH JSON:    {result['json_path']}")
+    print(f"Bundle:      {result['bundle_path']}")
+    return 0
+
+
+def cmd_netconsole(args: argparse.Namespace) -> int:
+    from crashhunter.kernel.netconsole import NetconsoleManager
+
+    settings = _settings(args)
+    mgr = NetconsoleManager(settings)
+    if getattr(args, "remove", False):
+        result = mgr.remove()
+    else:
+        result = mgr.configure()
+    print(json.dumps(result, indent=2))
+    return 0 if result.get("configured") or result.get("removed") else 1
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -211,6 +292,16 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_simulate(args)
     if args.command == "bundle":
         return cmd_bundle(args)
+    if args.command == "witness-server":
+        return cmd_witness_server(args)
+    if args.command == "witness-status":
+        return cmd_witness_status(args)
+    if args.command == "web":
+        return cmd_web(args)
+    if args.command == "ovh-report":
+        return cmd_ovh_report(args)
+    if args.command == "netconsole":
+        return cmd_netconsole(args)
 
     parser.print_help()
     return 1

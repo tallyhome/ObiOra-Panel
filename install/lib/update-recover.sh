@@ -103,8 +103,9 @@ echo "[recover] Dépendances PHP et assets frontend…"
 ensure_composer_autoload
 ensure_frontend_manifest || true
 
-echo "[recover] RBAC, permissions et caches Laravel…"
+echo "[recover] Migrations, RBAC, permissions et caches Laravel…"
 run_artisan up
+run_artisan migrate --force
 run_artisan obiora:post-deploy --skip-migrate
 run_artisan optimize:clear
 run_artisan route:clear

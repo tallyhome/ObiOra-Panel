@@ -28,6 +28,7 @@ final class DoctorRemoteDeployService
         SshConnection $connection,
         bool $installDoctor = true,
         bool $installCrashAnalyzer = true,
+        bool $installCrashHunter = true,
         ?callable $onProgress = null,
     ): array {
         $steps = [];
@@ -37,13 +38,16 @@ final class DoctorRemoteDeployService
             $onProgress(40, 'Exécution des scripts d\'installation…', $steps);
         }
 
-        if ($installDoctor && $installCrashAnalyzer) {
+        if ($installDoctor || $installCrashAnalyzer || $installCrashHunter) {
             $command = sprintf(
-                'curl -fsSL %s/install/doctor-suite.sh | sudo OBIORA_PANEL_URL=%s OBIORA_SERVER_ID=%d OBIORA_AGENT_TOKEN=%s bash',
+                'curl -fsSL %s/install/doctor-suite.sh | sudo OBIORA_PANEL_URL=%s OBIORA_SERVER_ID=%d OBIORA_AGENT_TOKEN=%s OBIORA_INSTALL_DOCTOR=%s OBIORA_INSTALL_CRASH_ANALYZER=%s OBIORA_INSTALL_CRASH_HUNTER=%s bash',
                 $panelUrl,
                 $panelUrl,
                 $server->id,
                 $server->agent_token,
+                $installDoctor ? 'yes' : 'no',
+                $installCrashAnalyzer ? 'yes' : 'no',
+                $installCrashHunter ? 'yes' : 'no',
             );
             $result = $this->runRemote($connection, $command);
             $steps[] = [
@@ -51,8 +55,15 @@ final class DoctorRemoteDeployService
                 'success' => $result['success'],
                 'output' => $result['output'],
             ];
+            if ($installCrashHunter && $result['success']) {
+                $steps[] = [
+                    'component' => 'crash_hunter',
+                    'success' => true,
+                    'output' => 'CrashHunter inclus dans doctor-suite',
+                ];
+            }
             if ($onProgress !== null) {
-                $onProgress(85, 'Finalisation Doctor & Crash Analyzer…', $steps);
+                $onProgress(85, 'Finalisation Doctor & Suite…', $steps);
             }
         } else {
             if ($installDoctor) {
@@ -76,6 +87,17 @@ final class DoctorRemoteDeployService
                 if ($onProgress !== null) {
                     $onProgress(85, 'Installation Crash Analyzer…', $steps);
                 }
+            }
+            if ($installCrashHunter) {
+                $command = sprintf(
+                    'curl -fsSL %s/install/crash-hunter.sh | sudo OBIORA_PANEL_URL=%s OBIORA_SERVER_ID=%d OBIORA_AGENT_TOKEN=%s bash',
+                    $panelUrl,
+                    $panelUrl,
+                    $server->id,
+                    $server->agent_token,
+                );
+                $result = $this->runRemote($connection, $command);
+                $steps[] = ['component' => 'crash_hunter', 'success' => $result['success'], 'output' => $result['output']];
             }
         }
 

@@ -6,6 +6,8 @@ use App\Livewire\Modules\ModuleStubIndex;
 use App\Support\ModuleStubRegistry;
 use App\Http\Controllers\Api\DiagnosticReportController;
 use App\Http\Controllers\Api\CrashAnalyzerController;
+use App\Http\Controllers\Api\CrashHunterController;
+use App\Http\Controllers\Api\CrashHunterAgentController;
 use App\Http\Controllers\ApplicationIconController;
 use App\Http\Controllers\MarketplaceInstallSetupController;
 use App\Http\Controllers\CrashAnalyzerExportController;
@@ -76,6 +78,25 @@ Route::get('/install/crash-analyzer.tar.gz', function () {
         'obiora-crash-analyzer.tar.gz',
     );
 })->name('install.crash-analyzer.bundle');
+
+Route::get('/install/crash-hunter.sh', function () {
+    $path = base_path('agent/scripts/install-crash-hunter.sh');
+
+    abort_unless(is_readable($path), 404);
+
+    return response(
+        (string) file_get_contents($path),
+        200,
+        ['Content-Type' => 'text/x-shellscript; charset=utf-8'],
+    );
+})->name('install.crash-hunter');
+
+Route::get('/install/crash-hunter.tar.gz', function () {
+    return AgentBundlePublisher::streamTarGz(
+        base_path('ObiOra-Suite/crashhunter'),
+        'obiora-crash-hunter.tar.gz',
+    );
+})->name('install.crash-hunter.bundle');
 
 Route::get('/install/doctor-suite.sh', function () {
     $path = base_path('agent/scripts/install-doctor-suite.sh');
@@ -158,6 +179,12 @@ Route::middleware(['setup', 'auth', 'demo.active', 'server'])->group(function ()
 
         Route::prefix('api/crash-analyzer')->name('crash-analyzer.api.')->group(function () {
             Route::get('/servers/{server}/dashboard', [CrashAnalyzerController::class, 'dashboard'])->name('dashboard');
+        });
+
+        Route::prefix('api/crash-hunter')->name('crash-hunter.api.')->group(function () {
+            Route::get('/servers/{server}/dashboard', [CrashHunterController::class, 'dashboard'])->name('dashboard');
+            Route::post('/servers/{server}/agents', [CrashHunterAgentController::class, 'listAgents'])->name('agents.list');
+            Route::post('/servers/{server}/agents/stop-all', [CrashHunterAgentController::class, 'stopAll'])->name('agents.stop-all');
         });
     });
 

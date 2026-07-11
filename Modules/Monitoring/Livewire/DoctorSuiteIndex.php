@@ -15,6 +15,7 @@ use App\Services\Diagnostics\DoctorDeployProgressService;
 use App\Services\Diagnostics\DoctorDeployRunner;
 use App\Services\Diagnostics\DoctorRemoteDeployService;
 use App\Services\Diagnostics\DoctorSuiteService;
+use App\Services\Diagnostics\RemoteAgentControlService;
 use App\Services\Diagnostics\LocalDoctorDeployService;
 use App\Services\Diagnostics\ServerSshKeyService;
 use App\Services\Diagnostics\ServerTimezoneService;
@@ -49,6 +50,17 @@ final class DoctorSuiteIndex extends Component
     public bool $deployDoctor = true;
 
     public bool $deployCrashAnalyzer = true;
+
+    public bool $deployCrashHunter = true;
+
+    /** @var list<array<string, mixed>> */
+    public array $runningAgents = [];
+
+    public bool $agentsLoading = false;
+
+    public ?string $agentControlMessage = null;
+
+    public bool $agentControlOk = false;
 
     public bool $deployRunning = false;
 
@@ -303,6 +315,7 @@ final class DoctorSuiteIndex extends Component
                 $this->sshUser,
                 $this->deployDoctor,
                 $this->deployCrashAnalyzer,
+                $this->deployCrashHunter,
             );
 
             $this->deployRunning = true;
@@ -396,6 +409,61 @@ final class DoctorSuiteIndex extends Component
             );
             $this->dispatch('notify', type: $ok ? 'success' : 'danger', message: (string) ($status['message'] ?? ''));
             $this->dispatch('deploy-console-scroll');
+        }
+    }
+
+    public function refreshRunningAgents(RemoteAgentControlService $control): void
+    {
+        $this->authorizeDeploy();
+        if (! $this->sshTestOk) {
+            $this->agentControlMessage = 'Testez d\'abord la connexion SSH.';
+            $this->agentControlOk = false;
+
+            return;
+        }
+
+        $this->agentsLoading = true;
+        $this->agentControlMessage = null;
+
+        try {
+            $server = Server::query()->findOrFail($this->serverId);
+            $result = $control->listAgents($server, $this->sshHost, $this->sshPort, $this->sshUser);
+            $this->runningAgents = $result['services'];
+            $this->agentControlOk = $result['success'];
+            $this->agentControlMessage = $result['message'];
+        } catch (\Throwable $e) {
+            $this->runningAgents = [];
+            $this->agentControlOk = false;
+            $this->agentControlMessage = $e->getMessage();
+        } finally {
+            $this->agentsLoading = false;
+        }
+    }
+
+    public function stopAllAgents(RemoteAgentControlService $control): void
+    {
+        $this->authorizeDeploy();
+        if (! $this->sshTestOk) {
+            $this->dispatch('notify', type: 'warning', message: 'Testez d\'abord la connexion SSH.');
+
+            return;
+        }
+
+        $this->agentsLoading = true;
+
+        try {
+            $server = Server::query()->findOrFail($this->serverId);
+            $result = $control->stopAllDiagnostics($server, $this->sshHost, $this->sshPort, $this->sshUser);
+            $this->agentControlOk = $result['success'];
+            $this->agentControlMessage = $result['message'];
+            $this->runningAgents = [];
+            $this->dispatch('notify', type: $result['success'] ? 'success' : 'danger', message: $result['message']);
+        } catch (\Throwable $e) {
+            $this->agentControlOk = false;
+            $this->agentControlMessage = $e->getMessage();
+            $this->dispatch('notify', type: 'danger', message: $e->getMessage());
+        } finally {
+            $this->agentsLoading = false;
         }
     }
 

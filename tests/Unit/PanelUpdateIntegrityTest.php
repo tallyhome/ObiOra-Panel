@@ -47,4 +47,24 @@ final class PanelUpdateIntegrityTest extends TestCase
         $this->assertContains('install/update-panel.sh', $paths);
         $this->assertContains('install/lib/update-recover.sh', $paths);
     }
+
+    public function test_update_panel_script_applies_migrations_after_composer(): void
+    {
+        $script = file_get_contents(base_path('install/update-panel.sh'));
+        $this->assertNotFalse($script);
+
+        $composerPos = strpos($script, 'composer install --no-dev --optimize-autoloader --no-interaction');
+        $migratePos = strpos($script, 'php artisan migrate --force');
+
+        $this->assertNotFalse($composerPos, 'composer install doit être présent dans update-panel.sh');
+        $this->assertNotFalse($migratePos, 'migrate --force doit être présent dans update-panel.sh');
+        $this->assertGreaterThan($composerPos, $migratePos, 'Les migrations doivent s\'exécuter après composer install');
+    }
+
+    public function test_update_recover_script_applies_pending_migrations(): void
+    {
+        $script = file_get_contents(base_path('install/lib/update-recover.sh'));
+        $this->assertNotFalse($script);
+        $this->assertStringContainsString('migrate --force', $script);
+    }
 }

@@ -40,6 +40,7 @@ final class LocalDoctorDeployService
         Server $server,
         bool $installDoctor = true,
         bool $installCrashAnalyzer = true,
+        bool $installCrashHunter = true,
         ?callable $onProgress = null,
     ): array {
         $steps = [];
@@ -49,44 +50,22 @@ final class LocalDoctorDeployService
             $onProgress(30, 'Installation locale (sans SSH)…', $steps);
         }
 
-        if ($installDoctor && $installCrashAnalyzer) {
-            $command = sprintf(
-                'curl -fsSL %s/install/doctor-suite.sh | sudo OBIORA_PANEL_URL=%s OBIORA_SERVER_ID=%d OBIORA_AGENT_TOKEN=%s bash',
-                escapeshellarg($panelUrl),
-                escapeshellarg($panelUrl),
-                $server->id,
-                escapeshellarg($server->agent_token),
-            );
-            $result = $this->runShell($command, 900);
-            $steps[] = [
-                'component' => 'doctor_suite',
-                'success' => $result['success'],
-                'output' => $result['output'],
-            ];
-        } else {
-            if ($installDoctor) {
-                $command = $this->doctor->remoteCommand($server);
-                $result = $this->runShell($command, 600);
-                $steps[] = ['component' => 'doctor', 'success' => $result['success'], 'output' => $result['output']];
-                if ($onProgress !== null) {
-                    $onProgress(55, 'Installation ObiOra Doctor…', $steps);
-                }
-            }
-            if ($installCrashAnalyzer) {
-                $command = sprintf(
-                    'curl -fsSL %s/install/crash-analyzer.sh | sudo OBIORA_PANEL_URL=%s OBIORA_SERVER_ID=%d OBIORA_AGENT_TOKEN=%s bash',
-                    escapeshellarg($panelUrl),
-                    escapeshellarg($panelUrl),
-                    $server->id,
-                    escapeshellarg($server->agent_token),
-                );
-                $result = $this->runShell($command, 600);
-                $steps[] = ['component' => 'crash_analyzer', 'success' => $result['success'], 'output' => $result['output']];
-                if ($onProgress !== null) {
-                    $onProgress(75, 'Installation Crash Analyzer…', $steps);
-                }
-            }
-        }
+        $command = sprintf(
+            'curl -fsSL %s/install/doctor-suite.sh | sudo OBIORA_PANEL_URL=%s OBIORA_SERVER_ID=%d OBIORA_AGENT_TOKEN=%s OBIORA_INSTALL_DOCTOR=%s OBIORA_INSTALL_CRASH_ANALYZER=%s OBIORA_INSTALL_CRASH_HUNTER=%s bash',
+            escapeshellarg($panelUrl),
+            escapeshellarg($panelUrl),
+            $server->id,
+            escapeshellarg($server->agent_token),
+            $installDoctor ? 'yes' : 'no',
+            $installCrashAnalyzer ? 'yes' : 'no',
+            $installCrashHunter ? 'yes' : 'no',
+        );
+        $result = $this->runShell($command, 900);
+        $steps[] = [
+            'component' => 'doctor_suite',
+            'success' => $result['success'],
+            'output' => $result['output'],
+        ];
 
         $success = $steps !== [] && collect($steps)->every(fn (array $s) => $s['success']);
 
@@ -108,6 +87,20 @@ final class LocalDoctorDeployService
         }
 
         return ['success' => $success, 'steps' => $steps];
+    }
+
+    /**
+     * @return array{success: bool, output: string, exit_code: int}
+     */
+    public function runCommand(string $command, int $timeout = 120): array
+    {
+        $result = $this->runShell($command, $timeout);
+
+        return [
+            'success' => $result['success'],
+            'output' => $result['output'],
+            'exit_code' => $result['success'] ? 0 : 1,
+        ];
     }
 
     /**

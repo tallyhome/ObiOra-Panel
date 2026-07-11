@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.43 - 2026-07-11
+
+- CrashHunter : intégration panel (Doctor & Suite, API ingest, tables BDD, déploiement SSH)
+- ObiOra-Suite : CrashHunter v2.1.0 (witness, sysrq, perf, web UI, panel bridge, etc.)
+- MAJ : migrations automatiques après `composer install` ; recovery applique aussi les migrations en attente
+
 ## v2.1.42 - 2026-07-11
 
 - Login : correction 500 après reboot (page 503 « démarrage en cours » si MariaDB/Redis pas prêts)

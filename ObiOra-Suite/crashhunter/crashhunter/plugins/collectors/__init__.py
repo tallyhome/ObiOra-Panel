@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from crashhunter.plugins.collectors.blkmq import BlkMqCollector
 from crashhunter.plugins.collectors.ebpf import EbpfCollector
 from crashhunter.plugins.collectors.hardware_extended import (
     IpmiCollector,
@@ -46,6 +47,7 @@ ENTERPRISE_COLLECTOR_CLASSES: list[type] = [
     XfsCollector,
     LibvirtCollector,
     QemuCollector,
+    BlkMqCollector,
     SchedulerCollector,
     InterruptCollector,
     SoftirqCollector,

@@ -5,7 +5,7 @@
     <div class="mb-4 d-flex flex-wrap justify-content-between align-items-start gap-2">
         <div>
             <h1 class="h3 mb-1">ObiOra Doctor & Suite</h1>
-            <p class="text-muted mb-0">Installez Doctor et Crash Analyzer sur vos serveurs dédiés et/ou VPS, puis consultez les diagnostics depuis le panel.</p>
+            <p class="text-muted mb-0">Installez Doctor, Crash Analyzer et CrashHunter sur vos serveurs dédiés et/ou VPS, puis consultez les diagnostics depuis le panel.</p>
         </div>
         @if($server)
         <div class="d-flex gap-2">
@@ -21,7 +21,7 @@
             <li class="mb-1">Choisissez le <strong>serveur panel</strong> (ci-dessous) — c'est l'entrée qui recevra les rapports.</li>
             <li class="mb-1">Renseignez l'<strong>IP</strong>, le <strong>port</strong>, l'<strong>utilisateur</strong> et le <strong>mot de passe SSH</strong> du serveur distant.</li>
             <li class="mb-1">Cliquez <strong>Tester la connexion</strong>.</li>
-            <li>Si le test est OK, cliquez <strong>Installer sur le serveur</strong> : le panel se connecte, installe la clé API, envoie Doctor + Crash Analyzer, exécute les scripts et affiche les données ici.</li>
+            <li>Si le test est OK, cliquez <strong>Installer sur le serveur</strong> : le panel se connecte, installe la clé API, envoie Doctor + Crash Analyzer + CrashHunter, exécute les scripts et affiche les données ici.</li>
         </ol>
         @if($reportCount > 0)
             <p class="small text-success mb-0 mt-2">{{ $reportCount }} rapport(s) Doctor en base — dernier {{ $lastReportLabel }}</p>
@@ -175,6 +175,9 @@
                                     @if($row['agents_crash'] ?? false)
                                         <span class="badge text-bg-danger" title="Crash Analyzer">Crash</span>
                                     @endif
+                                    @if($row['agents_crash_hunter'] ?? false)
+                                        <span class="badge text-bg-warning text-dark" title="CrashHunter Enterprise">Hunter</span>
+                                    @endif
                                     @if(!($row['deployed'] ?? false))
                                         <span class="badge text-bg-secondary">Aucun</span>
                                     @endif
@@ -277,9 +280,55 @@
                             <input class="form-check-input" type="checkbox" wire:model="deployCrashAnalyzer" id="deployCrash">
                             <label class="form-check-label small" for="deployCrash">Crash Analyzer</label>
                         </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" wire:model="deployCrashHunter" id="deployCrashHunter">
+                            <label class="form-check-label small" for="deployCrashHunter">CrashHunter Enterprise</label>
+                        </div>
                     </div>
 
                     @if($canManageServers)
+                    <div class="border rounded p-3 mb-3 bg-light">
+                        <span class="small fw-medium d-block mb-2">Contrôle des agents distants</span>
+                        <p class="small text-muted mb-2">Une fois le problème identifié et résolu, arrêtez les agents diagnostics pour libérer les ressources du serveur.</p>
+                        <div class="d-flex flex-wrap gap-2 mb-2">
+                            <button type="button" wire:click="refreshRunningAgents" wire:loading.attr="disabled" class="btn btn-outline-secondary btn-sm"
+                                    @if(!$sshTestOk) disabled @endif>
+                                <span wire:loading.remove wire:target="refreshRunningAgents">Voir les agents actifs</span>
+                                <span wire:loading wire:target="refreshRunningAgents">Lecture…</span>
+                            </button>
+                            <button type="button" wire:click="stopAllAgents" wire:loading.attr="disabled" class="btn btn-outline-danger btn-sm"
+                                    @if(!$sshTestOk) disabled @endif
+                                    onclick="return confirm('Arrêter et désactiver tous les agents diagnostics (CrashHunter, Crash Analyzer, Doctor) ?')">
+                                <span wire:loading.remove wire:target="stopAllAgents">Arrêter tous les agents</span>
+                                <span wire:loading wire:target="stopAllAgents">Arrêt…</span>
+                            </button>
+                        </div>
+                        @if($agentControlMessage)
+                            <div class="alert py-2 small mb-2 {{ $agentControlOk ? 'alert-success' : 'alert-warning' }}">{{ $agentControlMessage }}</div>
+                        @endif
+                        @if(!empty($runningAgents))
+                        <div class="table-responsive">
+                            <table class="table table-sm obiora-table mb-0">
+                                <thead class="obiora-table-head"><tr><th>Service</th><th>État</th><th>Description</th></tr></thead>
+                                <tbody>
+                                    @foreach($runningAgents as $svc)
+                                    <tr>
+                                        <td><code class="small">{{ $svc['unit'] ?? '' }}</code></td>
+                                        <td>
+                                            @if($svc['running'] ?? false)
+                                                <span class="badge text-bg-success">actif</span>
+                                            @else
+                                                <span class="badge text-bg-secondary">{{ $svc['active'] ?? '—' }}</span>
+                                            @endif
+                                        </td>
+                                        <td class="small text-muted">{{ Str::limit($svc['description'] ?? '', 50) }}</td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        @endif
+                    </div>
                     <div class="d-flex flex-wrap gap-2 mb-3">
                         <button type="button" wire:click="testSshConnection" wire:loading.attr="disabled" class="btn btn-outline-info">
                             <span wire:loading.remove wire:target="testSshConnection">Tester la connexion</span>
@@ -505,6 +554,43 @@
                     </ul>
                     @else
                         <p class="small text-muted mb-0">Aucun rapport crash pour ce serveur.</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    @if($overview && !empty($overview['crash_hunter']))
+    <div class="row g-4 mt-1">
+        <div class="col-12">
+            <div class="card obiora-card border-warning border-opacity-50">
+                <div class="card-header">CrashHunter Enterprise — Black Box &amp; Witness</div>
+                <div class="card-body">
+                    @php($hunter = $overview['crash_hunter']['summary'] ?? [])
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-3"><span class="small text-muted d-block">Witness</span><strong>{{ $hunter['witness_status'] ?? '—' }}</strong></div>
+                        <div class="col-md-3"><span class="small text-muted d-block">Ring buffer</span><strong>{{ $hunter['ring_count'] ?? '—' }}</strong> slots</div>
+                        <div class="col-md-3"><span class="small text-muted d-block">Snapshots reçus</span><strong>{{ $hunter['snapshots_in_window'] ?? 0 }}</strong></div>
+                        <div class="col-md-3"><span class="small text-muted d-block">Critiques 24h</span><span class="badge text-bg-danger">{{ $hunter['critical_events_24h'] ?? 0 }}</span></div>
+                    </div>
+                    @if(!empty($overview['crash_hunter']['incidents']))
+                    <h3 class="h6">Incidents (freeze silencieux)</h3>
+                    <ul class="small">
+                        @foreach($overview['crash_hunter']['incidents'] as $inc)
+                        <li><code>{{ $inc['external_id'] ?? '' }}</code> — {{ implode(', ', $inc['triggers'] ?? []) }} ({{ $inc['snapshot_count'] ?? 0 }} snapshots)</li>
+                        @endforeach
+                    </ul>
+                    @endif
+                    @if(!empty($overview['crash_hunter']['reports']))
+                    <h3 class="h6">Rapports Black Box</h3>
+                    <ul class="small mb-0">
+                        @foreach($overview['crash_hunter']['reports'] as $rpt)
+                        <li>{{ $rpt['external_id'] ?? '' }} — {{ $rpt['verdict'] ?? $rpt['trigger_type'] ?? '—' }} ({{ $rpt['generated_at'] ?? '' }})</li>
+                        @endforeach
+                    </ul>
+                    @else
+                    <p class="small text-muted mb-0">Aucune donnée CrashHunter reçue — cochez « CrashHunter Enterprise » et installez les agents.</p>
                     @endif
                 </div>
             </div>

@@ -1,0 +1,18 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    'history_minutes' => (int) env('CRASH_HUNTER_HISTORY_MINUTES', 60),
+    'snapshot_retention_hours' => (int) env('CRASH_HUNTER_SNAPSHOT_RETENTION_HOURS', 24),
+    'witness_timeout_seconds' => (int) env('CRASH_HUNTER_WITNESS_TIMEOUT', 15),
+    'witness_death_seconds' => (int) env('CRASH_HUNTER_WITNESS_DEATH', 30),
+    'push_interval_seconds' => (int) env('CRASH_HUNTER_PUSH_INTERVAL', 30),
+
+    'managed_services' => [
+        'crashhunter',
+        'obiora-crash-analyzer',
+        'obiora-doctor-agent',
+        'obiora-doctor-agent.timer',
+    ],
+];
