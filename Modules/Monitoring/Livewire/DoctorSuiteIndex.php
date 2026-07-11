@@ -189,12 +189,23 @@ final class DoctorSuiteIndex extends Component
 
         if ($ssh === null) {
             $this->sshTestOk = false;
-            $this->sshTestResult = 'Saisissez le mot de passe SSH du serveur distant pour tester la connexion.';
+            $this->sshTestResult = $this->sshPassword === ''
+                ? 'Saisissez le mot de passe SSH du serveur distant pour tester la connexion.'
+                : 'Connexion SSH impossible — vérifiez IP, port, utilisateur et mot de passe.';
 
             return;
         }
 
         $result = $deploy->testConnection($ssh);
+
+        if (
+            ! $result['success']
+            && $ssh->privateKey !== null
+            && $this->sshPassword !== ''
+        ) {
+            $result = $deploy->testConnection($this->bootstrapConnection());
+        }
+
         $this->sshTestOk = $result['success'];
 
         if ($result['success']) {
@@ -591,7 +602,7 @@ final class DoctorSuiteIndex extends Component
 
     private function resolveConnection(Server $server, ServerSshKeyService $sshKeys): ?SshConnection
     {
-        if ($sshKeys->isInstalledOnRemote($server) && $sshKeys->hasKey($server)) {
+        if ($sshKeys->keyAppliesToHost($server, $this->sshHost)) {
             return $sshKeys->connection($server, $this->sshHost, $this->sshPort, $this->sshUser);
         }
 

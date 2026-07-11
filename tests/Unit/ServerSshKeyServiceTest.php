@@ -9,6 +9,7 @@ use App\Services\Diagnostics\DoctorDeployProgressService;
 use App\Services\Diagnostics\ServerSshKeyService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 use Tests\TestCase;
 
 final class ServerSshKeyServiceTest extends TestCase
@@ -34,6 +35,28 @@ final class ServerSshKeyServiceTest extends TestCase
 
         $raw = $server->metadata['ssh_deploy']['private_key'] ?? '';
         $this->assertNotSame($service->privateKey($server), $raw);
+    }
+
+    public function test_key_applies_to_host_only_when_ip_or_remote_host_matches(): void
+    {
+        $service = app(ServerSshKeyService::class);
+
+        $server = Server::factory()->create([
+            'ip_address' => '54.37.103.241',
+            'metadata' => [
+                'ssh_deploy' => [
+                    'public_key' => 'ssh-ed25519 AAAATEST',
+                    'private_key' => Crypt::encryptString("-----BEGIN OPENSSH PRIVATE KEY-----\ntest\n-----END OPENSSH PRIVATE KEY-----"),
+                    'installed_on_remote_at' => now()->toIso8601String(),
+                ],
+                'doctor_deploy' => [
+                    'remote_host' => '54.37.103.241',
+                ],
+            ],
+        ]);
+
+        $this->assertTrue($service->keyAppliesToHost($server, '54.37.103.241'));
+        $this->assertFalse($service->keyAppliesToHost($server, '141.94.131.143'));
     }
 
     public function test_deploy_progress_cache_lifecycle(): void

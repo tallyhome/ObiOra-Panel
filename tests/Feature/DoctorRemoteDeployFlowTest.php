@@ -85,6 +85,7 @@ final class DoctorRemoteDeployFlowTest extends TestCase
             'user' => 'root',
             'doctor' => 'no',
             'crash' => 'no',
+            'crashhunter' => 'no',
         ])->assertSuccessful();
     }
 

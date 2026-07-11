@@ -255,7 +255,7 @@ final class DoctorDeployRunner
             $this->progress->appendLog($server->id, 'Clé SSH créée.');
         }
 
-        if ($this->sshKeys->isInstalledOnRemote($server)) {
+        if ($this->sshKeys->keyAppliesToHost($server, $sshHost)) {
             $this->progress->appendLog($server->id, 'Clé SSH déjà installée sur le serveur distant.');
 
             return $server;

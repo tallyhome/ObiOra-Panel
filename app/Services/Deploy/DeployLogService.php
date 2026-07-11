@@ -36,11 +36,15 @@ final class DeployLogService
             Log::warning('Impossible d\'enregistrer deploy_log', ['error' => $e->getMessage()]);
         }
 
-        Log::channel('deploy')->log($level, "[{$deployType}] {$message}", array_filter([
-            'server_id' => $serverId,
-            'user_id' => auth()->id(),
-            ...$meta,
-        ]));
+        try {
+            Log::channel('deploy')->log($level, "[{$deployType}] {$message}", array_filter([
+                'server_id' => $serverId,
+                'user_id' => auth()->id(),
+                ...$meta,
+            ]));
+        } catch (\Throwable $e) {
+            Log::warning('Impossible d\'écrire deploy.log', ['error' => $e->getMessage()]);
+        }
     }
 
     /**

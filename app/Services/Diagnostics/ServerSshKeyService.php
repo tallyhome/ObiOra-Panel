@@ -33,6 +33,27 @@ final class ServerSshKeyService
         return $this->hasKey($server) && ! empty($meta['installed_on_remote_at']);
     }
 
+    public function keyAppliesToHost(Server $server, string $sshHost): bool
+    {
+        if (! $this->isInstalledOnRemote($server)) {
+            return false;
+        }
+
+        $host = trim($sshHost);
+
+        if ($host === '') {
+            return false;
+        }
+
+        if ($host === trim((string) $server->ip_address)) {
+            return true;
+        }
+
+        $remoteHost = ($server->metadata ?? [])['doctor_deploy']['remote_host'] ?? null;
+
+        return is_string($remoteHost) && $host === trim($remoteHost);
+    }
+
     public function publicKey(Server $server): ?string
     {
         $key = ($server->metadata ?? [])['ssh_deploy']['public_key'] ?? null;

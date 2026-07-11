@@ -89,6 +89,15 @@ fix_filesystem_permissions() {
     if id apache &>/dev/null; then
         chown -R "${OBIORA_USER}:apache" "${OBIORA_INSTALL_DIR}/storage" "${OBIORA_INSTALL_DIR}/bootstrap/cache" 2>/dev/null || true
     fi
+
+    if [[ -d "${OBIORA_INSTALL_DIR}/storage/logs" ]]; then
+        chmod g+s "${OBIORA_INSTALL_DIR}/storage/logs" 2>/dev/null || true
+        find "${OBIORA_INSTALL_DIR}/storage/logs" -type f -user root -exec chown "${OBIORA_USER}:${OBIORA_GROUP}" {} \; 2>/dev/null || true
+    fi
+
+    if [[ -d "${OBIORA_INSTALL_DIR}/storage/app/ssh" ]]; then
+        chmod 770 "${OBIORA_INSTALL_DIR}/storage/app/ssh" 2>/dev/null || true
+    fi
 }
 
 if [[ -f "${OBIORA_INSTALL_DIR}/agent/scripts/mysql-docker-recover.sh" ]]; then

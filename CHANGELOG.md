@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.1.45 - 2026-07-11
+
+- Doctor & Suite : SSH mot de passe si IP cible ≠ serveur panel (fix clé sur mauvais hôte)
+- Déploiement : échec deploy.log ne bloque plus le job ; permissions logs au recovery
+
 ## v2.1.44 - 2026-07-11
 
 - CrashHunter : push incidents/rapports freeze live, timeline events, sync post-reboot
