@@ -46,9 +46,19 @@ final class CrashHunterMetricsService
         $events = CrashHunterEvent::query()
             ->where('server_id', $server->id)
             ->where('detected_at', '>=', $since)
-            ->latest('detected_at')
-            ->limit(20)
+            ->orderBy('detected_at')
+            ->limit(30)
             ->get();
+
+        $latestIncident = CrashHunterIncident::query()
+            ->where('server_id', $server->id)
+            ->latest('started_at')
+            ->first();
+        $snapshotCapture = is_array($latestIncident?->summary['snapshot_capture'] ?? null)
+            ? $latestIncident->summary['snapshot_capture']
+            : [];
+        $witnessIndependence = ($server->metadata ?? [])['crash_hunter']['witness_independence']
+            ?? config('crash_hunter.witness_independence', 'unknown');
 
         $incidents = CrashHunterIncident::query()
             ->where('server_id', $server->id)
@@ -87,6 +97,13 @@ final class CrashHunterMetricsService
                 'witness_gap_seconds' => $witness?->payload['gap_seconds'] ?? ($meta['witness_gap_seconds'] ?? null),
                 'ring_count' => $meta['ring_count'] ?? null,
                 'snapshots_in_window' => $snapshotCount,
+                'local_snapshots_count' => (int) ($snapshotCapture['local_snapshots_count'] ?? 0),
+                'uploaded_snapshots_count' => (int) ($snapshotCapture['uploaded_snapshots_count'] ?? 0),
+                'pending_upload_count' => (int) ($snapshotCapture['pending_upload_count'] ?? 0),
+                'failed_snapshot_count' => (int) ($snapshotCapture['failed_snapshot_count'] ?? 0),
+                'last_snapshot_error' => $snapshotCapture['last_snapshot_error'] ?? null,
+                'capture_failure_reason' => $snapshotCapture['capture_failure_reason'] ?? null,
+                'witness_independence' => $witnessIndependence,
                 'metrics_in_window' => $metricsCount,
                 'cpu_avg' => $cpuValues->isNotEmpty() ? round((float) $cpuValues->avg(), 1) : null,
                 'cpu_max' => $cpuValues->isNotEmpty() ? round((float) $cpuValues->max(), 1) : null,
@@ -109,6 +126,9 @@ final class CrashHunterMetricsService
                 'external_id' => $i->external_id,
                 'triggers' => $i->triggers,
                 'snapshot_count' => $i->snapshot_count,
+                'snapshot_capture' => is_array($i->summary['snapshot_capture'] ?? null)
+                    ? $i->summary['snapshot_capture']
+                    : [],
                 'started_at' => $i->started_at?->toIso8601String(),
                 'ended_at' => $i->ended_at?->toIso8601String(),
                 'status' => is_array($i->summary) ? ($i->summary['status'] ?? null) : null,
@@ -207,6 +227,9 @@ final class CrashHunterMetricsService
                 'external_id' => $i->external_id,
                 'triggers' => $i->triggers,
                 'snapshot_count' => $i->snapshot_count,
+                'snapshot_capture' => is_array($i->summary['snapshot_capture'] ?? null)
+                    ? $i->summary['snapshot_capture']
+                    : [],
                 'started_at' => $i->started_at?->toIso8601String(),
                 'ended_at' => $i->ended_at?->toIso8601String(),
                 'status' => is_array($i->summary) ? ($i->summary['status'] ?? null) : null,

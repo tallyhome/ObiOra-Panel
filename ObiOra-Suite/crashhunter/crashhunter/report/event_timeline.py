@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from crashhunter.utils.timestamp import now_us
+from crashhunter.utils.timestamp import make_timeline_entry, normalize_timeline_entry, sort_timeline_utc
 
 logger = logging.getLogger("crashhunter.timeline")
 
@@ -16,6 +16,7 @@ class EventTimeline:
     """
     Chronological event log with microsecond precision.
     Persisted as JSONL for crash survival and report generation.
+    All events carry timestamp_utc (ISO UTC).
     """
 
     def __init__(self, timeline_file: Path, max_events: int = 10000) -> None:
@@ -32,7 +33,7 @@ class EventTimeline:
         extra: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         entry = {
-            "timestamp": now_us(),
+            **make_timeline_entry("crashhunter_daemon"),
             "event": event,
             "detail": detail,
             "severity": severity,
@@ -53,13 +54,15 @@ class EventTimeline:
         self.record("cpu_elevated", f"CPU at {cpu}%", severity="medium")
 
     def get_events(self) -> list[dict[str, Any]]:
-        return list(self._events)
+        sorted_events, _ = sort_timeline_utc([normalize_timeline_entry(e) for e in self._events])
+        return list(sorted_events)
 
     def get_chronological_narrative(self) -> list[str]:
         """Human-readable chronological sequence."""
         lines: list[str] = []
-        for entry in self._events:
-            lines.append(f"{entry['timestamp']}  {entry['detail']}")
+        for entry in self.get_events():
+            ts = entry.get("timestamp_utc") or entry.get("timestamp", "")
+            lines.append(f"{ts}  {entry['detail']}")
         return lines
 
     def clear(self) -> None:
@@ -70,6 +73,7 @@ class EventTimeline:
             self.timeline_file.parent.mkdir(parents=True, exist_ok=True)
             with self.timeline_file.open("a", encoding="utf-8") as fh:
                 fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+                fh.flush()
         except OSError as exc:
             logger.warning("Timeline persist failed: %s", exc)
 
@@ -79,7 +83,7 @@ class EventTimeline:
         try:
             for line in self.timeline_file.read_text(encoding="utf-8").splitlines():
                 if line.strip():
-                    self._events.append(json.loads(line))
+                    self._events.append(normalize_timeline_entry(json.loads(line)))
             if len(self._events) > self.max_events:
                 self._events = self._events[-self.max_events:]
         except (OSError, json.JSONDecodeError) as exc:

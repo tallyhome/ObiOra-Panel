@@ -28,6 +28,7 @@ from crashhunter.report.timeline import build_metric_series
 from crashhunter.storage.incident_store import IncidentStore
 from crashhunter.storage.retention import RetentionManager
 from crashhunter.utils.subprocess_runner import SubprocessRunner
+from crashhunter.utils.timestamp import normalize_timeline_entries, sort_timeline_utc
 from crashhunter.utils.version_signature import collect_version_signature
 
 logger = logging.getLogger("crashhunter.report")
@@ -59,10 +60,15 @@ class ReportGenerator:
     ) -> dict[str, Any]:
         report_id = datetime.now().strftime("CrashReport_%Y%m%d_%H%M%S")
         correlation_data = blackbox.correlate()
-        diagnosis = self.diagnosis.analyze(correlation_data)
-        metrics = build_metric_series(correlation_data)
-
         events = timeline.get_events() if timeline else []
+        events, timeline_integrity = self._normalize_timeline(events)
+        triggers = incident_summary.get("triggers", []) if incident_summary else []
+        diagnosis = self.diagnosis.analyze(
+            correlation_data,
+            events=events,
+            triggers=triggers or None,
+        )
+        metrics = build_metric_series(correlation_data)
         causal = self.correlation.correlate(events)
         reboot_class = self.reboot_classifier.classify(reboot_info)
 
@@ -87,12 +93,18 @@ class ReportGenerator:
         if incident_id:
             incident_data = {
                 "incident_id": incident_id,
-                "triggers": incident_summary.get("triggers", []) if incident_summary else [],
+                "triggers": triggers,
                 "emergency_snapshots": self.incident_store.load_incident(incident_id),
                 "summary": incident_summary,
+                "snapshot_capture": self.incident_store.capture_stats(incident_id),
             }
         else:
             incident_data = {"triggers": [], "emergency_snapshots": []}
+
+        if timeline_integrity:
+            report_integrity = timeline_integrity
+        else:
+            report_integrity = None
 
         report: dict[str, Any] = {
             "report_id": report_id,
@@ -115,6 +127,8 @@ class ReportGenerator:
             "ml_prediction": ml_prediction,
             "recommendations": recommendations,
         }
+        if report_integrity:
+            report["timeline_integrity"] = report_integrity
         if boot_reliability:
             report["boot_reliability"] = boot_reliability
 
@@ -169,3 +183,11 @@ class ReportGenerator:
             timeline=timeline,
             incident_summary=summary,
         )
+
+    @staticmethod
+    def _normalize_timeline(events: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+        if not events:
+            return events, None
+        normalized = normalize_timeline_entries(events)
+        sorted_events, integrity = sort_timeline_utc(normalized)
+        return sorted_events, integrity

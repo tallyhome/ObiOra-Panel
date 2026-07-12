@@ -133,16 +133,24 @@ final class CrashHunterIngestService
     {
         $externalId = (string) ($payload['incident_id'] ?? $payload['external_id'] ?? uniqid('inc_', true));
         $summary = is_array($payload['summary'] ?? null) ? $payload['summary'] : $payload;
+        $snapshotCapture = is_array($payload['snapshot_capture'] ?? null)
+            ? $payload['snapshot_capture']
+            : (is_array($summary['snapshot_capture'] ?? null) ? $summary['snapshot_capture'] : []);
 
         return CrashHunterIncident::query()->updateOrCreate(
             ['server_id' => $server->id, 'external_id' => $externalId],
             [
                 'triggers' => $payload['triggers'] ?? $summary['triggers'] ?? [],
-                'snapshot_count' => (int) ($payload['snapshot_count'] ?? $summary['snapshot_count'] ?? 0),
+                'snapshot_count' => (int) (
+                    $payload['snapshot_count']
+                    ?? $summary['snapshot_count']
+                    ?? ($snapshotCapture['local_snapshots_count'] ?? 0)
+                ),
                 'started_at' => $this->parseTime($payload['started_at'] ?? $summary['started_at'] ?? null),
                 'ended_at' => $this->parseTime($payload['ended_at'] ?? $summary['ended_at'] ?? null),
                 'summary' => array_merge($summary, [
                     'status' => $payload['status'] ?? $summary['status'] ?? null,
+                    'snapshot_capture' => $snapshotCapture,
                 ]),
             ],
         );
@@ -215,7 +223,9 @@ final class CrashHunterIngestService
     public function ingestEvent(Server $server, array $event): CrashHunterEvent
     {
         $eventType = (string) ($event['event_type'] ?? $event['event'] ?? 'unknown');
-        $detectedAt = $this->parseTime($event['detected_at'] ?? $event['timestamp_us'] ?? $event['timestamp'] ?? null);
+        $detectedAt = $this->parseTime(
+            $event['timestamp_utc'] ?? $event['detected_at'] ?? $event['timestamp_us'] ?? $event['timestamp'] ?? null,
+        );
 
         $existing = CrashHunterEvent::query()
             ->where('server_id', $server->id)
@@ -323,22 +333,30 @@ final class CrashHunterIngestService
     private function parseTime(mixed $value): Carbon
     {
         if ($value === null || $value === '') {
-            return now();
+            return now()->utc();
         }
 
         if (is_numeric($value)) {
             $numeric = (float) $value;
             if ($numeric > 1_000_000_000_000) {
-                return Carbon::createFromTimestampMs((int) $numeric);
+                return Carbon::createFromTimestampMs((int) $numeric)->utc();
             }
 
-            return Carbon::createFromTimestamp((int) $numeric);
+            return Carbon::createFromTimestamp((int) $numeric)->utc();
+        }
+
+        $text = (string) $value;
+
+        if (preg_match('/^\d{2}:\d{2}:\d{2}(\.\d+)?$/', $text)) {
+            return now()->utc()->startOfDay()
+                ->setTimeFromTimeString(substr($text, 0, 8))
+                ->utc();
         }
 
         try {
-            return Carbon::parse((string) $value);
+            return Carbon::parse($text)->utc();
         } catch (\Throwable) {
-            return now();
+            return now()->utc();
         }
     }
 }

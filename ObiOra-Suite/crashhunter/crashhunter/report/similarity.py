@@ -110,6 +110,8 @@ class SimilarityEngine:
         mapping = {
             "disk_timeout": "Storage controller",
             "nvme_reset": "NVMe controller",
+            "storage_io_stall": "Storage I/O stall",
+            "network_driver": "Network driver",
             "d_state_processes": "Storage I/O blockage",
             "iowait_high": "Disk subsystem",
             "virtualizor_timeout": "Virtualizor",

@@ -74,6 +74,7 @@ class IncidentManager:
         self._started_at_iso = datetime.now(timezone.utc).isoformat()
         self._sysrq_done = False
         self._deep_collectors_started = False
+        self.incident_store.ensure_incident_directory(self._incident_id)
         self.incident_store.mark_active(self._incident_id)
         trigger_detail = ", ".join(self._triggers)
         self.timeline.record(
@@ -177,5 +178,8 @@ class IncidentManager:
                 self._incident_id = state.get("incident_id")
                 self._triggers = state.get("triggers", [])
                 self._incident_start = time.monotonic()
+                if self._incident_id:
+                    self.incident_store.ensure_incident_directory(self._incident_id)
+                    self.incident_store.mark_active(self._incident_id)
         except (OSError, json.JSONDecodeError):
             pass

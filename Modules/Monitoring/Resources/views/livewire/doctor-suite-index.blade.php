@@ -717,9 +717,22 @@
                             @if(!empty($hunter['witness_gap_seconds']))
                                 <span class="small text-muted d-block">gap {{ $hunter['witness_gap_seconds'] }}s</span>
                             @endif
+                            @if(($hunter['witness_independence'] ?? 'unknown') === 'same_host')
+                                <span class="small text-warning d-block">Témoin sur la même infra — indisponibilité API non concluante seule.</span>
+                            @endif
                         </div>
                         <div class="col-md-2"><span class="small text-muted d-block">Ring buffer</span><strong>{{ $hunter['ring_count'] ?? '—' }}</strong> slots</div>
-                        <div class="col-md-2"><span class="small text-muted d-block">Snapshots reçus</span><strong>{{ $hunter['snapshots_in_window'] ?? 0 }}</strong></div>
+                        <div class="col-md-2">
+                            <span class="small text-muted d-block">Snapshots urgence</span>
+                            <strong>{{ $hunter['local_snapshots_count'] ?? ($hunter['snapshots_in_window'] ?? 0) }}</strong>
+                            <span class="small text-muted d-block">local · envoyés {{ $hunter['uploaded_snapshots_count'] ?? 0 }} · attente {{ $hunter['pending_upload_count'] ?? 0 }}</span>
+                            @if(($hunter['failed_snapshot_count'] ?? 0) > 0)
+                                <span class="small text-danger d-block">échecs {{ $hunter['failed_snapshot_count'] }}</span>
+                            @endif
+                            @if(!empty($hunter['capture_failure_reason']))
+                                <span class="small text-warning d-block">Cause : {{ $hunter['capture_failure_reason'] }}</span>
+                            @endif
+                        </div>
                         <div class="col-md-2"><span class="small text-muted d-block">CPU max</span><strong>{{ $hunter['cpu_max'] ?? '—' }}%</strong></div>
                         <div class="col-md-2"><span class="small text-muted d-block">Critiques 24h</span><span class="badge text-bg-danger">{{ $hunter['critical_events_24h'] ?? 0 }}</span></div>
                         <div class="col-md-2"><span class="small text-muted d-block">Mode incident</span><strong>{{ ($hunter['incident_mode'] ?? false) ? 'OUI' : 'non' }}</strong></div>
@@ -860,7 +873,13 @@
                                 <tr>
                                     <td><code class="small">{{ $inc['external_id'] ?? '' }}</code></td>
                                     <td class="small">{{ implode(', ', $inc['triggers'] ?? []) }}</td>
-                                    <td>{{ $inc['snapshot_count'] ?? 0 }}</td>
+                                    <td>
+                                        @php($cap = $inc['snapshot_capture'] ?? [])
+                                        {{ $inc['snapshot_count'] ?? ($cap['local_snapshots_count'] ?? 0) }}
+                                        @if(!empty($cap))
+                                            <span class="small text-muted d-block">local {{ $cap['local_snapshots_count'] ?? 0 }} · attente {{ $cap['pending_upload_count'] ?? 0 }}</span>
+                                        @endif
+                                    </td>
                                     <td><span class="badge {{ ($inc['status'] ?? '') === 'active' ? 'text-bg-warning' : 'text-bg-secondary' }}">{{ $inc['status'] ?? 'ended' }}</span></td>
                                     <td class="small text-nowrap">{{ $inc['started_at'] ?? '' }}</td>
                                 </tr>

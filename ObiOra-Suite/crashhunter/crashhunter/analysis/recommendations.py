@@ -5,6 +5,17 @@ from __future__ import annotations
 from typing import Any
 
 RECOMMENDATIONS: dict[str, list[str]] = {
+    "storage_io_stall": [
+        "Identifier le device et le filesystem impliqués (xfsaild, blkdev, wchan).",
+        "Vérifier SMART, câbles, contrôleur RAID et latence I/O (iostat, blktrace).",
+        "Suspendre migrations VM et opérations lourdes pendant investigation.",
+        "Consulter les stacks xfs-cil / blk_mq / journald dans le rapport.",
+    ],
+    "network_driver": [
+        "Vérifier driver NIC (ixgbe/i40e/ice) et firmware.",
+        "Analyser dmesg pour NETDEV WATCHDOG et TX timeout.",
+        "Tester failover réseau ou remplacement câble/SFP.",
+    ],
     "disk_timeout": [
         "Vérifier SMART de tous les disques (smartctl -a).",
         "Contrôler les logs du contrôleur RAID / NVMe.",

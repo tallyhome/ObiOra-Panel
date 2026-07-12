@@ -10,6 +10,9 @@ return [
     'witness_death_seconds' => (int) env('CRASH_HUNTER_WITNESS_DEATH', 30),
     'push_interval_seconds' => (int) env('CRASH_HUNTER_PUSH_INTERVAL', 30),
 
+    /** unknown | same_host | same_provider | independent */
+    'witness_independence' => env('CRASH_HUNTER_WITNESS_INDEPENDENCE', 'unknown'),
+
     'managed_services' => [
         'crashhunter',
         'obiora-crash-analyzer',

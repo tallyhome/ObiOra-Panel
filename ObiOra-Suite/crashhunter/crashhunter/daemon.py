@@ -90,6 +90,7 @@ class CrashHunterDaemon:
             settings.panel.server_id,
             settings.panel.agent_token,
             settings.panel.enabled,
+            spool_dir=settings.base_dir / "data" / "spool",
         )
         self._last_panel_push = 0.0
         self.psi_history = PsiHistoryStore(settings.psi_history_file)
@@ -268,6 +269,7 @@ class CrashHunterDaemon:
                     "started_at": self.incident_manager.started_at_iso,
                     "status": "active",
                     "snapshot_count": 0,
+                    "snapshot_capture": self.incident_store.capture_stats(incident_id),
                 })
                 self._push_new_timeline_events()
             self._run_incident_mode()
@@ -314,6 +316,8 @@ class CrashHunterDaemon:
             return
         snapshot["hostname"] = self.settings.hostname
         self.panel_bridge.push_metrics(snapshot, __version__)
+        if self.settings.panel.enabled:
+            self.panel_bridge.flush_spool(max_items=5)
         ordered = self.ring.get_all_ordered()
         batch = ordered[-self.settings.panel.snapshot_batch_size :]
         if batch:
@@ -399,6 +403,10 @@ class CrashHunterDaemon:
         logger.info("CrashHunter Enterprise v%s on %s", __version__, self.settings.hostname)
 
         self.startup_check()
+        if self.settings.panel.enabled:
+            flushed = self.panel_bridge.flush_spool()
+            if flushed:
+                logger.info("Replayed %d spooled panel uploads", flushed)
 
         while self._running:
             if self.incident_manager.is_incident:

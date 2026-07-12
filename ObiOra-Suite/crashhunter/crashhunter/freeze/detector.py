@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from typing import Any
 
 from crashhunter.config.settings import Settings
@@ -27,7 +27,8 @@ class FreezeSignal:
 class DetectorState:
     prev_ctxt: int | None = None
     prev_procs_running: int | None = None
-    prev_clock: datetime | None = None
+    prev_wall_ns: int | None = None
+    prev_mono_ns: int | None = None
     stall_cycles: int = 0
     prev_qemu_cpu: dict[int, int] = field(default_factory=dict)
     command_timeouts: int = 0
@@ -63,7 +64,7 @@ class SilentFreezeDetector:
         signals.extend(self._check_dstate(snapshot))
         signals.extend(self._check_kernel_messages(snapshot))
         signals.extend(self._check_disk_latency(snapshot))
-        signals.extend(self._check_clock_drift(snapshot))
+        signals.extend(self._check_timing_anomaly(snapshot))
         signals.extend(self._check_qemu_stall(snapshot))
 
         if self._state.command_timeouts >= inc.command_timeout_count_threshold:
@@ -254,20 +255,42 @@ class SilentFreezeDetector:
             signals.append(FreezeSignal("filesystem_freeze", "high", "Filesystem near full with I/O latency", 0.75))
         return signals
 
-    def _check_clock_drift(self, snapshot: dict[str, Any]) -> list[FreezeSignal]:
+    def _check_timing_anomaly(self, snapshot: dict[str, Any]) -> list[FreezeSignal]:
+        """Distinguish collector_gap (slow loop) from clock_adjustment (real clock skew)."""
         signals: list[FreezeSignal] = []
-        now = datetime.now(timezone.utc)
-        if self._state.prev_clock is not None:
-            expected_gap = self.settings.interval_seconds
-            actual_gap = (now - self._state.prev_clock).total_seconds()
-            drift = abs(actual_gap - expected_gap)
-            if drift > self.settings.incident.clock_drift_threshold_seconds:
+        wall_ns = time.time_ns()
+        mono_ns = time.monotonic_ns()
+        expected_gap = self.settings.interval_seconds
+
+        if self._state.prev_wall_ns is not None and self._state.prev_mono_ns is not None:
+            wall_delta = (wall_ns - self._state.prev_wall_ns) / 1_000_000_000
+            mono_delta = (mono_ns - self._state.prev_mono_ns) / 1_000_000_000
+            threshold = self.settings.incident.clock_drift_threshold_seconds
+
+            if mono_delta > expected_gap + threshold:
                 signals.append(FreezeSignal(
-                    "clock_drift", "medium",
-                    f"System clock drift {drift:.1f}s (expected ~{expected_gap}s gap)", 0.70,
+                    "collector_gap",
+                    "medium",
+                    f"Collector gap {mono_delta:.1f}s (expected ~{expected_gap}s) — freeze/stall probable",
+                    min(0.90, 0.5 + mono_delta / max(expected_gap * 10, 1)),
                 ))
-        self._state.prev_clock = now
+
+            clock_adjustment = abs(wall_delta - mono_delta)
+            if mono_delta <= expected_gap + threshold and clock_adjustment > threshold:
+                signals.append(FreezeSignal(
+                    "clock_adjustment",
+                    "low",
+                    f"Clock adjustment ~{clock_adjustment:.1f}s (wall vs monotonic)",
+                    0.65,
+                ))
+
+        self._state.prev_wall_ns = wall_ns
+        self._state.prev_mono_ns = mono_ns
         return signals
+
+    def _check_clock_drift(self, snapshot: dict[str, Any]) -> list[FreezeSignal]:
+        """Deprecated — use _check_timing_anomaly."""
+        return self._check_timing_anomaly(snapshot)
 
     def _check_qemu_stall(self, snapshot: dict[str, Any]) -> list[FreezeSignal]:
         signals: list[FreezeSignal] = []

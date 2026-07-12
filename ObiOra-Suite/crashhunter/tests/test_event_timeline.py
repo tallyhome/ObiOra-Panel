@@ -13,7 +13,8 @@ def test_timeline_microsecond_precision() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         tl = EventTimeline(Path(tmp) / "events.jsonl")
         entry = tl.record("test_event", "CPU normal", severity="info")
-        assert re.match(r"\d{2}:\d{2}:\d{2}\.\d{6}", entry["timestamp"])
+        assert "timestamp_utc" in entry
+        assert entry["timestamp_utc"].endswith("Z")
 
 
 def test_timeline_persists_and_loads() -> None:

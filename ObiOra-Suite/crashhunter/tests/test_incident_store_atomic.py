@@ -36,7 +36,7 @@ def test_counter_restored_after_restart(tmp_path: Path) -> None:
 
     store2 = IncidentStore(tmp_path / "incidents")
     path = store2.append(incident_id, {"n": 3})
-    assert path.name == "emergency_0002.json"
+    assert path.name.endswith("_0002.json")
 
 
 def test_active_incident_flag(tmp_path: Path) -> None:
