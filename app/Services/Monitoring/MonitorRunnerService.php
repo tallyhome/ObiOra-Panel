@@ -176,17 +176,25 @@ final class MonitorRunnerService
             }
         }
 
-        $maxKey = (int) ceil($duration / $bucketSeconds);
+        $nowKey = (int) floor((now()->timestamp - $from->timestamp) / $bucketSeconds);
+        $maxKey = min((int) ceil($duration / $bucketSeconds), $nowKey, $slots - 1);
         $segments = [];
+        $lastKnown = 'nodata';
 
         for ($i = 0; $i <= $maxKey; $i++) {
             $bucket = $buckets[$i] ?? null;
 
             if ($bucket === null) {
-                $segments[] = ['status' => 'nodata', 'color' => '#6b7280', 'title' => 'Pas de données'];
+                if ($i === $maxKey && $lastKnown !== 'nodata') {
+                    $segments[] = ['status' => $lastKnown, 'color' => $lastKnown === 'up' ? '#22c55e' : '#ef4444', 'title' => $lastKnown === 'up' ? 'Up' : 'Down'];
+                } else {
+                    $segments[] = ['status' => 'nodata', 'color' => '#6b7280', 'title' => 'Pas de données'];
+                }
             } elseif ($bucket['down'] > 0) {
+                $lastKnown = 'down';
                 $segments[] = ['status' => 'down', 'color' => '#ef4444', 'title' => 'Down'];
             } else {
+                $lastKnown = 'up';
                 $segments[] = ['status' => 'up', 'color' => '#22c55e', 'title' => 'Up'];
             }
         }

@@ -182,7 +182,7 @@ final class CrashHunterApiTest extends TestCase
         $token = 'Bearer '.str_repeat('g', 64);
 
         $this->postJson("/api/v1/servers/{$server->id}/crash-hunter/witness", [
-            'timestamp' => now()->subSeconds(60)->toIso8601String(),
+            'timestamp' => now()->subSeconds(95)->toIso8601String(),
             'host' => 'dedie-01',
         ], ['Authorization' => $token])->assertOk();
 

@@ -15,7 +15,7 @@ final class MonitoringWitnessService
      */
     public function fleetSummary(): array
     {
-        $timeout = (int) config('crash_hunter.witness_death_seconds', 30);
+        $timeout = (int) config('crash_hunter.witness_stale_seconds', config('crash_hunter.witness_death_seconds', 90));
 
         return Server::query()
             ->orderByDesc('is_master')

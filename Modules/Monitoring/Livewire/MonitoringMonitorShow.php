@@ -11,6 +11,7 @@ use App\Services\Monitoring\MonitorVisitService;
 use App\Support\UserTimezone;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 #[Layout('layouts.app')]
@@ -19,17 +20,20 @@ final class MonitoringMonitorShow extends Component
 {
     public Monitor $monitor;
 
+    #[Url]
     public string $timePreset = '24h';
 
     public function mount(Monitor $monitor): void
     {
         abort_unless(auth()->user()?->can('monitoring.view'), 403);
         $this->monitor = $monitor;
+        $this->setPreset($this->timePreset);
     }
 
     public function setPreset(string $preset): void
     {
-        $this->timePreset = $preset;
+        $allowed = ['1h', '6h', '24h', '3d', '7d', '30d', '3M', '6M', '1Y'];
+        $this->timePreset = in_array(strtolower($preset), array_map('strtolower', $allowed), true) ? strtolower($preset) : '24h';
     }
 
     public function render(MonitorRunnerService $runner, MonitorVisitService $visits)

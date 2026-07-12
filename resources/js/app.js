@@ -12,6 +12,7 @@ import {
 } from './obiora-charts';
 import { obioraConfirm, obioraConfirmWire, obioraSubmitInstallSetup, obioraToast } from './obiora-swal';
 import { obioraCopyFromButton, obioraCopyText } from './copy';
+import { obioraBootMonitoringCharts, obioraRegisterMonitoringChartHooks } from './monitoring-charts';
 
 window.ApexCharts = ApexCharts;
 window.obioraRenderResponseChart = obioraRenderResponseChart;
@@ -31,7 +32,12 @@ document.addEventListener('livewire:init', () => {
     });
 });
 
+obioraRegisterMonitoringChartHooks();
+obioraBootMonitoringCharts();
+
 document.addEventListener('DOMContentLoaded', () => {
+    obioraBootMonitoringCharts();
+
     const flash = document.getElementById('obiora-flash-success');
 
     if (flash?.dataset.message) {

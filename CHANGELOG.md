@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.5 - 2026-07-12
+
+- Fix graphiques monitoring : init ApexCharts centralisé (`monitoring-charts.js`) + re-render après morph Livewire
+- Persistance preset (1H, 24H…) et onglet (Overview, CPU…) via paramètres URL au refresh
+- Timeline Up/Down 1H : plus de segment gris « pas de données » en fin de période si le moniteur est up
+- Witness : seuils par défaut 60s/90s (cycles agent ~45s ne marquent plus « dead » à tort)
+
 ## v2.7.4 - 2026-07-12
 
 - Fix graphiques métriques serveur/moniteur vides : rendu ApexCharts inline + attente chargement module Vite

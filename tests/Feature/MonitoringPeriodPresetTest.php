@@ -44,5 +44,8 @@ final class MonitoringPeriodPresetTest extends TestCase
 
         $this->assertSame(1, $stats['checks_total']);
         $this->assertNotEmpty(array_filter($timeline, fn (array $s) => $s['status'] === 'up'));
+
+        $last = $timeline[array_key_last($timeline)];
+        $this->assertSame('up', $last['status'], 'Le dernier segment doit reprendre le statut up, pas « pas de données ».');
     }
 }
