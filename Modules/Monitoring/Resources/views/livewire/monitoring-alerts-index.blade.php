@@ -15,7 +15,7 @@
         @endif
     </div>
 
-    <ul class="nav nav-tabs mb-3">
+    <ul class="nav nav-tabs obiora-nav-tabs mb-3">
         <li class="nav-item">
             <a href="{{ route('monitoring.alerts') }}" @class(['nav-link', 'active' => $activeTab === 'policies'])>Politiques</a>
         </li>

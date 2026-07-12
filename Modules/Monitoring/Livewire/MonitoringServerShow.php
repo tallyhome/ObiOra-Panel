@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Monitoring\Livewire;
 
 use App\Models\Server;
+use App\Services\Monitoring\MonitoringSlaService;
 use App\Services\Monitoring\ServerUnifiedProfileService;
 use App\Support\UserTimezone;
 use Livewire\Attributes\Layout;
@@ -32,12 +33,13 @@ final class MonitoringServerShow extends Component
         $this->activeTab = $tab;
     }
 
-    public function render(ServerUnifiedProfileService $profile)
+    public function render(ServerUnifiedProfileService $profile, MonitoringSlaService $sla)
     {
         $data = $profile->profile($this->server);
 
         return view('monitoring::livewire.monitoring-server-show', [
             'profile' => $data,
+            'sla' => $sla->serverReport($this->server, 30),
             'timezoneFooter' => UserTimezone::label(),
         ]);
     }

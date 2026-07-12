@@ -142,6 +142,34 @@
         </div>
     </div>
 
+    @if(count($witnessSummary) > 0)
+    <div class="card obiora-card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>CrashHunter Witness (flotte)</span>
+            @if($witnessAnomalies > 0)
+                <span class="badge text-bg-warning">{{ $witnessAnomalies }} anomalie(s) — ping OK mais agent witness mort</span>
+            @endif
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm obiora-table mb-0">
+                <thead class="obiora-table-head">
+                    <tr><th>Serveur</th><th>Ping</th><th>Witness</th><th>Vu</th></tr>
+                </thead>
+                <tbody>
+                    @foreach($witnessSummary as $row)
+                    <tr @class(['table-warning' => $row['anomaly']])>
+                        <td><a href="{{ route('monitoring.servers.show', $row['server_id']) }}">{{ $row['server_name'] }}</a></td>
+                        <td>{{ $row['ping_ok'] ? 'OK' : 'KO' }}</td>
+                        <td>{{ $row['witness_status'] }}</td>
+                        <td class="small">{{ $row['witness_last_at'] ?: '—' }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
+
     <div class="card obiora-card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <span>Incidents ouverts</span>

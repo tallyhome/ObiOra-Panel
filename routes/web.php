@@ -258,6 +258,7 @@ Route::middleware(['setup', 'auth', 'demo.active', 'server'])->group(function ()
         Route::get('/monitoring/servers', \Modules\Monitoring\Livewire\MonitoringServersIndex::class)->name('monitoring.servers');
         Route::get('/monitoring/servers/{server}', \Modules\Monitoring\Livewire\MonitoringServerShow::class)->name('monitoring.servers.show');
         Route::get('/monitoring/servers/{server}/metrics', \Modules\Monitoring\Livewire\MonitoringServerMetricsIndex::class)->name('monitoring.servers.metrics');
+        Route::get('/monitoring/servers/{server}/sla-report', \App\Http\Controllers\MonitoringSlaExportController::class)->name('monitoring.servers.sla-report');
         Route::get('/monitoring/monitors', \Modules\Monitoring\Livewire\MonitoringMonitorsIndex::class)->name('monitoring.monitors');
         Route::get('/monitoring/monitors/{monitor}', \Modules\Monitoring\Livewire\MonitoringMonitorShow::class)->name('monitoring.monitors.show');
         Route::get('/monitoring/incidents', \Modules\Monitoring\Livewire\MonitoringIncidentsIndex::class)->name('monitoring.incidents');

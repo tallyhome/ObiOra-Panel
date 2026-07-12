@@ -91,6 +91,7 @@ final class MonitoringServerProfilePhase7Test extends TestCase
         $profile = app(ServerUnifiedProfileService::class)->profile($server);
 
         $this->assertSame(1, $profile['monitoring']['open_incidents']);
+        $this->assertCount(1, $profile['monitoring']['open_incident_rows']);
         $this->assertNotEmpty($profile['links']);
     }
 

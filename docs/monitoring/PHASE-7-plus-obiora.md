@@ -102,10 +102,10 @@ CrashHunter witness → afficher dans Monitor dashboard :
 
 ## 9. Critères d’acceptation Phase 7
 
-- [ ] Depuis incident disk → accès Doctor disk findings en 1 clic
-- [ ] Fiche serveur unifiée remplace 3 menus pour usage courant
-- [ ] Rapport uptime PDF exportable
-- [ ] Documentation utilisateur « Monitor vs Doctor vs Crash » clarifiée
+- [x] Depuis incident disk → accès Doctor disk findings en 1 clic
+- [x] Fiche serveur unifiée remplace 3 menus pour usage courant
+- [x] Rapport uptime exportable (HTML 30/60/90j)
+- [x] Documentation utilisateur « Monitor vs Doctor vs Crash » clarifiée
 
 ---
 

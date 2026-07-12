@@ -463,12 +463,22 @@ body {
     border: 1px solid var(--obiora-border);
     border-radius: 0.375rem;
     padding: 0.75rem;
+    max-width: 100%;
+    overflow-x: auto;
 }
 
 .obiora-copy-text {
     color: #e8e8f0;
     white-space: pre-wrap;
     word-break: break-all;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+}
+
+.monitoring-dashboard {
+    max-width: 100%;
+    overflow-x: hidden;
+    padding-bottom: 2.5rem;
 }
 
 .obiora-ai-chat {
@@ -962,6 +972,55 @@ label {
     height: 32px;
     border-radius: 8px;
     padding: 4px;
+}
+
+// Onglets Bootstrap + monitoring — texte lisible sur fond sombre
+body.obiora-app {
+    .nav-tabs {
+        --bs-nav-tabs-border-color: var(--obiora-border);
+        border-bottom-color: var(--obiora-border);
+
+        .nav-link {
+            color: var(--obiora-text-muted) !important;
+            background: transparent !important;
+            border-color: transparent transparent var(--obiora-border);
+
+            &:hover,
+            &:focus {
+                color: var(--obiora-text) !important;
+                border-color: var(--obiora-border) var(--obiora-border) transparent;
+                isolation: isolate;
+            }
+
+            &.active {
+                color: var(--obiora-primary) !important;
+                background-color: var(--obiora-bg-card) !important;
+                border-color: var(--obiora-border) var(--obiora-border) var(--obiora-bg-card) !important;
+                font-weight: 600;
+            }
+        }
+    }
+
+    .obiora-monitor-nav .nav-pills .nav-link {
+        color: var(--obiora-text-muted) !important;
+        background: transparent !important;
+
+        &:hover:not(.active):not(.disabled) {
+            color: var(--obiora-text) !important;
+            background: rgba(255, 255, 255, 0.06) !important;
+        }
+
+        &.active {
+            color: #0f172a !important;
+            background-color: var(--obiora-primary) !important;
+            font-weight: 600;
+        }
+    }
+}
+
+.obiora-main {
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 // Onglets (Docker, etc.) — évite texte noir sur fond sombre

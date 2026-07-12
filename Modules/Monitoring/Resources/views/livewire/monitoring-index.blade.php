@@ -1,9 +1,44 @@
 <div>
     @include('monitoring::partials.monitoring-nav')
 
-    <div class="mb-3">
+    <div class="mb-3 pb-2">
         <h1 class="h5 text-muted mb-0">Flotte avancée — graphiques ping &amp; Doctor</h1>
     </div>
+
+    @if(count($witnessSummary) > 0)
+    <div class="card obiora-card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>CrashHunter Witness</span>
+            @if($witnessAnomalies > 0)
+                <span class="badge text-bg-warning">{{ $witnessAnomalies }} anomalie(s)</span>
+            @else
+                <span class="badge text-bg-success">OK</span>
+            @endif
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm obiora-table mb-0">
+                <thead class="obiora-table-head">
+                    <tr><th>Serveur</th><th>Ping</th><th>Witness</th><th>Dernière vue</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach($witnessSummary as $row)
+                    <tr @class(['table-warning' => $row['anomaly']])>
+                        <td class="small fw-medium">{{ $row['server_name'] }}</td>
+                        <td class="small">{{ $row['ping_ok'] ? 'OK' : 'KO' }}</td>
+                        <td class="small">{{ $row['witness_status'] }}</td>
+                        <td class="small text-nowrap">{{ $row['witness_last_at'] ?: '—' }}</td>
+                        <td>
+                            @if($row['anomaly'])
+                                <span class="badge text-bg-warning">Ping OK / witness mort</span>
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
 
     @if(!empty($initialFleet))
         <noscript>

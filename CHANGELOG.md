@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.2 - 2026-07-12
+
+- UI : onglets actifs lisibles (nav-tabs + nav-pills monitoring), débordement Flotte avancée corrigé
+- Phase 7 complète : SLA uptime 30/60/90j + export rapport HTML, intelligence alertes (fusion + escalade)
+- Witness CrashHunter sur dashboard et Flotte avancée (anomalie ping OK / witness mort)
+- Corrélations enrichies (disk, reboot, freeze/stall) + doc `MONITOR-VS-DOCTOR-VS-CRASH.md`
+
 ## v2.7.1 - 2026-07-12
 
 - Fix 500 page métriques serveur (`/monitoring/servers/{id}/metrics`) — erreur Blade dans le script graphiques

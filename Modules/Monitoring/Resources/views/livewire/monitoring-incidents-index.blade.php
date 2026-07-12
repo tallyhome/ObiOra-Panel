@@ -6,7 +6,7 @@
         <p class="text-muted small mb-0">Événements d'alerte, indisponibilités et journal des notifications.</p>
     </div>
 
-    <ul class="nav nav-tabs mb-3">
+    <ul class="nav nav-tabs obiora-nav-tabs mb-3">
         <li class="nav-item">
             <a href="{{ route('monitoring.incidents') }}" @class(['nav-link', 'active' => $viewTab === 'incidents'])>Incidents</a>
         </li>

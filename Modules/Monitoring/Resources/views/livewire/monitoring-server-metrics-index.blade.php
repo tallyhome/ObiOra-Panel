@@ -33,7 +33,7 @@
         <span class="small text-muted align-self-center ms-2">{{ $dashboard['range']['from'] }} → {{ $dashboard['range']['to'] }}</span>
     </div>
 
-    <ul class="nav nav-tabs mb-3">
+    <ul class="nav nav-tabs obiora-nav-tabs mb-3">
         @foreach(['overview' => 'Overview', 'cpu' => 'CPU', 'memory' => 'Memory', 'disk' => 'Disk', 'network' => 'Network', 'processes' => 'Processes'] as $tab => $label)
             <li class="nav-item">
                 <button type="button" @class(['nav-link', 'active' => $activeTab === $tab]) wire:click="setTab('{{ $tab }}')">{{ $label }}</button>
