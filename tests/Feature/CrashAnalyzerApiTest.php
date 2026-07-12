@@ -85,6 +85,30 @@ final class CrashAnalyzerApiTest extends TestCase
         $this->assertSame('1.0.1', $server->metadata['crash_analyzer']['version'] ?? null);
     }
 
+    public function test_metrics_push_backfills_bundled_version_for_legacy_daemon(): void
+    {
+        $server = Server::factory()->create([
+            'agent_token' => str_repeat('e', 64),
+            'metadata' => [
+                'doctor_deploy' => [
+                    'components' => ['doctor_suite', 'crash_hunter'],
+                ],
+            ],
+        ]);
+
+        $this->postJson("/api/v1/servers/{$server->id}/crash-analyzer/metrics", [
+            'sampled_at' => now()->timestamp,
+            'hostname' => 'datacenter',
+            'metrics' => ['cpu' => ['usage_percent' => 3.0]],
+            'events' => [],
+        ], [
+            'Authorization' => 'Bearer '.$server->agent_token,
+        ])->assertOk();
+
+        $server->refresh();
+        $this->assertSame('1.0.1', $server->metadata['crash_analyzer']['version'] ?? null);
+    }
+
     public function test_agent_can_push_crash_report(): void
     {
         $server = Server::factory()->create(['agent_token' => str_repeat('b', 64)]);

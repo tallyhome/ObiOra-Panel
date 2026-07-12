@@ -31,12 +31,8 @@ final class DiagnosticsAgentVersionService
         $meta = $server->metadata ?? [];
 
         return [
-            'crash_hunter' => isset($meta['crash_hunter']['version'])
-                ? (string) $meta['crash_hunter']['version']
-                : null,
-            'crash_analyzer' => isset($meta['crash_analyzer']['version'])
-                ? (string) $meta['crash_analyzer']['version']
-                : null,
+            'crash_hunter' => $this->normalizeVersion($meta['crash_hunter']['version'] ?? null),
+            'crash_analyzer' => $this->normalizeVersion($meta['crash_analyzer']['version'] ?? null),
             'doctor' => $server->latestDiagnosticReport?->doctor_version,
         ];
     }
@@ -161,5 +157,14 @@ final class DiagnosticsAgentVersionService
         }
 
         return null;
+    }
+
+    private function normalizeVersion(mixed $version): ?string
+    {
+        if (! is_string($version) || $version === '') {
+            return null;
+        }
+
+        return $version;
     }
 }

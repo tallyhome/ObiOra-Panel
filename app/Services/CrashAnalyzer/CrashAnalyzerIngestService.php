@@ -11,6 +11,7 @@ use App\Models\CrashAnalyzerEvent;
 use App\Models\CrashAnalyzerMetric;
 use App\Models\CrashAnalyzerReport;
 use App\Models\Server;
+use App\Services\Diagnostics\DiagnosticsAgentVersionService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
@@ -18,6 +19,7 @@ final class CrashAnalyzerIngestService
 {
     public function __construct(
         private readonly CrashAnalyzerNotificationService $notifications,
+        private readonly DiagnosticsAgentVersionService $agentVersions,
     ) {}
 
     /**
@@ -55,6 +57,11 @@ final class CrashAnalyzerIngestService
 
         if (isset($payload['crash_analyzer_version']) && (string) $payload['crash_analyzer_version'] !== '') {
             $crashMeta['version'] = (string) $payload['crash_analyzer_version'];
+        } elseif (! $this->hasStoredVersion($crashMeta) && $this->shouldBackfillBundledVersion($server, $payload)) {
+            $bundled = $this->agentVersions->bundledVersions()['crash_analyzer'] ?? null;
+            if (is_string($bundled) && $bundled !== '') {
+                $crashMeta['version'] = $bundled;
+            }
         }
 
         $server->forceFill([
@@ -151,5 +158,40 @@ final class CrashAnalyzerIngestService
         Storage::disk('local')->put($path, base64_decode($base64, true) ?: '');
 
         return $path;
+    }
+
+    /**
+     * @param  array<string, mixed>  $crashMeta
+     */
+    private function hasStoredVersion(array $crashMeta): bool
+    {
+        $version = $crashMeta['version'] ?? null;
+
+        return is_string($version) && $version !== '';
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function shouldBackfillBundledVersion(Server $server, array $payload): bool
+    {
+        if (($payload['metrics'] ?? []) === []) {
+            return false;
+        }
+
+        $meta = $server->metadata ?? [];
+        $components = is_array($meta['doctor_deploy']['components'] ?? null)
+            ? $meta['doctor_deploy']['components']
+            : [];
+
+        if (in_array('crash_analyzer', $components, true) || in_array('doctor_suite', $components, true)) {
+            return true;
+        }
+
+        if (isset($meta['crash_analyzer']['last_metrics_at'])) {
+            return true;
+        }
+
+        return CrashAnalyzerMetric::query()->where('server_id', $server->id)->exists();
     }
 }
