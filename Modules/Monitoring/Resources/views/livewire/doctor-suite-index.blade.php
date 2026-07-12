@@ -586,7 +586,7 @@
         <div class="col-lg-6">
             <div class="card obiora-card h-100 border-danger border-opacity-25">
                 <div class="card-header">Crash Analyzer — {{ $server?->name }}</div>
-                <div class="card-body">
+                <div class="card-body obiora-diag-panel">
                     @php($crash = $overview['crash_analyzer']['summary'] ?? [])
                     @php($journalBoot = $overview['crash_analyzer']['journal_boot'] ?? null)
                     @php($hardware = $overview['crash_analyzer']['hardware'] ?? null)
@@ -628,15 +628,29 @@
 
                     @if($journalBoot && !empty($journalBoot['previous_boot_errors']))
                     <h3 class="h6">Boot précédent — erreurs (journalctl -b -1)</h3>
-                    <pre class="small bg-dark text-light p-2 rounded mb-3" style="max-height:160px;overflow:auto">{{ Str::limit($journalBoot['previous_boot_errors'], 2000) }}</pre>
+                    <pre class="obiora-diag-output mb-3">{{ Str::limit($journalBoot['previous_boot_errors'], 4000) }}</pre>
                     @endif
 
                     @if($hardware && ($hardware['available'] ?? false))
                     <h3 class="h6">Inventaire matériel</h3>
-                    <details class="small mb-3">
-                        <summary>dmidecode / lscpu / lspci</summary>
-                        <pre class="small mt-2 mb-0" style="max-height:200px;overflow:auto">{{ Str::limit(($hardware['lscpu'] ?? '')."\n".($hardware['lspci_network_storage'] ?? ''), 2500) }}</pre>
-                    </details>
+                    <div class="obiora-diag-accordions mb-3">
+                        @foreach([
+                            'dmidecode' => trim(collect([
+                                $hardware['dmidecode_system'] ?? '',
+                                $hardware['dmidecode_baseboard'] ?? '',
+                                $hardware['dmidecode_bios'] ?? '',
+                            ])->filter()->implode("\n\n")),
+                            'lscpu' => (string) ($hardware['lscpu'] ?? ''),
+                            'lspci' => (string) ($hardware['lspci_network_storage'] ?? ''),
+                        ] as $toolLabel => $toolOutput)
+                            @if(filled($toolOutput))
+                            <details class="small obiora-diag-details">
+                                <summary>{{ $toolLabel }}</summary>
+                                <pre class="obiora-diag-output mt-2 mb-0">{{ Str::limit($toolOutput, 4000) }}</pre>
+                            </details>
+                            @endif
+                        @endforeach
+                    </div>
                     @endif
 
                     @if($tools)

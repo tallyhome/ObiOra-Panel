@@ -6,10 +6,12 @@ namespace Tests\Unit;
 
 use App\Models\Server;
 use App\Services\Diagnostics\DiagnosticsAgentVersionService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 final class DiagnosticsAgentVersionServiceTest extends TestCase
 {
+    use RefreshDatabase;
     public function test_detects_outdated_crash_hunter(): void
     {
         $server = Server::factory()->make([
@@ -40,5 +42,28 @@ final class DiagnosticsAgentVersionServiceTest extends TestCase
         $service = app(DiagnosticsAgentVersionService::class);
 
         $this->assertContains('crash_hunter', $service->outdatedComponents($server));
+    }
+
+    public function test_stamp_deployed_versions_updates_server_metadata(): void
+    {
+        $server = Server::factory()->create([
+            'metadata' => [
+                'crash_hunter' => ['version' => '2.1.0'],
+            ],
+        ]);
+
+        $service = app(DiagnosticsAgentVersionService::class);
+        $bundled = $service->bundledVersions();
+
+        if ($bundled['crash_hunter'] === null || $bundled['crash_analyzer'] === null) {
+            $this->markTestSkipped('Agent version files unavailable');
+        }
+
+        $service->stampDeployedVersions($server, ['crash_hunter', 'crash_analyzer']);
+
+        $server->refresh();
+        $this->assertSame($bundled['crash_hunter'], $server->metadata['crash_hunter']['version'] ?? null);
+        $this->assertSame($bundled['crash_analyzer'], $server->metadata['crash_analyzer']['version'] ?? null);
+        $this->assertFalse($service->needsUpgrade($server));
     }
 }

@@ -11,6 +11,7 @@ import urllib.error
 import urllib.request
 from typing import Any
 
+from crash_analyzer import __version__
 from crash_analyzer.boot_journal import collect_boot_journal_snapshot
 from crash_analyzer.collectors import build_collectors
 from crash_analyzer.config import CrashAnalyzerConfig
@@ -136,6 +137,7 @@ class CrashAnalyzerDaemon:
         payload = {
             "sampled_at": sampled_at,
             "hostname": self._hostname,
+            "crash_analyzer_version": __version__,
             "metrics": batch,
             "events": self.storage.recent_events(20),
         }

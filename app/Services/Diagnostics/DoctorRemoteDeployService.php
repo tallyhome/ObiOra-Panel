@@ -105,9 +105,15 @@ final class DoctorRemoteDeployService
 
         if ($success) {
             $remoteHost = $connection->host;
+            $installedAgents = array_values(array_filter([
+                $installCrashHunter ? 'crash_hunter' : null,
+                $installCrashAnalyzer ? 'crash_analyzer' : null,
+            ]));
+            app(DiagnosticsAgentVersionService::class)->stampDeployedVersions($server, $installedAgents);
+
             $server->forceFill([
                 'hostname' => $server->hostname ?: $remoteHost,
-                'metadata' => array_merge($server->metadata ?? [], [
+                'metadata' => array_merge($server->fresh()->metadata ?? [], [
                     'doctor_deploy' => [
                         'deployed_at' => now()->toIso8601String(),
                         'method' => 'ssh_key',
@@ -167,7 +173,9 @@ final class DoctorRemoteDeployService
         ];
 
         if ($result['success']) {
-            $meta = $server->metadata ?? [];
+            app(DiagnosticsAgentVersionService::class)->stampDeployedVersions($server, $components);
+
+            $meta = $server->fresh()->metadata ?? [];
             $meta['doctor_deploy'] = array_merge($meta['doctor_deploy'] ?? [], [
                 'last_upgrade_at' => now()->toIso8601String(),
                 'upgraded_components' => $components,

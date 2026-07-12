@@ -69,33 +69,69 @@ final class DoctorSuiteService
      */
     public function fleetOverview(Collection $servers): array
     {
-        return $servers->map(function (Server $server) {
-            $report = $server->latestDiagnosticReport;
-            $lastMetric = CrashAnalyzerMetric::query()
-                ->where('server_id', $server->id)
-                ->latest('sampled_at')
-                ->first();
-            $criticalEvents = CrashAnalyzerEvent::query()
-                ->where('server_id', $server->id)
-                ->where('severity', 'critical')
-                ->where('detected_at', '>=', now()->subDay())
-                ->count();
-            $reportsCount = CrashAnalyzerReport::query()
-                ->where('server_id', $server->id)
-                ->count();
-            $hunterLast = CrashHunterMetric::query()
-                ->where('server_id', $server->id)
-                ->latest('sampled_at')
-                ->first();
-            $hunterIncidents = CrashHunterIncident::query()
-                ->where('server_id', $server->id)
-                ->count();
-            $hunterWitness = CrashHunterWitness::query()
-                ->where('server_id', $server->id)
-                ->latest('received_at')
-                ->first();
+        if ($servers->isEmpty()) {
+            return [];
+        }
 
-            $agents = $this->agentStatus->flags($server);
+        $ids = $servers->pluck('id')->all();
+        $agentFlags = $this->agentStatus->flagsBatch($servers);
+
+        $crashLastMetrics = CrashAnalyzerMetric::query()
+            ->whereIn('server_id', $ids)
+            ->selectRaw('server_id, MAX(sampled_at) as last_at')
+            ->groupBy('server_id')
+            ->get()
+            ->keyBy('server_id');
+
+        $critical24h = CrashAnalyzerEvent::query()
+            ->whereIn('server_id', $ids)
+            ->where('severity', 'critical')
+            ->where('detected_at', '>=', now()->subDay())
+            ->selectRaw('server_id, COUNT(*) as total')
+            ->groupBy('server_id')
+            ->pluck('total', 'server_id');
+
+        $reportCounts = CrashAnalyzerReport::query()
+            ->whereIn('server_id', $ids)
+            ->selectRaw('server_id, COUNT(*) as total')
+            ->groupBy('server_id')
+            ->pluck('total', 'server_id');
+
+        $hunterLastMetrics = CrashHunterMetric::query()
+            ->whereIn('server_id', $ids)
+            ->selectRaw('server_id, MAX(sampled_at) as last_at')
+            ->groupBy('server_id')
+            ->get()
+            ->keyBy('server_id');
+
+        $hunterIncidentCounts = CrashHunterIncident::query()
+            ->whereIn('server_id', $ids)
+            ->selectRaw('server_id, COUNT(*) as total')
+            ->groupBy('server_id')
+            ->pluck('total', 'server_id');
+
+        $hunterWitnesses = CrashHunterWitness::query()
+            ->whereIn('server_id', $ids)
+            ->orderByDesc('received_at')
+            ->get()
+            ->unique('server_id')
+            ->keyBy('server_id');
+
+        return $servers->map(function (Server $server) use (
+            $agentFlags,
+            $crashLastMetrics,
+            $critical24h,
+            $reportCounts,
+            $hunterLastMetrics,
+            $hunterIncidentCounts,
+            $hunterWitnesses,
+        ) {
+            $report = $server->latestDiagnosticReport;
+            $agents = $agentFlags[$server->id] ?? $this->agentStatus->flags($server);
+            $lastMetric = $crashLastMetrics->get($server->id);
+            $hunterLast = $hunterLastMetrics->get($server->id);
+            $hunterWitness = $hunterWitnesses->get($server->id);
+            $meta = $server->metadata ?? [];
 
             return [
                 'id' => $server->id,
@@ -104,19 +140,19 @@ final class DoctorSuiteService
                 'doctor_score' => $report?->score,
                 'doctor_status' => $report?->status,
                 'doctor_last_at' => $report?->generated_at?->toIso8601String(),
-                'crash_last_metric_at' => $lastMetric?->sampled_at?->toIso8601String(),
-                'crash_critical_24h' => $criticalEvents,
-                'crash_reports' => $reportsCount,
-                'hunter_last_metric_at' => $hunterLast?->sampled_at?->toIso8601String(),
-                'hunter_incidents' => $hunterIncidents,
-                'hunter_witness_status' => $hunterWitness?->status ?? (($server->metadata ?? [])['crash_hunter']['witness_status'] ?? null),
+                'crash_last_metric_at' => $lastMetric?->last_at,
+                'crash_critical_24h' => (int) ($critical24h[$server->id] ?? 0),
+                'crash_reports' => (int) ($reportCounts[$server->id] ?? 0),
+                'hunter_last_metric_at' => $hunterLast?->last_at,
+                'hunter_incidents' => (int) ($hunterIncidentCounts[$server->id] ?? 0),
+                'hunter_witness_status' => $hunterWitness?->status ?? ($meta['crash_hunter']['witness_status'] ?? null),
                 'deployed' => $agents['any'],
                 'agents_slave' => $agents['slave'],
                 'agents_doctor' => $agents['doctor'],
                 'agents_crash' => $agents['crash'],
                 'agents_crash_hunter' => $agents['crash_hunter'],
-                'deploy_remote_host' => ($server->metadata ?? [])['doctor_deploy']['remote_host'] ?? null,
-                'display_ip' => ($server->metadata ?? [])['doctor_deploy']['remote_host'] ?? $server->ip_address,
+                'deploy_remote_host' => $meta['doctor_deploy']['remote_host'] ?? null,
+                'display_ip' => $meta['doctor_deploy']['remote_host'] ?? $server->ip_address,
             ];
         })->values()->all();
     }

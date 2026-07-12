@@ -86,6 +86,40 @@ final class DiagnosticsAgentVersionService
         return $this->outdatedComponents($server) !== [];
     }
 
+    /**
+     * Enregistre les versions panel comme versions distantes après install/MAJ réussie.
+     *
+     * @param  list<string>  $components  crash_hunter, crash_analyzer, doctor
+     */
+    public function stampDeployedVersions(Server $server, array $components): void
+    {
+        $bundled = $this->bundledVersions();
+        $meta = $server->metadata ?? [];
+        $now = now()->toIso8601String();
+        $changed = false;
+
+        foreach ($components as $component) {
+            if (! in_array($component, ['crash_hunter', 'crash_analyzer'], true)) {
+                continue;
+            }
+
+            $version = $bundled[$component] ?? null;
+            if ($version === null || $version === '') {
+                continue;
+            }
+
+            $meta[$component] = array_merge($meta[$component] ?? [], [
+                'version' => $version,
+                'last_upgrade_at' => $now,
+            ]);
+            $changed = true;
+        }
+
+        if ($changed) {
+            $server->forceFill(['metadata' => $meta])->save();
+        }
+    }
+
     private function isOutdated(?string $bundled, ?string $remote): bool
     {
         if ($bundled === null || $bundled === '') {
