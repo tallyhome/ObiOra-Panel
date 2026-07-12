@@ -49,7 +49,10 @@ final class MonitoringServerMetricsIndex extends Component
             'activeTab' => $this->activeTab,
             'presets' => ['1h', '6h', '24h', '3d', '7d', '30d', '3M', '6M', '1Y'],
             'timezoneFooter' => UserTimezone::label(),
-            'chartPayload' => json_encode($dashboard['series'], JSON_THROW_ON_ERROR),
+            'chartPayload' => json_encode([
+                'series' => $dashboard['series'],
+                'network' => $dashboard['network_series'],
+            ], JSON_THROW_ON_ERROR),
         ]);
     }
 }

@@ -17,7 +17,7 @@ final class PruneOldServerMetricSamplesJob implements ShouldQueue
 
     public function handle(): void
     {
-        $days = max(14, (int) config('obiora.monitoring.sample_retention_days', 60));
+        $days = max(14, (int) config('monitoring.sample_retention_days', config('obiora.monitoring.sample_retention_days', 60)));
         $cutoff = now()->subDays($days);
 
         ServerMetricSample::query()

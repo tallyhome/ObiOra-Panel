@@ -17,7 +17,7 @@ final class PruneOldMonitorChecksJob implements ShouldQueue
 
     public function handle(): void
     {
-        $days = max(7, (int) config('obiora.monitoring.check_retention_days', 30));
+        $days = max(7, (int) config('monitoring.check_retention_days', config('obiora.monitoring.check_retention_days', 60)));
         $cutoff = now()->subDays($days);
 
         MonitorCheck::query()

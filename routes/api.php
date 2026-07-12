@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\DemoAccountController;
 use App\Http\Controllers\Api\DiagnosticReportController;
 use App\Http\Controllers\Api\CrashAnalyzerController;
 use App\Http\Controllers\Api\CrashHunterController;
+use App\Http\Controllers\Api\MonitoringV1ApiController;
 use App\Http\Controllers\Api\ServerMonitorMetricsController;
 use App\Http\Middleware\AuthenticateAgentToken;
 use App\Http\Middleware\AuthenticateSiteApi;
@@ -36,5 +37,17 @@ Route::prefix('v1')->group(function () {
         Route::post('/servers/{server}/crash-hunter/incidents', [CrashHunterController::class, 'storeIncident']);
         Route::post('/servers/{server}/crash-hunter/reports', [CrashHunterController::class, 'storeReport']);
         Route::post('/servers/{server}/crash-hunter/events', [CrashHunterController::class, 'storeEvents']);
+    });
+
+    Route::middleware('auth:sanctum')->prefix('monitoring')->group(function () {
+        Route::get('/servers', [MonitoringV1ApiController::class, 'servers']);
+        Route::get('/servers/{server}/metrics', [MonitoringV1ApiController::class, 'serverMetrics']);
+        Route::get('/monitors', [MonitoringV1ApiController::class, 'monitors']);
+        Route::post('/monitors', [MonitoringV1ApiController::class, 'storeMonitor']);
+        Route::get('/monitors/{monitor}/checks', [MonitoringV1ApiController::class, 'monitorChecks']);
+        Route::get('/incidents', [MonitoringV1ApiController::class, 'incidents']);
+        Route::get('/alert-policies', [MonitoringV1ApiController::class, 'alertPolicies']);
+        Route::get('/monitors/export/json', [MonitoringV1ApiController::class, 'exportMonitors']);
+        Route::post('/monitors/import/json', [MonitoringV1ApiController::class, 'importMonitors']);
     });
 });

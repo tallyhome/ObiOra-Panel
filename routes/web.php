@@ -8,8 +8,10 @@ use App\Http\Controllers\Api\DiagnosticReportController;
 use App\Http\Controllers\Api\CrashAnalyzerController;
 use App\Http\Controllers\Api\CrashHunterController;
 use App\Http\Controllers\Api\CrashHunterAgentController;
+use App\Http\Controllers\Api\MonitoringV1ApiController;
 use App\Http\Controllers\ApplicationIconController;
 use App\Http\Controllers\MarketplaceInstallSetupController;
+use App\Http\Controllers\MonitorVisitController;
 use App\Http\Controllers\CrashAnalyzerExportController;
 use App\Http\Controllers\DoctorSuiteExportController;
 use App\Support\AgentBundlePublisher;
@@ -87,6 +89,18 @@ Route::get('/install/obiora-metrics-uninstall.sh', function () {
         'Content-Type' => 'text/x-shellscript; charset=utf-8',
     ]);
 })->name('install.obiora-metrics-uninstall');
+
+Route::get('/status', \Modules\Monitoring\Livewire\PublicStatusPage::class)
+    ->middleware('throttle:'.config('monitoring.status_page.rate_limit_per_minute', 120))
+    ->name('status.index');
+
+Route::get('/track/{token}.gif', [MonitorVisitController::class, 'pixel'])
+    ->middleware('throttle:240,1')
+    ->name('monitoring.track.pixel');
+
+Route::get('/track/{token}.js', [MonitorVisitController::class, 'script'])
+    ->middleware('throttle:240,1')
+    ->name('monitoring.track.script');
 
 Route::get('/install/doctor-agent.sh', function () {
     $path = base_path('agent/scripts/bootstrap-doctor-agent.sh');
@@ -250,6 +264,7 @@ Route::middleware(['setup', 'auth', 'demo.active', 'server'])->group(function ()
         Route::get('/monitoring/alerts', \Modules\Monitoring\Livewire\MonitoringAlertsIndex::class)->name('monitoring.alerts');
         Route::get('/monitoring/alerts/contacts', \Modules\Monitoring\Livewire\MonitoringAlertsIndex::class)->name('monitoring.alerts.contacts');
         Route::get('/monitoring/preferences', \Modules\Monitoring\Livewire\MonitoringPreferencesIndex::class)->name('monitoring.preferences');
+        Route::get('/monitoring/settings/status-page', \Modules\Monitoring\Livewire\MonitoringStatusPageSettings::class)->name('monitoring.settings.status-page');
 
         Route::prefix('api/monitoring')->name('monitoring.api.')->group(function () {
             Route::get('/summary', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'summary'])->name('summary');
@@ -263,6 +278,18 @@ Route::middleware(['setup', 'auth', 'demo.active', 'server'])->group(function ()
             Route::get('/servers/{server}/install-command', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'installCommand'])->name('install-command');
             Route::get('/servers/{server}/diagnostics/latest', [DiagnosticReportController::class, 'latest'])->name('diagnostics.latest');
             Route::get('/servers/{server}/diagnostics', [DiagnosticReportController::class, 'index'])->name('diagnostics.index');
+        });
+
+        Route::prefix('api/v1/monitoring')->name('monitoring.v1.')->group(function () {
+            Route::get('/servers', [MonitoringV1ApiController::class, 'servers'])->name('servers');
+            Route::get('/servers/{server}/metrics', [MonitoringV1ApiController::class, 'serverMetrics'])->name('server-metrics');
+            Route::get('/monitors', [MonitoringV1ApiController::class, 'monitors'])->name('monitors');
+            Route::post('/monitors', [MonitoringV1ApiController::class, 'storeMonitor'])->middleware('permission:monitoring.manage')->name('monitors.store');
+            Route::get('/monitors/{monitor}/checks', [MonitoringV1ApiController::class, 'monitorChecks'])->name('monitor-checks');
+            Route::get('/incidents', [MonitoringV1ApiController::class, 'incidents'])->name('incidents');
+            Route::get('/alert-policies', [MonitoringV1ApiController::class, 'alertPolicies'])->name('alert-policies');
+            Route::get('/monitors/export/json', [MonitoringV1ApiController::class, 'exportMonitors'])->middleware('permission:monitoring.manage')->name('monitors.export');
+            Route::post('/monitors/import/json', [MonitoringV1ApiController::class, 'importMonitors'])->middleware('permission:monitoring.manage')->name('monitors.import');
         });
 
         Route::prefix('api/crash-analyzer')->name('crash-analyzer.api.')->group(function () {

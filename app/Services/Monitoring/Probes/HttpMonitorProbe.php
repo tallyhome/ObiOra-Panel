@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Monitoring\Probes;
 
 use App\Models\Monitor;
-use Illuminate\Support\Facades\Http;
 
 final class HttpMonitorProbe implements MonitorProbe
 {
@@ -16,10 +15,91 @@ final class HttpMonitorProbe implements MonitorProbe
     public function check(Monitor $monitor): MonitorCheckResult
     {
         $url = $this->normalizeUrl($monitor->target);
+
+        if (app()->environment('testing')) {
+            return $this->checkWithHttpFacade($url);
+        }
+
+        if (function_exists('curl_init')) {
+            return $this->checkWithCurl($url);
+        }
+
+        return $this->checkWithHttpFacade($url);
+    }
+
+    private function checkWithCurl(string $url): MonitorCheckResult
+    {
+        $start = microtime(true);
+        $ch = curl_init($url);
+
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 5,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT => 20,
+            CURLOPT_SSL_VERIFYPEER => $this->verifySsl,
+            CURLOPT_SSL_VERIFYHOST => $this->verifySsl ? 2 : 0,
+            CURLOPT_USERAGENT => 'ObiOra-Monitor/1.0',
+            CURLOPT_HEADER => false,
+        ]);
+
+        $body = curl_exec($ch);
+        $errno = curl_errno($ch);
+        $error = $errno !== 0 ? curl_error($ch) : null;
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $dnsSec = (float) curl_getinfo($ch, CURLINFO_NAMELOOKUP_TIME);
+        $connectSec = (float) curl_getinfo($ch, CURLINFO_CONNECT_TIME);
+        $startTransferSec = (float) curl_getinfo($ch, CURLINFO_STARTTRANSFER_TIME);
+        $totalSec = (float) curl_getinfo($ch, CURLINFO_TOTAL_TIME);
+        curl_close($ch);
+
+        $responseMs = (int) round($totalSec * 1000);
+        $dnsMs = (int) round($dnsSec * 1000);
+        $tcpMs = (int) round(max(0, $connectSec - $dnsSec) * 1000);
+        $ttfbMs = (int) round(max(0, $startTransferSec - $connectSec) * 1000);
+
+        if ($body === false || $error !== null) {
+            return new MonitorCheckResult(
+                status: 'down',
+                responseMs: (int) round((microtime(true) - $start) * 1000),
+                metrics: [
+                    'dns_ms' => $dnsMs,
+                    'tcp_connect_ms' => $tcpMs,
+                    'ttfb_ms' => $ttfbMs,
+                    'http_code' => $httpCode ?: null,
+                ],
+                error: $error ?? 'curl error',
+            );
+        }
+
+        $up = $httpCode >= 200 && $httpCode < 400;
+
+        $metrics = [
+            'http_code' => $httpCode,
+            'dns_ms' => $dnsMs,
+            'tcp_connect_ms' => $tcpMs,
+            'ttfb_ms' => $ttfbMs,
+        ];
+
+        if ($this->verifySsl) {
+            $metrics['ssl_days_remaining'] = $this->sslDaysRemaining($url);
+        }
+
+        return new MonitorCheckResult(
+            status: $up ? 'up' : 'down',
+            responseMs: $responseMs,
+            metrics: $metrics,
+            error: $up ? null : "HTTP {$httpCode}",
+        );
+    }
+
+    private function checkWithHttpFacade(string $url): MonitorCheckResult
+    {
         $start = microtime(true);
 
         try {
-            $response = Http::withOptions([
+            $response = \Illuminate\Support\Facades\Http::withOptions([
                 'verify' => $this->verifySsl,
                 'allow_redirects' => true,
                 'connect_timeout' => 10,
@@ -46,11 +126,9 @@ final class HttpMonitorProbe implements MonitorProbe
                 error: $up ? null : "HTTP {$httpCode}",
             );
         } catch (\Throwable $exception) {
-            $responseMs = (int) round((microtime(true) - $start) * 1000);
-
             return new MonitorCheckResult(
                 status: 'down',
-                responseMs: $responseMs,
+                responseMs: (int) round((microtime(true) - $start) * 1000),
                 metrics: ['http_code' => null],
                 error: $exception->getMessage(),
             );

@@ -7,6 +7,7 @@ namespace Modules\Monitoring\Livewire;
 use App\Models\Monitor;
 use App\Models\MonitorCheck;
 use App\Services\Monitoring\MonitorRunnerService;
+use App\Services\Monitoring\MonitorVisitService;
 use App\Support\UserTimezone;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -24,9 +25,11 @@ final class MonitoringMonitorShow extends Component
         $this->monitor = $monitor;
     }
 
-    public function render(MonitorRunnerService $runner)
+    public function render(MonitorRunnerService $runner, MonitorVisitService $visits)
     {
         $stats = $runner->statsForMonitor($this->monitor);
+        $visitStats = $visits->statsForMonitor($this->monitor);
+        $visits->ensureTrackToken($this->monitor->refresh());
 
         $recentChecks = MonitorCheck::query()
             ->where('monitor_id', $this->monitor->id)
@@ -43,6 +46,8 @@ final class MonitoringMonitorShow extends Component
 
         return view('monitoring::livewire.monitoring-monitor-show', [
             'stats' => $stats,
+            'visitStats' => $visitStats,
+            'embedSnippet' => $visits->embedSnippet($this->monitor),
             'chartSeries' => $runner->chartSeriesForMonitor($this->monitor),
             'recentChecks' => $recentChecks,
             'timezoneFooter' => UserTimezone::label(),

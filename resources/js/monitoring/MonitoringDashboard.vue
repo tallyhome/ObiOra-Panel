@@ -22,20 +22,33 @@
       <span class="small d-block mt-1">Les données ci-dessous proviennent du chargement serveur. Cliquez Actualiser après avoir corrigé le panel (php-fpm / nginx).</span>
     </div>
 
-    <div v-if="alerts.length" class="mb-4">
+    <div v-if="alerts.length" class="row g-2 mb-3">
       <div
         v-for="alert in alerts"
         :key="alert.id"
-        class="alert mb-2"
-        :class="alertClass(alert.severity)"
-        role="alert"
+        class="col-md-6"
       >
-        <strong>{{ alert.title }}</strong>
-        <span v-if="alert.server"> — {{ alert.server }}</span>
-        <div class="small">{{ alert.message }}</div>
-        <button type="button" class="btn btn-sm btn-outline-dark mt-2" @click="dismissAlert(alert.id)">
-          Marquer lu
-        </button>
+        <div
+          class="alert obiora-fleet-alert mb-0 h-100"
+          :class="alertClass(alert.severity)"
+          role="alert"
+        >
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div class="min-w-0 flex-grow-1">
+              <div class="small fw-semibold text-truncate">
+                {{ alert.title }}<span v-if="alert.server" class="fw-normal text-muted"> — {{ alert.server }}</span>
+              </div>
+              <div class="small obiora-fleet-alert-msg">{{ alert.message }}</div>
+            </div>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary flex-shrink-0 obiora-alert-mark-read"
+              @click="dismissAlert(alert.id)"
+            >
+              Marquer lu
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -301,22 +314,26 @@
           — sans dépôt ObiOra-Doctor sur la machine cible.
         </p>
         <div v-if="installLoading" class="text-muted small">Chargement…</div>
-        <template v-else-if="installRemote">
-          <p class="small fw-medium mb-1">Sur un VPS distant (root) :</p>
-          <div class="obiora-copy-block mb-3">
-            <pre class="small mb-0 obiora-copy-text">{{ installRemote }}</pre>
-            <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="obioraCopyFromButton(this)">
-              Copier
-            </button>
+        <div v-else-if="installRemote" class="row g-3">
+          <div class="col-lg-6">
+            <p class="small fw-medium mb-1">Sur un VPS distant (root) :</p>
+            <div class="obiora-copy-block h-100">
+              <pre class="small mb-0 obiora-copy-text">{{ installRemote }}</pre>
+              <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="obioraCopyFromButton(this)">
+                Copier
+              </button>
+            </div>
           </div>
-          <p class="small fw-medium mb-1">Sur le serveur du panel (local) :</p>
-          <div class="obiora-copy-block">
-            <pre class="small mb-0 obiora-copy-text">{{ installLocal }}</pre>
-            <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="obioraCopyFromButton(this)">
-              Copier
-            </button>
+          <div class="col-lg-6">
+            <p class="small fw-medium mb-1">Sur le serveur du panel (local) :</p>
+            <div class="obiora-copy-block h-100">
+              <pre class="small mb-0 obiora-copy-text">{{ installLocal }}</pre>
+              <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="obioraCopyFromButton(this)">
+                Copier
+              </button>
+            </div>
           </div>
-        </template>
+        </div>
         <p v-else class="small text-muted mb-0">
           Sélectionnez un serveur dans le tableau ou ajoutez-en un dans Serveurs.
         </p>

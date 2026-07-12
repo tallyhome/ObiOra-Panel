@@ -128,6 +128,20 @@ read_network_json() {
     }' /proc/net/dev 2>/dev/null | sed 's/,$//' || true
 }
 
+read_tcp_connections() {
+    awk '/^TCP:/ {print int($2)}' /proc/net/sockstat 2>/dev/null || echo 0
+}
+
+read_ip_addresses_json() {
+    ip -o -4 addr show 2>/dev/null | awk '{
+        split($4,a,"/");
+        gsub(/"/,"\\\"", $2);
+        printf "\"%s\":{\"iface\":\"%s\",\"address\":\"%s\"},", $2, $2, a[1]
+    }' | sed 's/,$//' || hostname -I 2>/dev/null | awk '{
+        for(i=1;i<=NF;i++) printf "\"ip%d\":{\"iface\":\"primary\",\"address\":\"%s\"},", i, $i
+    }' | sed 's/,$//' || true
+}
+
 read_partitions_json() {
     df -P -x tmpfs -x devtmpfs 2>/dev/null | awk 'NR>1 {
         gsub("%","",$5);
@@ -165,10 +179,12 @@ build_payload() {
     read -r load_1 load_5 load_15 <<< "${load_line}"
     uptime="$(read_uptime)"
 
-    local net_json parts_json procs_json extra=""
+    local net_json parts_json procs_json tcp_conn ip_json extra=""
     net_json="$(read_network_json)"
     parts_json="$(read_partitions_json)"
     procs_json="$(read_top_processes_json)"
+    tcp_conn="$(read_tcp_connections)"
+    ip_json="$(read_ip_addresses_json)"
 
     local daily_block=""
     if [[ ! -f "${DAILY_STAMP}" ]] || [[ "$(date +%Y%m%d)" != "$(cat "${DAILY_STAMP}" 2>/dev/null || true)" ]]; then
@@ -177,7 +193,7 @@ build_payload() {
     fi
 
     cat <<JSON
-{"schema_version":${SCHEMA_VERSION},"agent_version":"${AGENT_VERSION}","sampled_at":$(date +%s),"cpu_percent":${cpu_pct},"cpu_steal_percent":${steal_pct},"memory_percent":${mem_pct},"swap_percent":${swap_pct},"disk_percent":${disk_pct},"load_1":${load_1},"load_5":${load_5},"load_15":${load_15},"uptime_seconds":${uptime},"payload":{"network":{${net_json}},"partitions":{${parts_json}},"processes":[${procs_json}]}${daily_block}}
+{"schema_version":${SCHEMA_VERSION},"agent_version":"${AGENT_VERSION}","sampled_at":$(date +%s),"cpu_percent":${cpu_pct},"cpu_steal_percent":${steal_pct},"memory_percent":${mem_pct},"swap_percent":${swap_pct},"disk_percent":${disk_pct},"load_1":${load_1},"load_5":${load_5},"load_15":${load_15},"uptime_seconds":${uptime},"tcp_connections":${tcp_conn},"payload":{"network":{${net_json}},"partitions":{${parts_json}},"processes":[${procs_json}],"ip_addresses":{${ip_json}}}${daily_block}}
 JSON
 }
 

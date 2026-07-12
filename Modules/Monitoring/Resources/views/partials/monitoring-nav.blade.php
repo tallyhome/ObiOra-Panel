@@ -7,6 +7,7 @@
         ['route' => 'monitoring.alerts', 'label' => 'Alertes', 'icon' => '🔔'],
         ['route' => 'monitoring.fleet', 'label' => 'Flotte avancée', 'icon' => '◉'],
         ['route' => 'monitoring.preferences', 'label' => 'Préférences', 'icon' => '⚙'],
+        ['route' => 'monitoring.settings.status-page', 'label' => 'Status page', 'icon' => '🌐'],
     ];
 @endphp
 <nav class="obiora-monitor-nav mb-4" aria-label="Navigation monitoring">

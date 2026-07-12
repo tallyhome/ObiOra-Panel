@@ -56,6 +56,8 @@ final class ServerMetricsService
             'partitions' => $this->extractPartitions($latest),
             'processes' => $this->extractProcesses($latest),
             'network' => $this->extractNetwork($latest),
+            'network_series' => $this->buildNetworkSeries($samples, $resolution),
+            'ip_addresses' => $this->extractIpAddresses($latest),
         ];
     }
 
@@ -205,6 +207,7 @@ final class ServerMetricsService
         return [
             'uptime_seconds' => $last?->uptime_seconds !== null ? (float) $last->uptime_seconds : null,
             'samples' => $samples->count(),
+            'tcp_connections' => (int) (($last?->payload ?? [])['tcp_connections'] ?? 0),
         ];
     }
 
@@ -251,6 +254,109 @@ final class ServerMetricsService
         $processes = ($latest->payload ?? [])['processes'] ?? [];
 
         return is_array($processes) ? array_slice($processes, 0, 20) : [];
+    }
+
+    /**
+     * @param  Collection<int, ServerMetricSample>  $samples
+     * @return array<string, mixed>
+     */
+    private function buildNetworkSeries(Collection $samples, string $resolution): array
+    {
+        if ($samples->count() < 2) {
+            return [
+                'categories' => [],
+                'rx_kbps' => [],
+                'tx_kbps' => [],
+                'tcp_connections' => [],
+                'avg_rx' => null,
+                'avg_tx' => null,
+            ];
+        }
+
+        $seconds = match ($resolution) {
+            '5m' => 300,
+            '1h' => 3600,
+            default => 60,
+        };
+
+        $categories = [];
+        $rxRates = [];
+        $txRates = [];
+        $tcpSeries = [];
+        $prev = null;
+
+        foreach ($samples as $sample) {
+            $network = ($sample->payload ?? [])['network'] ?? [];
+            $rx = 0;
+            $tx = 0;
+
+            if (is_array($network)) {
+                foreach ($network as $iface) {
+                    if (! is_array($iface)) {
+                        continue;
+                    }
+                    $rx += (int) ($iface['rx'] ?? 0);
+                    $tx += (int) ($iface['tx'] ?? 0);
+                }
+            }
+
+            $tcp = (int) (($sample->payload ?? [])['tcp_connections'] ?? 0);
+
+            if ($prev !== null && $sample->sampled_at && $prev['at']) {
+                $elapsed = max(1, $sample->sampled_at->diffInSeconds($prev['at']));
+                if ($elapsed <= $seconds * 2) {
+                    $categories[] = UserTimezone::format($sample->sampled_at, 'd/m H:i');
+                    $rxRates[] = round(max(0, ($rx - $prev['rx']) * 8 / $elapsed / 1000), 2);
+                    $txRates[] = round(max(0, ($tx - $prev['tx']) * 8 / $elapsed / 1000), 2);
+                    $tcpSeries[] = $tcp > 0 ? $tcp : null;
+                }
+            }
+
+            $prev = ['at' => $sample->sampled_at, 'rx' => $rx, 'tx' => $tx];
+        }
+
+        $numericRx = array_values(array_filter($rxRates, fn ($v) => $v !== null));
+        $numericTx = array_values(array_filter($txRates, fn ($v) => $v !== null));
+
+        return [
+            'categories' => $categories,
+            'rx_kbps' => $rxRates,
+            'tx_kbps' => $txRates,
+            'tcp_connections' => $tcpSeries,
+            'avg_rx' => $numericRx === [] ? null : round(array_sum($numericRx) / count($numericRx), 2),
+            'avg_tx' => $numericTx === [] ? null : round(array_sum($numericTx) / count($numericTx), 2),
+        ];
+    }
+
+    /**
+     * @return list<array{iface: string, address: string}>
+     */
+    private function extractIpAddresses(?ServerMetricSample $latest): array
+    {
+        if ($latest === null) {
+            return [];
+        }
+
+        $ips = ($latest->payload ?? [])['ip_addresses'] ?? [];
+
+        if (! is_array($ips)) {
+            return [];
+        }
+
+        $rows = [];
+
+        foreach ($ips as $data) {
+            if (! is_array($data)) {
+                continue;
+            }
+
+            $rows[] = [
+                'iface' => (string) ($data['iface'] ?? '—'),
+                'address' => (string) ($data['address'] ?? '—'),
+            ];
+        }
+
+        return $rows;
     }
 
     /**

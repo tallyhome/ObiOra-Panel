@@ -8,6 +8,7 @@ use App\Enums\MonitorType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Monitor extends Model
 {
@@ -27,6 +28,7 @@ class Monitor extends Model
         'last_status',
         'last_checked_at',
         'last_response_ms',
+        'track_token',
     ];
 
     protected function casts(): array
@@ -43,6 +45,19 @@ class Monitor extends Model
     public function checks(): HasMany
     {
         return $this->hasMany(MonitorCheck::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Monitor $monitor): void {
+            if ($monitor->track_token === null && in_array($monitor->type, [
+                MonitorType::Https,
+                MonitorType::Http,
+                MonitorType::Keyword,
+            ], true)) {
+                $monitor->track_token = (string) Str::uuid();
+            }
+        });
     }
 
     public function isDue(): bool

@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.6.0 - 2026-07-12
+
+- Monitoring : compteur de visites site (pixel + snippet embed), métriques DNS/TCP/TTFB sur moniteurs
+- Monitoring serveur : onglet Network (RX/TX kbps, connexions TCP, adresses IP agent)
+- Flotte avancée : alertes en 2 colonnes compactes, bouton « Marquer lu » visible, install Doctor en 2 colonnes
+- Phase 6 : status page publique `/status`, API REST `/api/v1/monitoring`, import/export JSON moniteurs, rétention 60j
+- MAJ : migration auto (`track_token`, `monitor_visit_daily`, `status_page_settings`) via `migrate --force` dans `update-panel.sh`
+
 ## v2.5.0 - 2026-07-12
 
 Release monitoring ObiOra (Phases 1 à 5, parité Pinguzo self-hosted).

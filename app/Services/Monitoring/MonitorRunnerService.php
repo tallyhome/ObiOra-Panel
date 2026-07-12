@@ -111,7 +111,7 @@ final class MonitorRunnerService
     }
 
     /**
-     * @return array{uptime_percent: float, avg_ms: ?int, min_ms: ?int, max_ms: ?int, checks_total: int}
+     * @return array{uptime_percent: float, avg_ms: ?int, min_ms: ?int, max_ms: ?int, checks_total: int, avg_dns_ms: ?int, avg_tcp_ms: ?int, avg_ttfb_ms: ?int}
      */
     public function statsForMonitor(Monitor $monitor, int $days = 30): array
     {
@@ -131,11 +131,17 @@ final class MonitorRunnerService
                 'min_ms' => null,
                 'max_ms' => null,
                 'checks_total' => 0,
+                'avg_dns_ms' => null,
+                'avg_tcp_ms' => null,
+                'avg_ttfb_ms' => null,
             ];
         }
 
         $up = $checks->where('status', 'up')->count();
         $latencies = $checks->pluck('response_ms')->filter(fn ($ms) => $ms !== null);
+        $dnsValues = $checks->map(fn ($c) => $c->metrics['dns_ms'] ?? null)->filter(fn ($v) => is_numeric($v));
+        $tcpValues = $checks->map(fn ($c) => $c->metrics['tcp_connect_ms'] ?? null)->filter(fn ($v) => is_numeric($v));
+        $ttfbValues = $checks->map(fn ($c) => $c->metrics['ttfb_ms'] ?? null)->filter(fn ($v) => is_numeric($v));
 
         return [
             'uptime_percent' => round(($up / $total) * 100, 2),
@@ -143,6 +149,9 @@ final class MonitorRunnerService
             'min_ms' => $latencies->isEmpty() ? null : (int) $latencies->min(),
             'max_ms' => $latencies->isEmpty() ? null : (int) $latencies->max(),
             'checks_total' => $total,
+            'avg_dns_ms' => $dnsValues->isEmpty() ? null : (int) round($dnsValues->avg()),
+            'avg_tcp_ms' => $tcpValues->isEmpty() ? null : (int) round($tcpValues->avg()),
+            'avg_ttfb_ms' => $ttfbValues->isEmpty() ? null : (int) round($ttfbValues->avg()),
         ];
     }
 }

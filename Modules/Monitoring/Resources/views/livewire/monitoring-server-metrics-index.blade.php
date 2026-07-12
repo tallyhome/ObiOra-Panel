@@ -34,7 +34,7 @@
     </div>
 
     <ul class="nav nav-tabs mb-3">
-        @foreach(['overview' => 'Overview', 'cpu' => 'CPU', 'memory' => 'Memory', 'disk' => 'Disk', 'processes' => 'Processes'] as $tab => $label)
+        @foreach(['overview' => 'Overview', 'cpu' => 'CPU', 'memory' => 'Memory', 'disk' => 'Disk', 'network' => 'Network', 'processes' => 'Processes'] as $tab => $label)
             <li class="nav-item">
                 <button type="button" @class(['nav-link', 'active' => $activeTab === $tab]) wire:click="setTab('{{ $tab }}')">{{ $label }}</button>
             </li>
@@ -102,6 +102,52 @@
     @endif
     @endif
 
+    @if($activeTab === 'network')
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="card obiora-card h-100">
+                <div class="card-body">
+                    <div class="small text-muted">TCP connexions (actuel)</div>
+                    <div class="h4 mb-0">{{ $dashboard['stats']['tcp_connections'] ?? '—' }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card obiora-card h-100">
+                <div class="card-body">
+                    <div class="small text-muted">RX moy.</div>
+                    <div class="h4 mb-0">{{ $dashboard['network_series']['avg_rx'] ?? '—' }} kbps</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card obiora-card h-100">
+                <div class="card-body">
+                    <div class="small text-muted">TX moy.</div>
+                    <div class="h4 mb-0">{{ $dashboard['network_series']['avg_tx'] ?? '—' }} kbps</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card obiora-card mb-4"><div class="card-header">Trafic réseau (RX/TX)</div><div class="card-body"><div id="chart-network-rxtx" style="min-height:280px;"></div></div></div>
+    <div class="card obiora-card mb-4"><div class="card-header">Connexions TCP</div><div class="card-body"><div id="chart-network-tcp" style="min-height:220px;"></div></div></div>
+    @if(count($dashboard['ip_addresses']) > 0)
+    <div class="card obiora-card">
+        <div class="card-header">Adresses IP</div>
+        <div class="table-responsive">
+            <table class="table table-sm obiora-table mb-0">
+                <thead class="obiora-table-head"><tr><th>Interface</th><th>Adresse</th></tr></thead>
+                <tbody>
+                    @foreach($dashboard['ip_addresses'] as $ip)
+                    <tr><td>{{ $ip['iface'] }}</td><td class="font-monospace">{{ $ip['address'] }}</td></tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
+    @endif
+
     @if($activeTab === 'processes')
     <div class="card obiora-card">
         <div class="card-header">Top processus (dernier snapshot)</div>
@@ -131,6 +177,7 @@
 @script
 <script>
     const seriesData = @json(json_decode($chartPayload, true, 512, JSON_THROW_ON_ERROR));
+    const s = seriesData.series || seriesData;
 
     function areaChart(el, title, categories, values, color) {
         if (!el || typeof ApexCharts === 'undefined') return null;
@@ -176,6 +223,14 @@
         areaChart(document.getElementById('chart-memory-tab'), 'Memory', s.memory?.categories || [], s.memory?.values || [], '#22c55e');
         areaChart(document.getElementById('chart-swap-tab'), 'Swap', s.swap?.categories || [], s.swap?.values || [], '#a855f7');
         areaChart(document.getElementById('chart-disk-tab'), 'Disk', s.disk?.categories || [], s.disk?.values || [], '#f59e0b');
+        const net = seriesData.network || {};
+        loadChart(document.getElementById('chart-network-rxtx'), net.categories || [], [
+            { name: 'RX kbps', data: net.rx_kbps || [] },
+            { name: 'TX kbps', data: net.tx_kbps || [] },
+        ]);
+        loadChart(document.getElementById('chart-network-tcp'), net.categories || [], [
+            { name: 'TCP', data: net.tcp_connections || [] },
+        ]);
     }
 
     document.addEventListener('livewire:navigated', renderCharts);

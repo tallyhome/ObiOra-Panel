@@ -16,6 +16,8 @@ use Modules\Monitoring\Livewire\MonitoringMonitorsIndex;
 use Modules\Monitoring\Livewire\MonitoringServerMetricsIndex;
 use Modules\Monitoring\Livewire\MonitoringPreferencesIndex;
 use Modules\Monitoring\Livewire\MonitoringServersIndex;
+use Modules\Monitoring\Livewire\MonitoringStatusPageSettings;
+use Modules\Monitoring\Livewire\PublicStatusPage;
 
 class MonitoringServiceProvider extends ServiceProvider
 {
@@ -36,6 +38,8 @@ class MonitoringServiceProvider extends ServiceProvider
         Livewire::component('monitoring.incidents-index', MonitoringIncidentsIndex::class);
         Livewire::component('monitoring.alerts-index', MonitoringAlertsIndex::class);
         Livewire::component('monitoring.preferences-index', MonitoringPreferencesIndex::class);
+        Livewire::component('monitoring.status-page-settings', MonitoringStatusPageSettings::class);
+        Livewire::component('monitoring.public-status-page', PublicStatusPage::class);
         Livewire::component('doctor.index', DoctorSuiteIndex::class);
     }
 }

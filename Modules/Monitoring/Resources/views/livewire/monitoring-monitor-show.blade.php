@@ -19,42 +19,67 @@
     </div>
 
     <div class="row g-3 mb-4">
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card obiora-card h-100">
                 <div class="card-body">
                     <div class="small text-muted">Uptime (30 j)</div>
-                    <div class="h4 mb-0">{{ number_format($stats['uptime_percent'], 1) }}%</div>
+                    <div class="h5 mb-0">{{ number_format($stats['uptime_percent'], 1) }}%</div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card obiora-card h-100">
                 <div class="card-body">
                     <div class="small text-muted">Réponse moy.</div>
-                    <div class="h4 mb-0">{{ $stats['avg_ms'] !== null ? $stats['avg_ms'].' ms' : '—' }}</div>
+                    <div class="h5 mb-0">{{ $stats['avg_ms'] !== null ? $stats['avg_ms'].' ms' : '—' }}</div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card obiora-card h-100">
                 <div class="card-body">
-                    <div class="small text-muted">Min / Max</div>
-                    <div class="h4 mb-0">
-                        {{ $stats['min_ms'] ?? '—' }} / {{ $stats['max_ms'] ?? '—' }} ms
-                    </div>
+                    <div class="small text-muted">DNS / TCP</div>
+                    <div class="h6 mb-0">{{ $stats['avg_dns_ms'] ?? '—' }} / {{ $stats['avg_tcp_ms'] ?? '—' }} ms</div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
+            <div class="card obiora-card h-100">
+                <div class="card-body">
+                    <div class="small text-muted">TTFB moy.</div>
+                    <div class="h5 mb-0">{{ $stats['avg_ttfb_ms'] !== null ? $stats['avg_ttfb_ms'].' ms' : '—' }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card obiora-card h-100">
+                <div class="card-body">
+                    <div class="small text-muted">Visites (30 j)</div>
+                    <div class="h5 mb-0">{{ number_format($visitStats['total_30d']) }}</div>
+                    <div class="small text-muted">{{ $visitStats['today'] }} aujourd'hui</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
             <div class="card obiora-card h-100">
                 <div class="card-body">
                     <div class="small text-muted">Dernière vérif.</div>
-                    <div class="h6 mb-0">{{ \App\Support\UserTimezone::format($monitor->last_checked_at, 'd/m/Y H:i:s') ?: '—' }}</div>
+                    <div class="h6 mb-0">{{ \App\Support\UserTimezone::format($monitor->last_checked_at, 'd/m/Y H:i') ?: '—' }}</div>
                     <div class="small text-muted">{{ $monitor->last_response_ms ? $monitor->last_response_ms.' ms' : '' }}</div>
                 </div>
             </div>
         </div>
     </div>
+
+    @if($embedSnippet)
+    <div class="card obiora-card mb-4">
+        <div class="card-header">Compteur de visites — snippet à intégrer sur le site</div>
+        <div class="card-body">
+            <p class="small text-muted mb-2">Collez ce script avant <code>&lt;/body&gt;</code> sur le site surveillé. Les visites sont comptées via pixel 1×1 (sans cookie).</p>
+            <pre class="small bg-dark text-light p-2 rounded mb-0"><code>{{ $embedSnippet }}</code></pre>
+        </div>
+    </div>
+    @endif
 
     <div class="card obiora-card mb-4">
         <div class="card-header">Temps de réponse</div>

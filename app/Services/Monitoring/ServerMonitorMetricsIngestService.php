@@ -23,6 +23,10 @@ final class ServerMonitorMetricsIngestService
 
         $extras = is_array($payload['payload'] ?? null) ? $payload['payload'] : [];
 
+        if (isset($payload['tcp_connections'])) {
+            $extras['tcp_connections'] = (int) $payload['tcp_connections'];
+        }
+
         ServerMetricSample::query()->create([
             'server_id' => $server->id,
             'sampled_at' => $sampledAt,

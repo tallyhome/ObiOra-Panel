@@ -7,7 +7,11 @@
             <p class="text-muted small mb-0">Sites, API, ports et DNS surveillés depuis le panel.</p>
         </div>
         @if($canManage)
-        <button type="button" wire:click="openAddModal" class="btn btn-primary btn-sm">+ Ajouter un moniteur</button>
+        <div class="d-flex gap-1">
+            <button type="button" wire:click="openImportModal" class="btn btn-outline-secondary btn-sm">Import JSON</button>
+            <a href="{{ route('monitoring.v1.monitors.export') }}" class="btn btn-outline-secondary btn-sm">Export JSON</a>
+            <button type="button" wire:click="openAddModal" class="btn btn-primary btn-sm">+ Ajouter un moniteur</button>
+        </div>
         @endif
     </div>
 
@@ -144,6 +148,27 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" wire:click="$set('showAddModal', false)">Annuler</button>
                     <button type="button" class="btn btn-primary" wire:click="saveMonitor" wire:loading.attr="disabled">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    @if($showImportModal)
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content obiora-card">
+                <div class="modal-header">
+                    <h2 class="modal-title h5">Importer des moniteurs (JSON)</h2>
+                    <button type="button" class="btn-close" wire:click="$set('showImportModal', false)"></button>
+                </div>
+                <div class="modal-body">
+                    <textarea wire:model="importJson" class="form-control font-monospace small" rows="12" placeholder='{"version":1,"monitors":[...]}'></textarea>
+                    @error('importJson')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" wire:click="$set('showImportModal', false)">Annuler</button>
+                    <button type="button" class="btn btn-primary" wire:click="importMonitors">Importer</button>
                 </div>
             </div>
         </div>

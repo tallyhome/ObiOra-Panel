@@ -630,6 +630,32 @@ body {
     color: var(--obiora-text);
 }
 
+.obiora-fleet-alert {
+    padding: 0.55rem 0.75rem;
+}
+
+.obiora-fleet-alert-msg {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    color: var(--obiora-text-muted);
+    margin-top: 0.15rem;
+}
+
+.obiora-alert-mark-read {
+    color: var(--obiora-text) !important;
+    border-color: rgba(232, 232, 240, 0.45) !important;
+    background: rgba(255, 255, 255, 0.06);
+
+    &:hover,
+    &:focus {
+        color: var(--obiora-text) !important;
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(232, 232, 240, 0.65) !important;
+    }
+}
+
 .alert-success {
     background: rgba(61, 214, 140, 0.12);
     border-color: rgba(61, 214, 140, 0.3);

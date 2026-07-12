@@ -6,6 +6,7 @@ namespace Modules\Monitoring\Livewire;
 
 use App\Enums\MonitorType;
 use App\Models\Monitor;
+use App\Services\Monitoring\MonitorImportExportService;
 use App\Support\UserTimezone;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -36,6 +37,10 @@ final class MonitoringMonitorsIndex extends Component
     public int $intervalSeconds = 300;
 
     public string $tagsInput = '';
+
+    public string $importJson = '';
+
+    public bool $showImportModal = false;
 
     public function mount(): void
     {
@@ -135,6 +140,30 @@ final class MonitoringMonitorsIndex extends Component
         $this->authorizeManage();
         Monitor::query()->whereKey($monitorId)->delete();
         $this->dispatch('notify', type: 'success', message: 'Moniteur supprimé.');
+    }
+
+    public function openImportModal(): void
+    {
+        $this->authorizeManage();
+        $this->importJson = '';
+        $this->showImportModal = true;
+    }
+
+    public function importMonitors(MonitorImportExportService $importExport): void
+    {
+        $this->authorizeManage();
+
+        $decoded = json_decode($this->importJson, true);
+
+        if (! is_array($decoded) || ! isset($decoded['monitors'])) {
+            $this->addError('importJson', 'JSON invalide — format export ObiOra attendu.');
+
+            return;
+        }
+
+        $result = $importExport->importJson($decoded);
+        $this->showImportModal = false;
+        $this->dispatch('notify', type: 'success', message: "Import : {$result['created']} créé(s), {$result['skipped']} ignoré(s).");
     }
 
     public function render()
