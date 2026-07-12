@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.4 - 2026-07-12
+
+- Fix graphiques métriques serveur/moniteur vides : rendu ApexCharts inline + attente chargement module Vite
+
 ## v2.7.3 - 2026-07-12
 
 - Fix presets 1H/6H métriques : requêtes en UTC (plus de fenêtre vide avec fuseau Europe/Paris)

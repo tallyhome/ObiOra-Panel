@@ -177,36 +177,99 @@
 
 @script
 <script>
+    function obioraDarkTheme() {
+        return document.documentElement.getAttribute('data-obiora-theme') !== 'light';
+    }
+
+    function obioraTooltip() {
+        return { theme: obioraDarkTheme() ? 'dark' : 'light', x: { show: true } };
+    }
+
+    function obioraGrid() {
+        return { borderColor: obioraDarkTheme() ? 'rgba(148,163,184,0.15)' : 'rgba(15,23,42,0.08)' };
+    }
+
     function getServerMetricsData() {
         const holder = document.getElementById('server-metrics-chart-data');
-        return window.obioraParseChartData(holder);
+        if (!holder) return {};
+        try {
+            return JSON.parse(holder.getAttribute('data-chart') || '{}');
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function renderAreaChart(el, title, categories, values, color) {
+        if (!el || typeof ApexCharts === 'undefined') return null;
+        el.innerHTML = '';
+        const chart = new ApexCharts(el, {
+            chart: { type: 'area', height: 220, toolbar: { show: false }, animations: { enabled: false }, foreColor: obioraDarkTheme() ? '#94a3b8' : '#64748b' },
+            theme: { mode: obioraDarkTheme() ? 'dark' : 'light' },
+            series: [{ name: title, data: values || [] }],
+            xaxis: { categories: categories || [], labels: { show: false } },
+            yaxis: { min: 0, labels: { formatter: (v) => v + '%' } },
+            stroke: { curve: 'smooth', width: 2 },
+            markers: { size: 3, colors: [color], strokeWidth: 0, hover: { size: 5 } },
+            colors: [color],
+            fill: { type: 'gradient', gradient: { opacityFrom: 0.35, opacityTo: 0.05 } },
+            dataLabels: { enabled: false },
+            grid: obioraGrid(),
+            tooltip: obioraTooltip(),
+        });
+        chart.render();
+        return chart;
+    }
+
+    function renderLineChart(el, categories, series) {
+        if (!el || typeof ApexCharts === 'undefined') return null;
+        el.innerHTML = '';
+        const chart = new ApexCharts(el, {
+            chart: { type: 'line', height: 220, toolbar: { show: false }, animations: { enabled: false }, foreColor: obioraDarkTheme() ? '#94a3b8' : '#64748b' },
+            theme: { mode: obioraDarkTheme() ? 'dark' : 'light' },
+            series: series || [],
+            xaxis: { categories: categories || [], labels: { show: false } },
+            stroke: { curve: 'smooth', width: 2 },
+            markers: { size: 3, hover: { size: 5 } },
+            dataLabels: { enabled: false },
+            grid: obioraGrid(),
+            tooltip: obioraTooltip(),
+        });
+        chart.render();
+        return chart;
     }
 
     function renderCharts() {
         const seriesData = getServerMetricsData();
         const s = seriesData.series || seriesData;
-        if (typeof window.obioraRenderAreaChart !== 'function') return;
-        window.obioraRenderAreaChart(document.getElementById('chart-cpu'), 'CPU', s.cpu?.categories || [], s.cpu?.values || [], '#3b82f6');
-        window.obioraRenderAreaChart(document.getElementById('chart-memory'), 'Memory', s.memory?.categories || [], s.memory?.values || [], '#22c55e');
-        window.obioraRenderAreaChart(document.getElementById('chart-disk'), 'Disk', s.disk?.categories || [], s.disk?.values || [], '#f59e0b');
-        window.obioraRenderLineChart(document.getElementById('chart-load'), s.load?.categories || [], s.load?.series || []);
-        window.obioraRenderAreaChart(document.getElementById('chart-cpu-tab'), 'CPU', s.cpu?.categories || [], s.cpu?.values || [], '#3b82f6');
-        window.obioraRenderAreaChart(document.getElementById('chart-steal-tab'), 'CPU Steal', s.cpu_steal?.categories || [], s.cpu_steal?.values || [], '#ef4444');
-        window.obioraRenderAreaChart(document.getElementById('chart-memory-tab'), 'Memory', s.memory?.categories || [], s.memory?.values || [], '#22c55e');
-        window.obioraRenderAreaChart(document.getElementById('chart-swap-tab'), 'Swap', s.swap?.categories || [], s.swap?.values || [], '#a855f7');
-        window.obioraRenderAreaChart(document.getElementById('chart-disk-tab'), 'Disk', s.disk?.categories || [], s.disk?.values || [], '#f59e0b');
+        renderAreaChart(document.getElementById('chart-cpu'), 'CPU', s.cpu?.categories || [], s.cpu?.values || [], '#3b82f6');
+        renderAreaChart(document.getElementById('chart-memory'), 'Memory', s.memory?.categories || [], s.memory?.values || [], '#22c55e');
+        renderAreaChart(document.getElementById('chart-disk'), 'Disk', s.disk?.categories || [], s.disk?.values || [], '#f59e0b');
+        renderLineChart(document.getElementById('chart-load'), s.load?.categories || [], s.load?.series || []);
+        renderAreaChart(document.getElementById('chart-cpu-tab'), 'CPU', s.cpu?.categories || [], s.cpu?.values || [], '#3b82f6');
+        renderAreaChart(document.getElementById('chart-steal-tab'), 'CPU Steal', s.cpu_steal?.categories || [], s.cpu_steal?.values || [], '#ef4444');
+        renderAreaChart(document.getElementById('chart-memory-tab'), 'Memory', s.memory?.categories || [], s.memory?.values || [], '#22c55e');
+        renderAreaChart(document.getElementById('chart-swap-tab'), 'Swap', s.swap?.categories || [], s.swap?.values || [], '#a855f7');
+        renderAreaChart(document.getElementById('chart-disk-tab'), 'Disk', s.disk?.categories || [], s.disk?.values || [], '#f59e0b');
         const net = seriesData.network || {};
-        window.obioraRenderLineChart(document.getElementById('chart-network-rxtx'), net.categories || [], [
+        renderLineChart(document.getElementById('chart-network-rxtx'), net.categories || [], [
             { name: 'RX kbps', data: net.rx_kbps || [] },
             { name: 'TX kbps', data: net.tx_kbps || [] },
         ]);
-        window.obioraRenderLineChart(document.getElementById('chart-network-tcp'), net.categories || [], [
+        renderLineChart(document.getElementById('chart-network-tcp'), net.categories || [], [
             { name: 'TCP', data: net.tcp_connections || [] },
         ]);
     }
 
-    $wire.on('$refresh', () => setTimeout(renderCharts, 50));
-    document.addEventListener('livewire:navigated', renderCharts);
-    setTimeout(renderCharts, 100);
+    function waitAndRender(attempts = 0) {
+        if (typeof ApexCharts !== 'undefined' && document.getElementById('server-metrics-chart-data')) {
+            renderCharts();
+        } else if (attempts < 50) {
+            setTimeout(() => waitAndRender(attempts + 1), 120);
+        }
+    }
+
+    $wire.on('$refresh', () => setTimeout(waitAndRender, 80));
+    document.addEventListener('livewire:navigated', () => waitAndRender());
+    waitAndRender();
 </script>
 @endscript
