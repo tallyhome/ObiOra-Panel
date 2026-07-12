@@ -6,9 +6,11 @@ namespace App\Services\Deploy;
 
 use App\Contracts\SystemExecutorInterface;
 use App\Jobs\Diagnostics\DoctorRemoteDeployJob;
+use App\Jobs\Monitoring\MonitorAgentRemoteDeployJob;
 use App\Jobs\Servers\SlaveRemoteDeployJob;
 use App\Services\Core\ObioraQueueService;
 use App\Services\Diagnostics\DoctorDeployProgressService;
+use App\Services\Monitoring\MonitorAgentDeployProgressService;
 use App\Services\Servers\SlaveDeployProgressService;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\PhpExecutableFinder;
@@ -24,6 +26,7 @@ final class RemoteDeployLauncher
         private readonly ObioraQueueService $queue,
         private readonly DoctorDeployProgressService $doctorProgress,
         private readonly SlaveDeployProgressService $slaveProgress,
+        private readonly MonitorAgentDeployProgressService $monitorProgress,
         private readonly DeployLogService $deployLog,
         private readonly SystemExecutorInterface $executor,
     ) {}
@@ -157,6 +160,59 @@ final class RemoteDeployLauncher
         }
 
         $this->launchSlaveCli($serverId, $sshHost, $sshPort, $sshUser);
+    }
+
+    public function launchMonitorAgent(
+        int $serverId,
+        string $sshHost,
+        int $sshPort,
+        string $sshUser,
+    ): void {
+        $this->deployLog->log($serverId, 'monitor_agent', 'Demande d\'installation agent métriques', 'info', [
+            'host' => $sshHost,
+            'port' => $sshPort,
+            'user' => $sshUser,
+        ]);
+
+        $workerOk = $this->queue->ensureWorkerRunning();
+
+        try {
+            MonitorAgentRemoteDeployJob::dispatch($serverId, $sshHost, $sshPort, $sshUser);
+
+            $this->monitorProgress->appendLog(
+                $serverId,
+                $workerOk
+                    ? 'Tâche envoyée au worker obiora-queue.'
+                    : 'Tâche en file d\'attente — le worker obiora-queue a été relancé, patientez…',
+            );
+
+            return;
+        } catch (Throwable $exception) {
+            Log::warning('Dispatch MonitorAgentRemoteDeployJob échoué — fallback CLI', [
+                'message' => $exception->getMessage(),
+            ]);
+        }
+
+        $this->launchMonitorAgentCli($serverId, $sshHost, $sshPort, $sshUser);
+    }
+
+    private function launchMonitorAgentCli(
+        int $serverId,
+        string $sshHost,
+        int $sshPort,
+        string $sshUser,
+    ): void {
+        $logFile = storage_path('logs/deploy-monitor-agent.log');
+        $command = $this->buildArtisanCommand([
+            'obiora:monitor-agent-deploy',
+            (string) $serverId,
+            $sshHost,
+            (string) $sshPort,
+            $sshUser,
+        ], $logFile);
+
+        $this->monitorProgress->appendLog($serverId, 'Fallback : lancement CLI en arrière-plan…');
+        $this->executor->run($command, ['timeout' => 15]);
     }
 
     private function launchDoctorCli(

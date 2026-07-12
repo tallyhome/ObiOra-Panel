@@ -20,6 +20,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'timezone',
         'is_active',
         'is_demo',
         'demo_expires_at',

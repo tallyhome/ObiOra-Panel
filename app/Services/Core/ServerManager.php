@@ -79,6 +79,7 @@ final class ServerManager
             'is_master' => false,
             'os_name' => $data['os_name'] ?? null,
             'agent_token' => $token,
+            'tags' => is_array($data['tags'] ?? null) ? $data['tags'] : [],
             'metadata' => [
                 'doctor_signing_key' => $this->generateSigningKey(),
                 'agent_port' => (int) ($data['agent_port'] ?? 9100),

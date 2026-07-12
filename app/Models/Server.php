@@ -27,6 +27,7 @@ class Server extends Model
         'agent_token',
         'last_seen_at',
         'metadata',
+        'tags',
     ];
 
     protected function casts(): array
@@ -37,6 +38,7 @@ class Server extends Model
             'is_master' => 'boolean',
             'last_seen_at' => 'datetime',
             'metadata' => 'array',
+            'tags' => 'array',
         ];
     }
 
@@ -93,5 +95,10 @@ class Server extends Model
     public function crashAnalyzerReports(): HasMany
     {
         return $this->hasMany(CrashAnalyzerReport::class);
+    }
+
+    public function metricSamples(): HasMany
+    {
+        return $this->hasMany(ServerMetricSample::class);
     }
 }

@@ -155,6 +155,10 @@ ensure_agent_executables() {
         chmod +x "${root}"/agent/scripts/*.sh 2>/dev/null || true
     fi
 
+    if [[ -d "${root}/agent/monitor" ]]; then
+        chmod +x "${root}"/agent/monitor/*.sh 2>/dev/null || true
+    fi
+
     if [[ -d "${root}/packages" ]]; then
         find "${root}/packages" \( -name 'install.sh' -o -name 'uninstall.sh' \) -exec chmod +x {} + 2>/dev/null || true
     fi

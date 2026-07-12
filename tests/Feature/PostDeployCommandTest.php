@@ -24,5 +24,16 @@ final class PostDeployCommandTest extends TestCase
             ->assertSuccessful();
 
         $this->assertTrue(Permission::query()->where('name', 'docker.manage')->exists());
+        $this->assertTrue(Permission::query()->where('name', 'monitoring.manage')->exists());
+    }
+
+    public function test_post_deploy_seeds_default_alert_policies(): void
+    {
+        $this->artisan('obiora:post-deploy', ['--skip-migrate' => true])
+            ->assertSuccessful();
+
+        $this->assertDatabaseHas('alert_contacts', ['name' => 'Default Contact']);
+        $this->assertDatabaseHas('alert_policies', ['name' => 'High Disk Usage']);
+        $this->assertDatabaseHas('alert_policies', ['name' => 'Monitor Down']);
     }
 }

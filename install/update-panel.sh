@@ -241,8 +241,8 @@ if command -v npm &>/dev/null && [[ -f package.json ]]; then
     fi
 fi
 
-echo "[5/8] artisan post-deploy..."
-progress 72 "RBAC et cache permissions…"
+echo "[5/8] artisan post-deploy (RBAC, politiques d'alerte, caches, scripts agent)…"
+progress 72 "RBAC, politiques d'alerte et caches…"
 sudo -u "${OBIORA_USER}" php artisan obiora:post-deploy --skip-migrate
 sudo -u "${OBIORA_USER}" php artisan obiora:setup-site-api --ensure --quiet-output 2>/dev/null || true
 clear_panel_caches

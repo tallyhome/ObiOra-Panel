@@ -49,6 +49,45 @@ Route::get('/install/slave-agent.sh', function () {
     );
 })->name('install.slave-agent');
 
+Route::get('/install/monitor-agent.sh', function () {
+    $path = base_path('agent/scripts/monitor-agent-install.sh');
+
+    abort_unless(is_readable($path), 404);
+
+    return response(
+        (string) file_get_contents($path),
+        200,
+        ['Content-Type' => 'text/x-shellscript; charset=utf-8'],
+    );
+})->name('install.monitor-agent');
+
+Route::get('/install/obiora-metrics-push.sh', function () {
+    $path = base_path('agent/monitor/obiora-metrics-push.sh');
+    abort_unless(is_readable($path), 404);
+
+    return response((string) file_get_contents($path), 200, [
+        'Content-Type' => 'text/x-shellscript; charset=utf-8',
+    ]);
+})->name('install.obiora-metrics-push');
+
+Route::get('/install/obiora-metrics-install.sh', function () {
+    $path = base_path('agent/monitor/obiora-metrics-install.sh');
+    abort_unless(is_readable($path), 404);
+
+    return response((string) file_get_contents($path), 200, [
+        'Content-Type' => 'text/x-shellscript; charset=utf-8',
+    ]);
+})->name('install.obiora-metrics-install');
+
+Route::get('/install/obiora-metrics-uninstall.sh', function () {
+    $path = base_path('agent/monitor/obiora-metrics-uninstall.sh');
+    abort_unless(is_readable($path), 404);
+
+    return response((string) file_get_contents($path), 200, [
+        'Content-Type' => 'text/x-shellscript; charset=utf-8',
+    ]);
+})->name('install.obiora-metrics-uninstall');
+
 Route::get('/install/doctor-agent.sh', function () {
     $path = base_path('agent/scripts/bootstrap-doctor-agent.sh');
 
@@ -200,15 +239,27 @@ Route::middleware(['setup', 'auth', 'demo.active', 'server'])->group(function ()
         ->name('plugins.install-setup');
 
     Route::middleware('permission:monitoring.view')->group(function () {
-        Route::get('/monitoring', \Modules\Monitoring\Livewire\MonitoringIndex::class)->name('monitoring.index');
+        Route::get('/monitoring', \Modules\Monitoring\Livewire\MonitoringHubIndex::class)->name('monitoring.index');
+        Route::get('/monitoring/fleet', \Modules\Monitoring\Livewire\MonitoringIndex::class)->name('monitoring.fleet');
+        Route::get('/monitoring/servers', \Modules\Monitoring\Livewire\MonitoringServersIndex::class)->name('monitoring.servers');
+        Route::get('/monitoring/servers/{server}/metrics', \Modules\Monitoring\Livewire\MonitoringServerMetricsIndex::class)->name('monitoring.servers.metrics');
+        Route::get('/monitoring/monitors', \Modules\Monitoring\Livewire\MonitoringMonitorsIndex::class)->name('monitoring.monitors');
+        Route::get('/monitoring/monitors/{monitor}', \Modules\Monitoring\Livewire\MonitoringMonitorShow::class)->name('monitoring.monitors.show');
+        Route::get('/monitoring/incidents', \Modules\Monitoring\Livewire\MonitoringIncidentsIndex::class)->name('monitoring.incidents');
+        Route::get('/monitoring/incidents/logs', \Modules\Monitoring\Livewire\MonitoringIncidentsIndex::class)->name('monitoring.incidents.logs');
+        Route::get('/monitoring/alerts', \Modules\Monitoring\Livewire\MonitoringAlertsIndex::class)->name('monitoring.alerts');
+        Route::get('/monitoring/alerts/contacts', \Modules\Monitoring\Livewire\MonitoringAlertsIndex::class)->name('monitoring.alerts.contacts');
+        Route::get('/monitoring/preferences', \Modules\Monitoring\Livewire\MonitoringPreferencesIndex::class)->name('monitoring.preferences');
 
         Route::prefix('api/monitoring')->name('monitoring.api.')->group(function () {
+            Route::get('/summary', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'summary'])->name('summary');
             Route::get('/fleet', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'fleet'])->name('fleet');
             Route::get('/stream', [\App\Http\Controllers\MonitoringStreamController::class, 'stream'])->name('stream');
             Route::get('/servers/{server}/ping-history', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'pingHistory'])->name('ping-history');
             Route::get('/servers/{server}/score-history', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'scoreHistory'])->name('score-history');
             Route::get('/servers/{server}/compare', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'compare'])->name('compare');
             Route::post('/alerts/{alert}/read', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'markAlertRead'])->name('alerts.read');
+            Route::get('/servers/{server}/metrics', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'serverMetrics'])->name('server-metrics');
             Route::get('/servers/{server}/install-command', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'installCommand'])->name('install-command');
             Route::get('/servers/{server}/diagnostics/latest', [DiagnosticReportController::class, 'latest'])->name('diagnostics.latest');
             Route::get('/servers/{server}/diagnostics', [DiagnosticReportController::class, 'index'])->name('diagnostics.index');

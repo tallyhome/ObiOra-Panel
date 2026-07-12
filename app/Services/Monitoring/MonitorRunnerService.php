@@ -1,0 +1,148 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Monitoring;
+
+use App\Jobs\MonitorCheckJob;
+use App\Models\Monitor;
+use App\Models\MonitorCheck;
+use App\Support\UserTimezone;
+use App\Services\Monitoring\Probes\MonitorProbeFactory;
+use Illuminate\Support\Facades\Log;
+
+final class MonitorRunnerService
+{
+    public function __construct(
+        private readonly MonitorProbeFactory $probes,
+    ) {}
+
+    public function dispatchDueChecks(): int
+    {
+        $count = 0;
+
+        Monitor::query()
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->chunkById(50, function ($monitors) use (&$count): void {
+                foreach ($monitors as $monitor) {
+                    if (! $monitor->isDue()) {
+                        continue;
+                    }
+
+                    MonitorCheckJob::dispatch($monitor->id);
+                    $count++;
+                }
+            });
+
+        return $count;
+    }
+
+    public function runCheck(int $monitorId): MonitorCheck
+    {
+        $monitor = Monitor::query()->findOrFail($monitorId);
+
+        $probe = $this->probes->for($monitor);
+        $result = $probe->check($monitor);
+        $checkedAt = now();
+
+        $metrics = $result->metrics;
+
+        if ($result->error !== null) {
+            $metrics['error'] = $result->error;
+        }
+
+        $check = MonitorCheck::query()->create([
+            'monitor_id' => $monitor->id,
+            'status' => $result->status,
+            'response_ms' => $result->responseMs,
+            'metrics' => $metrics,
+            'checked_at' => $checkedAt,
+        ]);
+
+        $monitor->forceFill([
+            'last_status' => $result->status,
+            'last_checked_at' => $checkedAt,
+            'last_response_ms' => $result->responseMs,
+        ])->save();
+
+        if (! $result->isUp() && $result->error !== null) {
+            Log::info('Monitor check down', [
+                'monitor_id' => $monitor->id,
+                'error' => $result->error,
+            ]);
+        }
+
+        return $check;
+    }
+
+    /**
+     * @return array{categories: list<string>, values: list<int|null>, status_segments: list<array{from: string, to: string, status: string}>}
+     */
+    public function chartSeriesForMonitor(Monitor $monitor, int $days = 30): array
+    {
+        $since = now()->subDays($days);
+
+        $checks = MonitorCheck::query()
+            ->where('monitor_id', $monitor->id)
+            ->where('checked_at', '>=', $since)
+            ->orderBy('checked_at')
+            ->get();
+
+        $categories = [];
+        $values = [];
+        $segments = [];
+
+        foreach ($checks as $check) {
+            $label = UserTimezone::format($check->checked_at, 'd/m H:i');
+            $categories[] = $label;
+            $values[] = $check->response_ms;
+            $segments[] = [
+                'at' => $label,
+                'status' => $check->status,
+            ];
+        }
+
+        return [
+            'categories' => $categories,
+            'values' => $values,
+            'status_segments' => $segments,
+        ];
+    }
+
+    /**
+     * @return array{uptime_percent: float, avg_ms: ?int, min_ms: ?int, max_ms: ?int, checks_total: int}
+     */
+    public function statsForMonitor(Monitor $monitor, int $days = 30): array
+    {
+        $since = now()->subDays($days);
+
+        $checks = MonitorCheck::query()
+            ->where('monitor_id', $monitor->id)
+            ->where('checked_at', '>=', $since)
+            ->get();
+
+        $total = $checks->count();
+
+        if ($total === 0) {
+            return [
+                'uptime_percent' => 0.0,
+                'avg_ms' => null,
+                'min_ms' => null,
+                'max_ms' => null,
+                'checks_total' => 0,
+            ];
+        }
+
+        $up = $checks->where('status', 'up')->count();
+        $latencies = $checks->pluck('response_ms')->filter(fn ($ms) => $ms !== null);
+
+        return [
+            'uptime_percent' => round(($up / $total) * 100, 2),
+            'avg_ms' => $latencies->isEmpty() ? null : (int) round($latencies->avg()),
+            'min_ms' => $latencies->isEmpty() ? null : (int) $latencies->min(),
+            'max_ms' => $latencies->isEmpty() ? null : (int) $latencies->max(),
+            'checks_total' => $total,
+        ];
+    }
+}

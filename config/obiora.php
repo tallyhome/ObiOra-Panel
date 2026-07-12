@@ -70,6 +70,12 @@ return [
 
     'monitoring' => [
         'stream_interval_seconds' => (int) env('OBIORA_MONITOR_STREAM_INTERVAL', 5),
+        'check_retention_days' => (int) env('OBIORA_MONITOR_CHECK_RETENTION_DAYS', 30),
+        'sample_retention_days' => (int) env('OBIORA_MONITOR_SAMPLE_RETENTION_DAYS', 60),
+        'agent_push_interval_seconds' => (int) env('OBIORA_MONITOR_AGENT_PUSH_INTERVAL', 60),
+        'agent_online_seconds' => (int) env('OBIORA_MONITOR_AGENT_ONLINE_SECONDS', 180),
+        'agent_offline_seconds' => (int) env('OBIORA_MONITOR_AGENT_OFFLINE_SECONDS', 900),
+        'agent_queue_max_files' => (int) env('OBIORA_MONITOR_AGENT_QUEUE_MAX', 1440),
     ],
 
     'realtime' => [

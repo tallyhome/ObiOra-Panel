@@ -3,11 +3,16 @@
 declare(strict_types=1);
 
 use App\Console\Commands\BroadcastDashboardMetricsCommand;
+use App\Console\Commands\EvaluateAlertPoliciesCommand;
+use App\Console\Commands\EvaluateServerMetricsHealthCommand;
 use App\Console\Commands\ExpireDemoAccountsCommand;
 use App\Console\Commands\MonitorServersPingCommand;
+use App\Console\Commands\RunMonitorsCommand;
 use App\Console\Commands\SendMonitoringAlertsCommand;
 use App\Jobs\CrashAnalyzer\PruneOldMetricsJob;
 use App\Jobs\CrashHunter\PruneOldCrashHunterDataJob;
+use App\Jobs\PruneOldMonitorChecksJob;
+use App\Jobs\PruneOldServerMetricSamplesJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -29,6 +34,13 @@ if (config('obiora.diagnostics.alerts_email', true)) {
 }
 
 Schedule::command(ExpireDemoAccountsCommand::class)->hourly();
+
+Schedule::command(RunMonitorsCommand::class)->everyMinute();
+Schedule::command(EvaluateServerMetricsHealthCommand::class)->everyMinute();
+Schedule::command(EvaluateAlertPoliciesCommand::class)->everyMinute();
+
+Schedule::job(new PruneOldMonitorChecksJob)->dailyAt('04:00');
+Schedule::job(new PruneOldServerMetricSamplesJob)->dailyAt('04:15');
 
 Schedule::job(new PruneOldMetricsJob)->dailyAt('03:30');
 Schedule::job(new PruneOldCrashHunterDataJob)->dailyAt('03:45');

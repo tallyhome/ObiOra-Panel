@@ -35,6 +35,8 @@ final class PanelUpdateIntegrity
         'install/update-panel.sh',
         'install/lib/update-recover.sh',
         'install/lib/panel-update-helper.sh',
+        'agent/scripts/monitor-agent-install.sh',
+        'agent/scripts/obiora-monitor-uninstall.sh',
     ];
 
     /**
@@ -114,5 +116,7 @@ final class PanelUpdateIntegrity
                 @chmod($path, 0755);
             }
         }
+
+        AgentScripts::ensureExecutable($panelRoot);
     }
 }

@@ -66,5 +66,24 @@ final class PanelUpdateIntegrityTest extends TestCase
         $script = file_get_contents(base_path('install/lib/update-recover.sh'));
         $this->assertNotFalse($script);
         $this->assertStringContainsString('migrate --force', $script);
+        $this->assertStringContainsString('obiora:post-deploy', $script);
+        $this->assertStringContainsString('optimize:clear', $script);
+        $this->assertStringContainsString('ensure_agent_executables', $script);
+    }
+
+    public function test_post_deploy_command_clears_caches_and_agent_scripts(): void
+    {
+        $command = file_get_contents(base_path('app/Console/Commands/PostDeployCommand.php'));
+        $this->assertNotFalse($command);
+        $this->assertStringContainsString('optimize:clear', $command);
+        $this->assertStringContainsString('AgentScripts::ensureExecutable', $command);
+    }
+
+    public function test_monitor_agent_scripts_listed_in_update_integrity(): void
+    {
+        $this->assertContains(
+            'agent/scripts/monitor-agent-install.sh',
+            PanelUpdateIntegrity::EXECUTABLE_SCRIPTS,
+        );
     }
 }

@@ -4,6 +4,44 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.5.0 - 2026-07-12
+
+Release monitoring ObiOra (Phases 1 à 5, parité Pinguzo self-hosted).
+
+- Hub `/monitoring` : dashboard, serveurs, moniteurs, incidents, alertes, préférences fuseau horaire
+- Moniteurs HTTPS/HTTP/Ping/Port/Keyword/DNS, agent métriques push, graphiques serveur et moniteur
+- Alertes Phase 5 : politiques configurables, contacts multi-canaux, incidents unifiés, notification logs
+- MAJ panel : `migrate --force` puis `obiora:post-deploy` (RBAC, `AlertPolicySeeder`, caches, scripts agent) — **aucune commande manuelle sur le VPS**
+- Installation agent monitor SSH automatisée + commande manuelle
+
+## v2.1.68 - 2026-07-12
+
+- Monitoring Phase 5 : politiques d'alerte (CRUD, 9 politiques Pinguzo seed), contacts multi-canaux (email, Slack, Discord, Telegram, webhook)
+- Moteur `obiora:evaluate-alert-policies` (chaque minute) : incidents `monitoring_incidents`, durée persistante, repeat, recovery auto
+- UI `/monitoring/alerts` + contacts, onglet Notification Logs sur Incidents, dashboard incidents unifié
+
+## v2.1.67 - 2026-07-12
+
+- Monitoring : installation agent SSH automatisée (IP, port, user, mot de passe) + commande manuelle
+- Monitoring Phase 4 : graphiques serveur (`/monitoring/servers/{id}/metrics`) et courbe réponse moniteur
+
+## v2.1.66 - 2026-07-12
+
+- Monitoring Phase 3 : agent métriques ObiOra (push 1 min, queue offline, systemd timer, install one-liner avec --server-id)
+- API `POST /api/v1/servers/{id}/monitor/metrics`, table `server_metric_samples`, statuts Online/Degraded/Offline
+
+## v2.1.65 - 2026-07-12
+
+- MAJ panel : `obiora:post-deploy` exécute désormais `optimize:clear` et `chmod +x` sur les scripts agent monitor
+- Monitoring Phase 2 : moniteurs HTTPS/HTTP/Ping/Port/Keyword/DNS, sondes planifiées (`obiora:run-monitors`), historique checks, page métriques
+
+## v2.1.64 - 2026-07-12
+
+- Monitoring Phase 1 : hub unifié (`/monitoring`) avec dashboard type Pinguzo (compteurs serveurs, moniteurs placeholder, incidents)
+- Monitoring : page Serveurs (liste enrichie, tags, SMART Doctor, clé agent copiable, modals Ajouter / Installer / Désinstaller)
+- Monitoring : incidents ouverts, alertes (stub Phase 5), préférences fuseau horaire utilisateur, navigation sous-menu
+- API `GET /api/monitoring/summary`, script public `/install/monitor-agent.sh`, doc `docs/monitoring/`
+
 ## v2.1.49 - 2026-07-11
 
 - Doctor & Suite : fuseau horaire distant via SSH (serveurs Doctor sans agent slave)

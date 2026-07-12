@@ -34,6 +34,7 @@ final class PanelPermissions
         'ai.view',
         'ai.manage',
         'monitoring.view',
+        'monitoring.manage',
     ];
 
     /** @return list<string> */
@@ -62,6 +63,7 @@ final class PanelPermissions
                 'ai.view',
                 'ai.manage',
                 'monitoring.view',
+                'monitoring.manage',
                 'updates.view',
             ],
             'technician' => [

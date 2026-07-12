@@ -11,7 +11,7 @@ final class PostDeployCommand extends Command
     protected $signature = 'obiora:post-deploy
                             {--skip-migrate : Ne pas exécuter les migrations}';
 
-    protected $description = 'Tâches post-déploiement : migrations, sync RBAC, reset cache permissions';
+    protected $description = 'Tâches post-déploiement : migrations, RBAC, politiques d\'alerte, caches, scripts agent (exécuté automatiquement à l\'install et lors des MAJ)';
 
     public function handle(): int
     {
@@ -28,8 +28,30 @@ final class PostDeployCommand extends Command
         );
 
         $this->components->task(
+            'Politiques d\'alerte par défaut',
+            fn () => $this->callSilent('db:seed', [
+                '--class' => 'Database\\Seeders\\AlertPolicySeeder',
+                '--force' => true,
+            ]) === self::SUCCESS
+        );
+
+        $this->components->task(
             'Cache permissions',
             fn () => $this->callSilent('permission:cache-reset') === self::SUCCESS
+        );
+
+        $this->components->task(
+            'Purge caches Laravel',
+            fn () => $this->callSilent('optimize:clear') === self::SUCCESS
+        );
+
+        $this->components->task(
+            'Scripts agent exécutables',
+            function (): bool {
+                \App\Support\AgentScripts::ensureExecutable();
+
+                return true;
+            }
         );
 
         $this->newLine();

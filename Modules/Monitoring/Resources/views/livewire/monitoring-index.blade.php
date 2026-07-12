@@ -1,4 +1,10 @@
 <div>
+    @include('monitoring::partials.monitoring-nav')
+
+    <div class="mb-3">
+        <h1 class="h5 text-muted mb-0">Flotte avancée — graphiques ping &amp; Doctor</h1>
+    </div>
+
     @if(!empty($initialFleet))
         <noscript>
             <div class="alert alert-info">Activez JavaScript pour le monitoring temps réel.</div>

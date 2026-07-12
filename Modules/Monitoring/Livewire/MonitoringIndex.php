@@ -10,7 +10,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('layouts.app')]
-#[Title('Monitoring Obiora')]
+#[Title('Monitoring — Flotte avancée')]
 final class MonitoringIndex extends Component
 {
     public string $panelUrl = '';
