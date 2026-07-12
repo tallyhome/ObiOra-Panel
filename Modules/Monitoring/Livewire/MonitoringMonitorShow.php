@@ -23,6 +23,8 @@ final class MonitoringMonitorShow extends Component
     #[Url]
     public string $timePreset = '24h';
 
+    public bool $recentChecksOpen = false;
+
     public function mount(Monitor $monitor): void
     {
         abort_unless(auth()->user()?->can('monitoring.view'), 403);
@@ -45,10 +47,12 @@ final class MonitoringMonitorShow extends Component
         $visitStats = $visits->statsForMonitor($this->monitor);
         $visits->ensureTrackToken($this->monitor->refresh());
 
+        $recentChecksLimit = max(1, (int) config('monitoring.recent_checks_display_limit', 200));
+
         $recentChecks = MonitorCheck::query()
             ->where('monitor_id', $this->monitor->id)
             ->orderByDesc('checked_at')
-            ->limit(50)
+            ->limit($recentChecksLimit)
             ->get()
             ->map(fn (MonitorCheck $check) => [
                 'status' => $check->status,
@@ -66,6 +70,7 @@ final class MonitoringMonitorShow extends Component
             'chartSeries' => $runner->chartSeriesForPeriod($this->monitor, $range['from'], $range['to']),
             'statusTimeline' => $runner->statusTimelineForPeriod($this->monitor, $range['from'], $range['to'], $range['preset'] ?? $this->timePreset),
             'recentChecks' => $recentChecks,
+            'recentChecksLimit' => $recentChecksLimit,
             'timePreset' => $this->timePreset,
             'presets' => ['1h', '6h', '24h', '3d', '7d', '30d', '3M', '6M', '1Y'],
             'rangeLabel' => $range['label'],

@@ -8,6 +8,9 @@ return [
 
     'check_retention_days' => (int) env('OBIORA_MONITOR_CHECK_RETENTION_DAYS', 60),
 
+    /** Nombre de lignes affichées dans « Derniers checks » (moniteur site web). */
+    'recent_checks_display_limit' => (int) env('OBIORA_MONITOR_RECENT_CHECKS_LIMIT', 200),
+
     'sample_retention_days' => (int) env('OBIORA_MONITOR_SAMPLE_RETENTION_DAYS', 60),
 
     'max_monitors' => env('OBIORA_MONITOR_MAX_MONITORS'),

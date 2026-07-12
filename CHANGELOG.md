@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.6 - 2026-07-12
+
+- Moniteur site web : tableau « Derniers checks » pliable (fermé par défaut), jusqu'à 200 entrées
+
 ## v2.7.5 - 2026-07-12
 
 - Fix graphiques monitoring : init ApexCharts centralisé (`monitoring-charts.js`) + re-render après morph Livewire

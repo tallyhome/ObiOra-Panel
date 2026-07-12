@@ -138,38 +138,49 @@
     </div>
 
     <div class="card obiora-card">
-        <div class="card-header">Derniers checks</div>
-        <div class="table-responsive">
-            <table class="table table-sm obiora-table mb-0">
-                <thead class="obiora-table-head">
-                    <tr>
-                        <th>Statut</th>
-                        <th>Réponse</th>
-                        <th>HTTP</th>
-                        <th>Date</th>
-                        <th>Détail</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($recentChecks as $check)
-                    <tr>
-                        <td>
-                            @if($check['status'] === 'up')
-                                <span class="badge text-bg-success">Up</span>
-                            @else
-                                <span class="badge text-bg-danger">Down</span>
-                            @endif
-                        </td>
-                        <td>{{ $check['response_ms'] ? $check['response_ms'].' ms' : '—' }}</td>
-                        <td class="small">{{ $check['http_code'] ?? '—' }}</td>
-                        <td class="small text-nowrap">{{ $check['checked_at'] }}</td>
-                        <td class="small text-muted">{{ $check['error'] ?? '—' }}</td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="5" class="text-muted small">Aucun check enregistré — la sonde démarre au prochain cycle (1 min).</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div class="card-body py-3">
+            <button type="button" wire:click="$toggle('recentChecksOpen')" class="btn btn-link btn-sm text-start p-0 text-decoration-none w-100">
+                <span class="fw-medium">Derniers checks</span>
+                <span class="text-muted ms-1">
+                    ({{ count($recentChecks) }} / {{ $recentChecksLimit }} entrées — cliquez pour {{ $recentChecksOpen ? 'masquer' : 'afficher' }} le détail)
+                </span>
+                <span class="ms-1" aria-hidden="true">{{ $recentChecksOpen ? '▾' : '▸' }}</span>
+            </button>
+            @if($recentChecksOpen)
+            <p class="small text-muted mt-2 mb-0">Historique détaillé des {{ $recentChecksLimit }} dernières sondes (les plus anciennes sortent automatiquement de cette liste).</p>
+            <div class="table-responsive mt-2">
+                <table class="table table-sm obiora-table mb-0">
+                    <thead class="obiora-table-head">
+                        <tr>
+                            <th>Statut</th>
+                            <th>Réponse</th>
+                            <th>HTTP</th>
+                            <th>Date</th>
+                            <th>Détail</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($recentChecks as $check)
+                        <tr>
+                            <td>
+                                @if($check['status'] === 'up')
+                                    <span class="badge text-bg-success">Up</span>
+                                @else
+                                    <span class="badge text-bg-danger">Down</span>
+                                @endif
+                            </td>
+                            <td>{{ $check['response_ms'] ? $check['response_ms'].' ms' : '—' }}</td>
+                            <td class="small">{{ $check['http_code'] ?? '—' }}</td>
+                            <td class="small text-nowrap">{{ $check['checked_at'] }}</td>
+                            <td class="small text-muted">{{ $check['error'] ?? '—' }}</td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="5" class="text-muted small">Aucun check enregistré — la sonde démarre au prochain cycle (1 min).</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            @endif
         </div>
     </div>
 
