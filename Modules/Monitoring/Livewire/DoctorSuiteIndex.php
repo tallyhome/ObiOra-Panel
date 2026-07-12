@@ -511,6 +511,7 @@ final class DoctorSuiteIndex extends Component
         }
 
         if (! $this->deployRunning && array_key_exists('success', $status)) {
+            $alreadyFinished = $this->deployFinished;
             $ok = (bool) $status['success'];
             $this->deployFinished = true;
             $this->deployDismissed = false;
@@ -522,8 +523,10 @@ final class DoctorSuiteIndex extends Component
                 Server::query()->find($this->serverId),
                 app(ServerSshKeyService::class),
             );
-            $this->dispatch('notify', type: $ok ? 'success' : 'danger', message: (string) ($status['message'] ?? ''));
-            $this->dispatch('deploy-console-scroll');
+            if (! $alreadyFinished) {
+                $this->dispatch('notify', type: $ok ? 'success' : 'danger', message: (string) ($status['message'] ?? ''));
+                $this->dispatch('deploy-console-scroll');
+            }
         }
     }
 

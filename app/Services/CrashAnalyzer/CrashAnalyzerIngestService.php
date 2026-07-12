@@ -48,18 +48,20 @@ final class CrashAnalyzerIngestService
         }
 
         $existingMeta = ($server->metadata ?? [])['crash_analyzer'] ?? [];
+        $crashMeta = array_merge($existingMeta, [
+            'last_metrics_at' => $sampledAt->toIso8601String(),
+            'hostname' => $payload['hostname'] ?? $server->hostname,
+        ]);
+
+        if (isset($payload['crash_analyzer_version']) && (string) $payload['crash_analyzer_version'] !== '') {
+            $crashMeta['version'] = (string) $payload['crash_analyzer_version'];
+        }
 
         $server->forceFill([
             'last_seen_at' => now(),
             'status' => 'online',
             'metadata' => array_merge($server->metadata ?? [], [
-                'crash_analyzer' => array_merge($existingMeta, [
-                    'last_metrics_at' => $sampledAt->toIso8601String(),
-                    'hostname' => $payload['hostname'] ?? $server->hostname,
-                    'version' => isset($payload['crash_analyzer_version'])
-                        ? (string) $payload['crash_analyzer_version']
-                        : ($existingMeta['version'] ?? null),
-                ]),
+                'crash_analyzer' => $crashMeta,
             ]),
         ])->save();
 

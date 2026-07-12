@@ -73,6 +73,29 @@ final class PostLoginReconnectTest extends TestCase
             ->assertOk();
     }
 
+    public function test_poll_deploy_notifies_only_once_when_upgrade_finishes(): void
+    {
+        $user = $this->makeAdmin();
+        $server = Server::factory()->create(['is_master' => true]);
+
+        app(\App\Services\Diagnostics\DoctorDeployProgressService::class)->finish(
+            $server->id,
+            true,
+            'Mise à jour des agents terminée.',
+            [],
+        );
+
+        Livewire::actingAs($user)
+            ->test(\Modules\Monitoring\Livewire\DoctorSuiteIndex::class, [
+                'serverId' => $server->id,
+                'deployRunning' => true,
+            ])
+            ->call('pollDeploy')
+            ->assertDispatched('notify')
+            ->call('pollDeploy')
+            ->assertNotDispatched('notify');
+    }
+
     private function makeAdmin(): User
     {
         $user = User::factory()->create([
