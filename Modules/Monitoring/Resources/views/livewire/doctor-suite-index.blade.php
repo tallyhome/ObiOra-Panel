@@ -8,7 +8,13 @@
             <p class="text-muted mb-0">Installez Doctor, Crash Analyzer et CrashHunter sur vos serveurs dédiés et/ou VPS, puis consultez les diagnostics depuis le panel.</p>
         </div>
         @if($server)
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+            <div class="btn-group btn-group-sm" role="group" aria-label="Export Doctor & Suite">
+                <a href="{{ route('doctor.export.json', ['server' => $server, 'hours' => 24]) }}" class="btn btn-outline-secondary">Export JSON</a>
+                <a href="{{ route('doctor.export.csv', ['server' => $server, 'hours' => 24]) }}" class="btn btn-outline-secondary">Export CSV</a>
+                <a href="{{ route('doctor.export.html', ['server' => $server, 'hours' => 24, 'inline' => 1]) }}" target="_blank" rel="noopener" class="btn btn-outline-secondary">Rapport HTML</a>
+            </div>
+            <span class="small text-muted align-self-center">Période : 24 h (ajoutez <code>?hours=48</code> à l’URL pour plus d’historique)</span>
             <a href="{{ route('monitoring.index') }}" class="btn btn-outline-primary btn-sm">Monitoring</a>
             <a href="{{ route('crash-analyzer.index', ['server' => $server->id]) }}" class="btn btn-outline-danger btn-sm">Crash Analyzer</a>
         </div>

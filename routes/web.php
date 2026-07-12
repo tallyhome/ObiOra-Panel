@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\CrashHunterAgentController;
 use App\Http\Controllers\ApplicationIconController;
 use App\Http\Controllers\MarketplaceInstallSetupController;
 use App\Http\Controllers\CrashAnalyzerExportController;
+use App\Http\Controllers\DoctorSuiteExportController;
 use App\Support\AgentBundlePublisher;
 use App\Livewire\Auth\Login;
 use App\Livewire\Setup\CreateAdmin;
@@ -266,6 +267,17 @@ Route::middleware(['setup', 'auth', 'demo.active', 'server'])->group(function ()
                 ->name('export.pdf');
             Route::get('/servers/{server}/reports/{report}/view', [CrashAnalyzerExportController::class, 'view'])
                 ->name('report.view');
+        });
+    });
+
+    Route::prefix('doctor')->name('doctor.')->group(function () {
+        Route::middleware('permission:modules.view')->group(function () {
+            Route::get('/servers/{server}/export/json', [DoctorSuiteExportController::class, 'json'])
+                ->name('export.json');
+            Route::get('/servers/{server}/export/csv', [DoctorSuiteExportController::class, 'csv'])
+                ->name('export.csv');
+            Route::get('/servers/{server}/export/html', [DoctorSuiteExportController::class, 'html'])
+                ->name('export.html');
         });
     });
 
