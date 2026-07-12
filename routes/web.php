@@ -256,6 +256,7 @@ Route::middleware(['setup', 'auth', 'demo.active', 'server'])->group(function ()
         Route::get('/monitoring', \Modules\Monitoring\Livewire\MonitoringHubIndex::class)->name('monitoring.index');
         Route::get('/monitoring/fleet', \Modules\Monitoring\Livewire\MonitoringIndex::class)->name('monitoring.fleet');
         Route::get('/monitoring/servers', \Modules\Monitoring\Livewire\MonitoringServersIndex::class)->name('monitoring.servers');
+        Route::get('/monitoring/servers/{server}', \Modules\Monitoring\Livewire\MonitoringServerShow::class)->name('monitoring.servers.show');
         Route::get('/monitoring/servers/{server}/metrics', \Modules\Monitoring\Livewire\MonitoringServerMetricsIndex::class)->name('monitoring.servers.metrics');
         Route::get('/monitoring/monitors', \Modules\Monitoring\Livewire\MonitoringMonitorsIndex::class)->name('monitoring.monitors');
         Route::get('/monitoring/monitors/{monitor}', \Modules\Monitoring\Livewire\MonitoringMonitorShow::class)->name('monitoring.monitors.show');

@@ -29,7 +29,7 @@
                     @foreach($servers as $server)
                     <tr>
                         <td>
-                            <span class="fw-medium">{{ $server['name'] }}</span>
+                            <a href="{{ route('monitoring.servers.show', $server['id']) }}" class="fw-medium">{{ $server['name'] }}</a>
                             @if($server['is_master'])
                                 <span class="badge text-bg-primary ms-1">Panel</span>
                             @endif
@@ -76,7 +76,8 @@
                         </td>
                         @if($canManageServers)
                         <td class="text-nowrap">
-                            <a href="{{ route('monitoring.servers.metrics', $server['id']) }}" class="btn btn-outline-primary btn-sm py-0">Métriques</a>
+                            <a href="{{ route('monitoring.servers.show', $server['id']) }}" class="btn btn-outline-primary btn-sm py-0">Fiche</a>
+                            <a href="{{ route('monitoring.servers.metrics', $server['id']) }}" class="btn btn-outline-secondary btn-sm py-0">Métriques</a>
                             <button type="button" wire:click="showInstallFor({{ $server['id'] }})" class="btn btn-outline-info btn-sm py-0">Installer</button>
                             @if(!$server['is_master'])
                             <button type="button" wire:click="deleteServer({{ $server['id'] }})" wire:confirm="Supprimer ce serveur du panel ?"

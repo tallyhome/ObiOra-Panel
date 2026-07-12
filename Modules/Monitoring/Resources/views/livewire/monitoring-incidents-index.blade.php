@@ -48,9 +48,24 @@
                 <tbody>
                     @forelse($incidents as $incident)
                     <tr>
-                        <td class="fw-medium">{{ $incident['resource'] }}</td>
+                        <td class="fw-medium">
+                            @if($incident['resource_type'] === 'server' && !empty($incident['resource_id']))
+                                <a href="{{ route('monitoring.servers.show', $incident['resource_id']) }}">{{ $incident['resource'] }}</a>
+                            @else
+                                {{ $incident['resource'] }}
+                            @endif
+                        </td>
                         <td><span class="text-warning">{{ $incident['trigger'] }}</span></td>
-                        <td class="small">{{ $incident['message'] }}</td>
+                        <td class="small">
+                            {{ $incident['message'] }}
+                            @if(!empty($incident['action_links']))
+                                <div class="mt-1 d-flex flex-wrap gap-1">
+                                    @foreach($incident['action_links'] as $link)
+                                        <a href="{{ $link['route'] }}" class="btn btn-outline-secondary btn-sm py-0">{{ $link['label'] }}</a>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </td>
                         <td class="small text-nowrap text-danger">{{ $incident['went_down_at'] }}</td>
                         <td class="small">{{ $incident['recovered_at'] ?? '—' }}</td>
                         <td class="small">{{ $incident['duration'] }}</td>

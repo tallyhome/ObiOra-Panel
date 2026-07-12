@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.0 - 2026-07-12
+
+- Monitoring Phase 7 (début) : fiche serveur unifiée `/monitoring/servers/{id}` (Doctor, Crash, incidents, liens Monitor+)
+- Incidents : lien vers fiche serveur + boutons d'action contextuels (Doctor disque, Crash Analyzer, etc.)
+- Liste serveurs : boutons « Fiche » et « Métriques »
+
 ## v2.6.0 - 2026-07-12
 
 - Monitoring : compteur de visites site (pixel + snippet embed), métriques DNS/TCP/TTFB sur moniteurs

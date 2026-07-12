@@ -11,6 +11,9 @@ use App\Support\UserTimezone;
 
 final class MonitoringIncidentService
 {
+    public function __construct(
+        private readonly ServerUnifiedProfileService $profiles,
+    ) {}
     /**
      * @return list<array<string, mixed>>
      */
@@ -106,8 +109,14 @@ final class MonitoringIncidentService
             'id' => $incident->id,
             'resource' => $incident->resource_name,
             'resource_type' => $incident->resource_type,
+            'resource_id' => $incident->resource_id,
             'trigger' => $incident->trigger,
             'message' => $incident->message,
+            'action_links' => $this->profiles->incidentActionLinks(
+                $incident->resource_type,
+                (int) $incident->resource_id,
+                $incident->trigger,
+            ),
             'went_down_at' => UserTimezone::format($wentDown, 'd/m/Y H:i:s'),
             'went_down_at_iso' => $wentDown?->toIso8601String(),
             'recovered_at' => $isOpen ? null : UserTimezone::format($incident->recovered_at, 'd/m/Y H:i:s'),
@@ -165,13 +174,19 @@ final class MonitoringIncidentService
     private function serializeLegacyAlert(MonitoringAlert $alert): array
     {
         $isOpen = $alert->read_at === null;
+        $resourceType = $alert->server_id !== null ? 'server' : 'monitor';
+        $trigger = $this->triggerLabel($alert->type);
 
         return [
             'id' => $alert->id,
             'resource' => $alert->server?->name ?? 'Panel',
-            'resource_type' => $alert->server_id !== null ? 'server' : 'monitor',
-            'trigger' => $this->triggerLabel($alert->type),
+            'resource_type' => $resourceType,
+            'resource_id' => $alert->server_id,
+            'trigger' => $trigger,
             'message' => $alert->message ?: $alert->title,
+            'action_links' => $alert->server_id !== null
+                ? $this->profiles->incidentActionLinks($resourceType, (int) $alert->server_id, $trigger)
+                : [],
             'went_down_at' => UserTimezone::format($alert->created_at, 'd/m/Y H:i:s'),
             'went_down_at_iso' => $alert->created_at?->toIso8601String(),
             'recovered_at' => $isOpen ? null : UserTimezone::format($alert->read_at, 'd/m/Y H:i:s'),
