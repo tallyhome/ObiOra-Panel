@@ -45,6 +45,48 @@ final class CrashHunterApiTest extends TestCase
         ]);
     }
 
+    public function test_crash_hunter_metrics_updates_version_from_payload(): void
+    {
+        $server = Server::factory()->create([
+            'agent_token' => str_repeat('v', 64),
+            'metadata' => [
+                'crash_hunter' => ['version' => '2.1.0'],
+            ],
+        ]);
+
+        $this->postJson("/api/v1/servers/{$server->id}/crash-hunter/metrics", [
+            'hostname' => 'dedie-test',
+            'crashhunter_version' => '2.3.0',
+            'metrics' => ['cpu' => ['total_percent' => 1.0]],
+        ], [
+            'Authorization' => 'Bearer '.str_repeat('v', 64),
+        ])->assertOk();
+
+        $server->refresh();
+        $this->assertSame('2.3.0', $server->metadata['crash_hunter']['version'] ?? null);
+    }
+
+    public function test_crash_hunter_metrics_does_not_downgrade_version_from_stale_daemon(): void
+    {
+        $server = Server::factory()->create([
+            'agent_token' => str_repeat('x', 64),
+            'metadata' => [
+                'crash_hunter' => ['version' => '2.3.0'],
+            ],
+        ]);
+
+        $this->postJson("/api/v1/servers/{$server->id}/crash-hunter/metrics", [
+            'hostname' => 'dedie-test',
+            'crashhunter_version' => '2.1.0',
+            'metrics' => ['cpu' => ['total_percent' => 1.0]],
+        ], [
+            'Authorization' => 'Bearer '.str_repeat('x', 64),
+        ])->assertOk();
+
+        $server->refresh();
+        $this->assertSame('2.3.0', $server->metadata['crash_hunter']['version'] ?? null);
+    }
+
     public function test_crash_hunter_witness_ingest(): void
     {
         $server = Server::factory()->create(['agent_token' => str_repeat('w', 64)]);

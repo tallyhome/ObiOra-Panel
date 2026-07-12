@@ -153,6 +153,7 @@ WantedBy=multi-user.target
 UNIT
 
 systemctl daemon-reload
-systemctl enable --now obiora-crash-analyzer.service
+systemctl enable obiora-crash-analyzer.service
+systemctl restart obiora-crash-analyzer.service
 
 echo "OK: Crash Analyzer installé — service obiora-crash-analyzer actif (intervalle 5s)"

@@ -105,6 +105,7 @@ UNIT
 fi
 
 systemctl daemon-reload
-systemctl enable --now crashhunter.service
+systemctl enable crashhunter.service
+systemctl restart crashhunter.service
 
-echo "OK: CrashHunter installé — service crashhunter actif, push vers ${PANEL_URL}"
+echo "OK: CrashHunter installé — service crashhunter actif (v$(grep -m1 '__version__' "${INSTALL_DIR}/src/crashhunter/__init__.py" 2>/dev/null | cut -d'"' -f2 || echo '?')), push vers ${PANEL_URL}"

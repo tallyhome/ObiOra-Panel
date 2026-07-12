@@ -11,10 +11,15 @@ use App\Models\CrashHunterReport;
 use App\Models\CrashHunterSnapshot;
 use App\Models\CrashHunterWitness;
 use App\Models\Server;
+use App\Services\Diagnostics\DiagnosticsAgentVersionService;
 use Illuminate\Support\Carbon;
 
 final class CrashHunterIngestService
 {
+    public function __construct(
+        private readonly DiagnosticsAgentVersionService $agentVersions,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $payload
      */
@@ -240,6 +245,7 @@ final class CrashHunterIngestService
     private function touchServer(Server $server, Carbon $sampledAt, array $payload): void
     {
         $existingMeta = ($server->metadata ?? [])['crash_hunter'] ?? [];
+        $version = $this->resolveCrashHunterVersion($server, $payload, $existingMeta);
 
         $server->forceFill([
             'last_seen_at' => now(),
@@ -252,13 +258,66 @@ final class CrashHunterIngestService
                     'witness_status' => $payload['witness_status'] ?? $existingMeta['witness_status'] ?? 'alive',
                     'witness_gap_seconds' => $payload['witness_gap_seconds'] ?? $existingMeta['witness_gap_seconds'] ?? null,
                     'ring_count' => $payload['ring_count'] ?? $existingMeta['ring_count'] ?? null,
-                    'version' => $payload['crashhunter_version'] ?? $existingMeta['version'] ?? null,
+                    'version' => $version,
                     'sequence_id' => $payload['sequence_id'] ?? $existingMeta['sequence_id'] ?? null,
                     'last_report_id' => $payload['last_report_id'] ?? $existingMeta['last_report_id'] ?? null,
                     'last_report_verdict' => $payload['last_report_verdict'] ?? $existingMeta['last_report_verdict'] ?? null,
                 ]),
             ]),
         ])->save();
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $existingMeta
+     */
+    private function resolveCrashHunterVersion(Server $server, array $payload, array $existingMeta): ?string
+    {
+        $existing = $this->normalizeVersion($existingMeta['version'] ?? null);
+        $payloadVersion = $this->normalizeVersion($payload['crashhunter_version'] ?? null);
+
+        if ($payloadVersion !== null) {
+            if ($existing !== null && version_compare($payloadVersion, $existing, '<')) {
+                return $existing;
+            }
+
+            return $payloadVersion;
+        }
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        if (($payload['metrics'] ?? []) === [] && ($payload['witness_status'] ?? null) === null) {
+            return null;
+        }
+
+        $meta = $server->metadata ?? [];
+        $components = is_array($meta['doctor_deploy']['components'] ?? null)
+            ? $meta['doctor_deploy']['components']
+            : [];
+
+        if (
+            in_array('crash_hunter', $components, true)
+            || in_array('doctor_suite', $components, true)
+            || isset($meta['crash_hunter']['last_metrics_at'])
+            || CrashHunterMetric::query()->where('server_id', $server->id)->exists()
+        ) {
+            $bundled = $this->agentVersions->bundledVersions()['crash_hunter'] ?? null;
+
+            return is_string($bundled) && $bundled !== '' ? $bundled : null;
+        }
+
+        return null;
+    }
+
+    private function normalizeVersion(mixed $version): ?string
+    {
+        if (! is_string($version) || $version === '') {
+            return null;
+        }
+
+        return $version;
     }
 
     private function parseTime(mixed $value): Carbon
