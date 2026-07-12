@@ -689,6 +689,16 @@ final class DoctorSuiteIndex extends Component
             ? \Illuminate\Support\Carbon::parse($lastReportAt)->format('d/m/Y H:i')
             : null;
 
+        $panelDeployLogs = collect();
+
+        if ($this->serverId !== null) {
+            try {
+                $panelDeployLogs = $deployLog->recentForServer($this->serverId, 'doctor');
+            } catch (\Throwable) {
+                $panelDeployLogs = collect();
+            }
+        }
+
         return view('monitoring::livewire.doctor-suite-index', [
             'server' => $server,
             'overview' => $overview,
@@ -698,9 +708,12 @@ final class DoctorSuiteIndex extends Component
             'lastReportLabel' => $lastReportLabel,
             'suiteUrl' => (string) config('obiora.suite.url', ''),
             'canManageServers' => auth()->user()?->can('servers.manage') ?? false,
-            'panelDeployLogs' => $this->serverId !== null
-                ? $deployLog->recentForServer($this->serverId, 'doctor')
-                : collect(),
+            'panelDeployLogs' => $panelDeployLogs,
+            'shouldPollDeploy' => $this->deployRunning,
+            'shouldPollJournal' => $this->panelJournalOpen && $panelDeployLogs->isNotEmpty(),
+            'hunterChartsActive' => is_array($overview)
+                ? ($overview['crash_hunter']['charts_active'] ?? [])
+                : [],
             'timezoneChoices' => TimezoneCatalog::choices(),
             'agentVersionRows' => $server !== null ? $agentVersions->compare($server) : [],
             'agentUpgradeNeeded' => $server !== null && $agentVersions->needsUpgrade($server),

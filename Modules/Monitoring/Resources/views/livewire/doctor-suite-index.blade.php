@@ -1,4 +1,4 @@
-<div @if($deployRunning) wire:poll.2s="pollDeploy" @elseif($panelJournalOpen && count($panelDeployLogs) > 0) wire:poll.5s="$refresh" @endif
+<div @if($shouldPollDeploy) wire:poll.2s="pollDeploy" @elseif($shouldPollJournal) wire:poll.5s @endif
      x-data="{ scrollConsole() { const el = document.getElementById('obiora-deploy-console'); if (el) el.scrollTop = el.scrollHeight; } }"
      x-on:deploy-console-scroll.window="scrollConsole()"
      x-init="$watch('$wire.deployConsole', () => scrollConsole())">
@@ -684,7 +684,6 @@
 
     @if($overview && !empty($overview['crash_hunter']))
     @php($hunter = $overview['crash_hunter']['summary'] ?? [])
-    @php($hunterChartsActive = $overview['crash_hunter']['charts_active'] ?? [])
     @php($hunterInsights = $overview['crash_hunter']['latest_report_insights'] ?? null)
     <div class="row g-4 mt-1">
         <div class="col-12">

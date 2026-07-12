@@ -50,19 +50,24 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(UnexpectedRebootDetected::class, [DispatchCrashNotifications::class, 'handleReboot']);
 
         View::composer('partials.sidebar', function ($view): void {
-            if (auth()->check()) {
-                $this->app->make(UpdateRecovery::class)->recoverStale(20);
-            }
-
             $updateAvailable = false;
+            $panelVersion = ltrim((string) config('obiora.version', '0.0.0'), 'v');
 
             if (auth()->check()) {
-                $check = $this->app->make(UpdateManager::class)->checkForUpdates();
-                $updateAvailable = (bool) ($check['available'] ?? false);
+                try {
+                    $this->app->make(UpdateRecovery::class)->recoverStale(20);
+                    $check = $this->app->make(UpdateManager::class)->checkForUpdates();
+                    $updateAvailable = (bool) ($check['available'] ?? false);
+                    $panelVersion = $this->app->make(InstalledVersion::class)->current();
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Sidebar composer dégradé', [
+                        'message' => $e->getMessage(),
+                    ]);
+                }
             }
 
             $view->with('updateAvailable', $updateAvailable);
-            $view->with('panelVersion', $this->app->make(InstalledVersion::class)->current());
+            $view->with('panelVersion', $panelVersion);
             $view->with(
                 'monitoringEnabled',
                 auth()->check() && $this->app->make(ModuleManager::class)->isEnabled('monitoring'),
