@@ -16,6 +16,7 @@ final class MonitorRunnerService
 {
     public function __construct(
         private readonly MonitorProbeFactory $probes,
+        private readonly MonitoringPeriodResolver $periods,
     ) {}
 
     public function dispatchDueChecks(): int
@@ -78,24 +79,18 @@ final class MonitorRunnerService
     }
 
     /**
-     * @return array{from: Carbon, to: Carbon, label: string}
+     * @return array{from: Carbon, to: Carbon, label: string, preset: string}
      */
     public function resolvePreset(string $preset): array
     {
-        $to = UserTimezone::now();
+        $range = $this->periods->resolve($preset);
 
-        return match ($preset) {
-            '1h' => ['from' => $to->copy()->subHour(), 'to' => $to, 'label' => '1 heure'],
-            '6h' => ['from' => $to->copy()->subHours(6), 'to' => $to, 'label' => '6 heures'],
-            '24h' => ['from' => $to->copy()->subDay(), 'to' => $to, 'label' => '24 heures'],
-            '3d' => ['from' => $to->copy()->subDays(3), 'to' => $to, 'label' => '3 jours'],
-            '7d' => ['from' => $to->copy()->subDays(7), 'to' => $to, 'label' => '7 jours'],
-            '30d', '1M' => ['from' => $to->copy()->subDays(30), 'to' => $to, 'label' => '30 jours'],
-            '3M' => ['from' => $to->copy()->subMonths(3), 'to' => $to, 'label' => '3 mois'],
-            '6M' => ['from' => $to->copy()->subMonths(6), 'to' => $to, 'label' => '6 mois'],
-            '1Y' => ['from' => $to->copy()->subYear(), 'to' => $to, 'label' => '1 an'],
-            default => ['from' => $to->copy()->subDay(), 'to' => $to, 'label' => '24 heures'],
-        };
+        return [
+            'from' => $range['from'],
+            'to' => $range['to'],
+            'label' => $range['label'],
+            'preset' => $range['preset'],
+        ];
     }
 
     /**
@@ -115,7 +110,8 @@ final class MonitorRunnerService
     {
         $checks = MonitorCheck::query()
             ->where('monitor_id', $monitor->id)
-            ->whereBetween('checked_at', [$from, $to])
+            ->where('checked_at', '>=', $from)
+            ->where('checked_at', '<=', $to)
             ->orderBy('checked_at')
             ->get();
 
@@ -143,13 +139,16 @@ final class MonitorRunnerService
     /**
      * @return list<array{status: string, color: string, title: string}>
      */
-    public function statusTimelineForPeriod(Monitor $monitor, Carbon $from, Carbon $to, int $slots = 72): array
+    public function statusTimelineForPeriod(Monitor $monitor, Carbon $from, Carbon $to, ?string $preset = null): array
     {
         $checks = MonitorCheck::query()
             ->where('monitor_id', $monitor->id)
-            ->whereBetween('checked_at', [$from, $to])
+            ->where('checked_at', '>=', $from)
+            ->where('checked_at', '<=', $to)
             ->orderBy('checked_at')
             ->get();
+
+        $slots = $this->periods->timelineSlots($preset ?? '24h');
 
         if ($checks->isEmpty()) {
             return array_fill(0, min($slots, 24), [
@@ -210,7 +209,8 @@ final class MonitorRunnerService
     {
         $checks = MonitorCheck::query()
             ->where('monitor_id', $monitor->id)
-            ->whereBetween('checked_at', [$from, $to])
+            ->where('checked_at', '>=', $from)
+            ->where('checked_at', '<=', $to)
             ->get();
 
         $total = $checks->count();

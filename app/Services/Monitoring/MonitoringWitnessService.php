@@ -45,6 +45,12 @@ final class MonitoringWitnessService
                     'witness_gap_seconds' => $gap,
                     'stale' => $stale,
                     'anomaly' => $anomaly,
+                    'remediation' => $anomaly ? [
+                        'Vérifier que l\'agent CrashHunter tourne sur le serveur (systemctl status crashhunter ou obiora-crashhunter).',
+                        'Redémarrer : sudo systemctl restart crashhunter',
+                        'Si absent : réinstaller via Doctor & Suite → Déployer sur ce serveur.',
+                        'Un ping OK avec witness mort = kernel/agent gelé ou service crashé alors que le réseau répond encore.',
+                    ] : [],
                 ];
             })
             ->all();

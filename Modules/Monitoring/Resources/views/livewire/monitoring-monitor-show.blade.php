@@ -116,7 +116,7 @@
                 <span class="small text-muted">avg {{ $stats['avg_ms'] }} ms · min {{ $stats['min_ms'] }} · max {{ $stats['max_ms'] }}</span>
             @endif
         </div>
-        <div class="card-body"><div id="monitor-response-chart" style="min-height:260px;"></div></div>
+        <div class="card-body"><div id="monitor-response-chart" data-chart='@json($chartSeries)' style="min-height:260px;"></div></div>
     </div>
 
     <div class="card obiora-card mb-4">
@@ -178,21 +178,11 @@
 
 @script
 <script>
-    const monitorChart = @json($chartSeries);
     function renderMonitorChart() {
         const el = document.getElementById('monitor-response-chart');
-        if (!el || typeof ApexCharts === 'undefined') return;
-        el.innerHTML = '';
-        new ApexCharts(el, {
-            chart: { type: 'area', height: 260, toolbar: { show: false }, animations: { enabled: false } },
-            series: [{ name: 'Response ms', data: monitorChart.values || [] }],
-            xaxis: { categories: monitorChart.categories || [], labels: { show: false } },
-            yaxis: { labels: { formatter: v => v + ' ms' } },
-            stroke: { curve: 'smooth', width: 2 },
-            colors: ['#3b82f6'],
-            fill: { type: 'gradient', gradient: { opacityFrom: 0.35, opacityTo: 0.05 } },
-            dataLabels: { enabled: false },
-        }).render();
+        if (!el || typeof window.obioraRenderResponseChart !== 'function') return;
+        const data = window.obioraParseChartData(el);
+        window.obioraRenderResponseChart(el, data.categories || [], data.values || [], { height: 260 });
     }
     $wire.on('$refresh', () => setTimeout(renderMonitorChart, 50));
     document.addEventListener('livewire:navigated', renderMonitorChart);

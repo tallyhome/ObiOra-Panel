@@ -4,10 +4,20 @@ import './realtime';
 import './sidebar';
 import './theme';
 import ApexCharts from 'apexcharts';
+import {
+    obioraParseChartData,
+    obioraRenderAreaChart,
+    obioraRenderLineChart,
+    obioraRenderResponseChart,
+} from './obiora-charts';
 import { obioraConfirm, obioraConfirmWire, obioraSubmitInstallSetup, obioraToast } from './obiora-swal';
 import { obioraCopyFromButton, obioraCopyText } from './copy';
 
 window.ApexCharts = ApexCharts;
+window.obioraRenderResponseChart = obioraRenderResponseChart;
+window.obioraRenderAreaChart = obioraRenderAreaChart;
+window.obioraRenderLineChart = obioraRenderLineChart;
+window.obioraParseChartData = obioraParseChartData;
 window.obioraToast = obioraToast;
 window.obioraConfirm = obioraConfirm;
 window.obioraConfirmWire = obioraConfirmWire;

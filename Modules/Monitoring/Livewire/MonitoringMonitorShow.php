@@ -60,7 +60,7 @@ final class MonitoringMonitorShow extends Component
             'visitStats' => $visitStats,
             'embedSnippet' => $visits->embedSnippet($this->monitor),
             'chartSeries' => $runner->chartSeriesForPeriod($this->monitor, $range['from'], $range['to']),
-            'statusTimeline' => $runner->statusTimelineForPeriod($this->monitor, $range['from'], $range['to']),
+            'statusTimeline' => $runner->statusTimelineForPeriod($this->monitor, $range['from'], $range['to'], $range['preset'] ?? $this->timePreset),
             'recentChecks' => $recentChecks,
             'timePreset' => $this->timePreset,
             'presets' => ['1h', '6h', '24h', '3d', '7d', '30d', '3M', '6M', '1Y'],

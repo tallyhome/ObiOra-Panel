@@ -15,6 +15,25 @@
                 <span class="badge text-bg-success">OK</span>
             @endif
         </div>
+        @if($witnessAnomalies > 0)
+        <div class="card-body border-bottom py-3">
+            <p class="small fw-medium mb-2">Ping OK mais witness mort — que faire ?</p>
+            <ol class="small text-muted mb-2 ps-3">
+                <li>Sur le serveur concerné (SSH root) : <code class="text-break">systemctl status crashhunter</code> ou <code>obiora-crashhunter</code></li>
+                <li>Redémarrer : <code>sudo systemctl restart crashhunter</code></li>
+                <li>Si absent : <strong>Doctor & Suite</strong> → déployer/réinstaller CrashHunter sur le serveur</li>
+                <li>Cas typique : kernel ou agent gelé alors que ICMP répond encore — consultez Crash Analyzer / Doctor</li>
+            </ol>
+            @foreach($witnessSummary as $row)
+                @if($row['anomaly'])
+                <a href="{{ route('doctor.index', ['server' => $row['server_id']]) }}" class="btn btn-outline-warning btn-sm me-1">
+                    Doctor — {{ $row['server_name'] }}
+                </a>
+                <a href="{{ route('monitoring.servers.show', $row['server_id']) }}" class="btn btn-outline-secondary btn-sm me-1">Fiche serveur</a>
+                @endif
+            @endforeach
+        </div>
+        @endif
         <div class="table-responsive">
             <table class="table table-sm obiora-table mb-0">
                 <thead class="obiora-table-head">

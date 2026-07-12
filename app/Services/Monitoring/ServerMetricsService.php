@@ -12,25 +12,23 @@ use Illuminate\Support\Collection;
 
 final class ServerMetricsService
 {
+    public function __construct(
+        private readonly MonitoringPeriodResolver $periods,
+    ) {}
+
     /**
      * @return array{from: Carbon, to: Carbon, resolution: string, label: string}
      */
     public function resolvePreset(string $preset): array
     {
-        $to = UserTimezone::now();
+        $range = $this->periods->resolve($preset);
 
-        return match ($preset) {
-            '1h' => ['from' => $to->copy()->subHour(), 'to' => $to, 'resolution' => '1m', 'label' => '1 heure'],
-            '6h' => ['from' => $to->copy()->subHours(6), 'to' => $to, 'resolution' => '1m', 'label' => '6 heures'],
-            '24h' => ['from' => $to->copy()->subDay(), 'to' => $to, 'resolution' => '1m', 'label' => '24 heures'],
-            '3d' => ['from' => $to->copy()->subDays(3), 'to' => $to, 'resolution' => '5m', 'label' => '3 jours'],
-            '7d' => ['from' => $to->copy()->subDays(7), 'to' => $to, 'resolution' => '5m', 'label' => '7 jours'],
-            '30d', '1M' => ['from' => $to->copy()->subDays(30), 'to' => $to, 'resolution' => '1h', 'label' => '30 jours'],
-            '3M' => ['from' => $to->copy()->subMonths(3), 'to' => $to, 'resolution' => '1h', 'label' => '3 mois'],
-            '6M' => ['from' => $to->copy()->subMonths(6), 'to' => $to, 'resolution' => '1h', 'label' => '6 mois'],
-            '1Y' => ['from' => $to->copy()->subYear(), 'to' => $to, 'resolution' => '1h', 'label' => '1 an'],
-            default => ['from' => $to->copy()->subDay(), 'to' => $to, 'resolution' => '1m', 'label' => '24 heures'],
-        };
+        return [
+            'from' => $range['from'],
+            'to' => $range['to'],
+            'resolution' => $range['resolution'],
+            'label' => $range['label'],
+        ];
     }
 
     /**
@@ -79,7 +77,8 @@ final class ServerMetricsService
     {
         return ServerMetricSample::query()
             ->where('server_id', $server->id)
-            ->whereBetween('sampled_at', [$from, $to])
+            ->where('sampled_at', '>=', $from)
+            ->where('sampled_at', '<=', $to)
             ->orderBy('sampled_at')
             ->limit(5000)
             ->get();

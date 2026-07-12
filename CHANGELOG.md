@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.3 - 2026-07-12
+
+- Fix presets 1H/6H métriques : requêtes en UTC (plus de fenêtre vide avec fuseau Europe/Paris)
+- Graphiques : tooltips lisibles en mode nuit, points sur courbes (style Pinguzo), refresh données au changement de preset
+- Witness : guide de remédiation « ping OK / witness mort » sur Flotte avancée
+
 ## v2.7.2 - 2026-07-12
 
 - UI : onglets actifs lisibles (nav-tabs + nav-pills monitoring), débordement Flotte avancée corrigé
