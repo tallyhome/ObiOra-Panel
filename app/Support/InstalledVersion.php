@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Process;
 
 final class InstalledVersion
@@ -34,19 +35,21 @@ final class InstalledVersion
             return null;
         }
 
-        $root = base_path();
+        return Cache::remember('obiora:commits_behind_main', now()->addMinutes(10), function (): ?int {
+            $root = base_path();
 
-        Process::path($root)->run('git fetch origin main --quiet 2>/dev/null');
+            Process::path($root)->timeout(15)->run('git fetch origin main --quiet 2>/dev/null');
 
-        $result = Process::path($root)->run('git rev-list --count HEAD..origin/main 2>/dev/null');
+            $result = Process::path($root)->timeout(10)->run('git rev-list --count HEAD..origin/main 2>/dev/null');
 
-        if (! $result->successful()) {
-            return null;
-        }
+            if (! $result->successful()) {
+                return null;
+            }
 
-        $count = (int) trim($result->output());
+            $count = (int) trim($result->output());
 
-        return $count >= 0 ? $count : null;
+            return $count >= 0 ? $count : null;
+        });
     }
 
     /**

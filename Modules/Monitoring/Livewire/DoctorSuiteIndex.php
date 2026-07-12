@@ -24,6 +24,7 @@ use App\Services\Diagnostics\ServerTimezoneService;
 use App\Support\DoctorInstallHelper;
 use App\Support\PanelLocalTarget;
 use App\Support\TimezoneCatalog;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -121,7 +122,6 @@ final class DoctorSuiteIndex extends Component
         ServerManager $servers,
         DoctorInstallHelper $doctor,
         ServerSshKeyService $sshKeys,
-        ServerTimezoneService $timezone,
     ): void {
         abort_unless(auth()->user()?->can('modules.view'), 403);
 
@@ -140,14 +140,12 @@ final class DoctorSuiteIndex extends Component
         $this->refreshInstallCommands($doctor, $current);
         $this->refreshSshState($current, $sshKeys);
         $this->sshHost = $current?->ip_address ?? '';
-        $this->refreshServerTimezone($timezone, $sshKeys);
         $this->resumeDeployIfRunning();
     }
 
     public function updatedServerId(
         DoctorInstallHelper $doctor,
         ServerSshKeyService $sshKeys,
-        ServerTimezoneService $timezone,
         ServerManager $servers,
     ): void {
         $server = Server::query()->find($this->serverId);
@@ -163,7 +161,6 @@ final class DoctorSuiteIndex extends Component
         $this->sshBootstrapResult = null;
         $this->deployError = null;
         $this->timezoneMessage = null;
-        $this->refreshServerTimezone($timezone, $sshKeys);
         $this->resumeDeployIfRunning();
     }
 
@@ -686,8 +683,15 @@ final class DoctorSuiteIndex extends Component
         $overview = $server !== null ? $suite->serverOverview($server) : null;
         $fleet = $suite->fleetOverview($servers);
 
-        $reportCount = DiagnosticReport::query()->count();
-        $lastReportAt = DiagnosticReport::query()->max('generated_at');
+        $reportStats = Cache::remember('doctor:diagnostic_report_stats', now()->addMinutes(2), static function (): array {
+            return [
+                'count' => DiagnosticReport::query()->count(),
+                'last_at' => DiagnosticReport::query()->max('generated_at'),
+            ];
+        });
+
+        $reportCount = (int) ($reportStats['count'] ?? 0);
+        $lastReportAt = $reportStats['last_at'] ?? null;
         $lastReportLabel = $lastReportAt
             ? \Illuminate\Support\Carbon::parse($lastReportAt)->format('d/m/Y H:i')
             : null;

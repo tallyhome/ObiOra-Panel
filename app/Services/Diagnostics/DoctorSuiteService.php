@@ -33,12 +33,17 @@ final class DoctorSuiteService
     /**
      * @return array<string, mixed>
      */
-    public function serverOverview(Server $server, int $historyMinutes = 60): array
+    public function serverOverview(Server $server, int $historyMinutes = 30, bool $lite = true): array
     {
         $report = $server->latestDiagnosticReport;
-        $crashDashboard = $this->crashMetrics->dashboardData($server, $historyMinutes);
-        $hunterDashboard = $this->crashHunterMetrics->dashboardData($server, $historyMinutes);
+        $crashDashboard = $lite
+            ? $this->crashMetrics->doctorSummary($server, $historyMinutes)
+            : $this->crashMetrics->dashboardData($server, $historyMinutes);
+        $hunterDashboard = $lite
+            ? $this->crashHunterMetrics->doctorDashboard($server, $historyMinutes)
+            : $this->crashHunterMetrics->dashboardData($server, $historyMinutes);
         $doctor = $this->formatDoctorReport($report);
+        $latestPayloads = $this->latestMetricPayloads($server, ['journal_boot', 'hardware', 'tools']);
 
         return [
             'doctor' => $doctor,
@@ -46,10 +51,10 @@ final class DoctorSuiteService
                 'summary' => $crashDashboard['summary'] ?? [],
                 'events' => array_slice($crashDashboard['events'] ?? [], 0, 20),
                 'reports' => $crashDashboard['reports'] ?? [],
-                'charts' => $crashDashboard['charts'] ?? [],
-                'journal_boot' => $this->latestMetricPayload($server, 'journal_boot'),
-                'hardware' => $this->latestMetricPayload($server, 'hardware'),
-                'tools' => $this->latestMetricPayload($server, 'tools'),
+                'charts' => $lite ? [] : ($crashDashboard['charts'] ?? []),
+                'journal_boot' => $latestPayloads['journal_boot'] ?? null,
+                'hardware' => $latestPayloads['hardware'] ?? null,
+                'tools' => $latestPayloads['tools'] ?? null,
             ],
             'crash_hunter' => $hunterDashboard,
             'plain_summary' => $this->plainLanguage->summarize([
@@ -155,6 +160,27 @@ final class DoctorSuiteService
                 'display_ip' => $meta['doctor_deploy']['remote_host'] ?? $server->ip_address,
             ];
         })->values()->all();
+    }
+
+    /**
+     * @param  list<string>  $collectors
+     * @return array<string, array<string, mixed>|null>
+     */
+    private function latestMetricPayloads(Server $server, array $collectors): array
+    {
+        $result = [];
+
+        foreach ($collectors as $collector) {
+            $payload = CrashAnalyzerMetric::query()
+                ->where('server_id', $server->id)
+                ->where('collector', $collector)
+                ->latest('sampled_at')
+                ->value('payload');
+
+            $result[$collector] = is_array($payload) ? $payload : null;
+        }
+
+        return $result;
     }
 
     /**

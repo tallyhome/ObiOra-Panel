@@ -15,6 +15,118 @@ use App\Support\DiagnosticConfidence;
 
 final class CrashHunterMetricsService
 {
+    private const DOCTOR_CHART_POINT_LIMIT = 120;
+
+    /**
+     * Vue allégée Doctor & Suite — évite de charger des milliers de métriques.
+     *
+     * @return array<string, mixed>
+     */
+    public function doctorDashboard(Server $server, int $minutes = 30): array
+    {
+        $since = now()->subMinutes($minutes);
+        $meta = ($server->metadata ?? [])['crash_hunter'] ?? [];
+
+        $chartMetrics = CrashHunterMetric::query()
+            ->where('server_id', $server->id)
+            ->where('sampled_at', '>=', $since)
+            ->whereIn('collector', ['cpu', 'system', 'pressure'])
+            ->select(['collector', 'sampled_at', 'payload'])
+            ->orderByDesc('sampled_at')
+            ->limit(360)
+            ->get()
+            ->sortBy('sampled_at')
+            ->values();
+
+        $metricsCount = CrashHunterMetric::query()
+            ->where('server_id', $server->id)
+            ->where('sampled_at', '>=', $since)
+            ->count();
+
+        $events = CrashHunterEvent::query()
+            ->where('server_id', $server->id)
+            ->where('detected_at', '>=', $since)
+            ->latest('detected_at')
+            ->limit(20)
+            ->get();
+
+        $incidents = CrashHunterIncident::query()
+            ->where('server_id', $server->id)
+            ->latest('started_at')
+            ->limit(10)
+            ->get();
+
+        $reports = CrashHunterReport::query()
+            ->where('server_id', $server->id)
+            ->latest('generated_at')
+            ->limit(5)
+            ->get();
+
+        $latestReport = $reports->first();
+        $witness = CrashHunterWitness::query()
+            ->where('server_id', $server->id)
+            ->latest('received_at')
+            ->first();
+
+        $snapshotCount = CrashHunterSnapshot::query()
+            ->where('server_id', $server->id)
+            ->where('sampled_at', '>=', $since)
+            ->count();
+
+        $cpuValues = $chartMetrics->where('collector', 'cpu')->pluck('payload.total_percent')->filter();
+        $charts = $this->downsampleCharts($this->buildCharts($chartMetrics));
+
+        return [
+            'summary' => [
+                'hostname' => $meta['hostname'] ?? $server->hostname,
+                'version' => $meta['version'] ?? null,
+                'last_metrics_at' => $meta['last_metrics_at'] ?? null,
+                'incident_mode' => (bool) ($meta['incident_mode'] ?? false),
+                'witness_status' => $witness?->status ?? ($meta['witness_status'] ?? 'unknown'),
+                'witness_last_at' => $witness?->received_at?->toIso8601String(),
+                'witness_gap_seconds' => $witness?->payload['gap_seconds'] ?? ($meta['witness_gap_seconds'] ?? null),
+                'ring_count' => $meta['ring_count'] ?? null,
+                'snapshots_in_window' => $snapshotCount,
+                'metrics_in_window' => $metricsCount,
+                'cpu_avg' => $cpuValues->isNotEmpty() ? round((float) $cpuValues->avg(), 1) : null,
+                'cpu_max' => $cpuValues->isNotEmpty() ? round((float) $cpuValues->max(), 1) : null,
+                'critical_events_24h' => CrashHunterEvent::query()
+                    ->where('server_id', $server->id)
+                    ->where('severity', 'critical')
+                    ->where('detected_at', '>=', now()->subDay())
+                    ->count(),
+            ],
+            'charts' => $charts,
+            'charts_active' => $this->activeChartDefinitions($charts),
+            'events' => $events->map(fn (CrashHunterEvent $e) => [
+                'event_type' => $e->event_type,
+                'severity' => $e->severity,
+                'title' => $e->title,
+                'details' => $e->details,
+                'detected_at' => $e->detected_at?->toIso8601String(),
+            ])->all(),
+            'incidents' => $incidents->map(fn (CrashHunterIncident $i) => [
+                'external_id' => $i->external_id,
+                'triggers' => $i->triggers,
+                'snapshot_count' => $i->snapshot_count,
+                'started_at' => $i->started_at?->toIso8601String(),
+                'ended_at' => $i->ended_at?->toIso8601String(),
+                'status' => is_array($i->summary) ? ($i->summary['status'] ?? null) : null,
+            ])->all(),
+            'reports' => $reports->map(fn (CrashHunterReport $r) => [
+                'id' => $r->id,
+                'external_id' => $r->external_id,
+                'trigger_type' => $r->trigger_type,
+                'generated_at' => $r->generated_at?->toIso8601String(),
+                'verdict' => $r->report_json['diagnosis']['verdict'] ?? null,
+                'recommendations_count' => count($r->report_json['recommendations'] ?? []),
+            ])->all(),
+            'latest_report_insights' => $this->buildReportInsights($latestReport),
+            'latest_collectors' => [],
+            'snapshots' => $this->recentSnapshots($server, $since, 12),
+        ];
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -229,6 +341,28 @@ final class CrashHunterMetricsService
             'iowait' => $iowait,
             'pressure_io' => $pressureIo,
         ];
+    }
+
+    /**
+     * @param  array<string, list<array{t: int, v: mixed}>>  $charts
+     * @return array<string, list<array{t: int, v: mixed}>>
+     */
+    private function downsampleCharts(array $charts, int $maxPoints = self::DOCTOR_CHART_POINT_LIMIT): array
+    {
+        foreach ($charts as $key => $series) {
+            if (! is_array($series) || count($series) <= $maxPoints) {
+                continue;
+            }
+
+            $step = (int) ceil(count($series) / $maxPoints);
+            $charts[$key] = array_values(array_filter(
+                $series,
+                static fn (mixed $_, int $index) => $index % $step === 0,
+                ARRAY_FILTER_USE_BOTH,
+            ));
+        }
+
+        return $charts;
     }
 
     /**

@@ -11,16 +11,25 @@ use App\Models\Server;
  */
 final class DiagnosticsAgentVersionService
 {
+    /** @var array<string, string|null>|null */
+    private ?array $bundledVersionsCache = null;
+
     /**
      * @return array<string, string|null>
      */
     public function bundledVersions(): array
     {
-        return [
+        if ($this->bundledVersionsCache !== null) {
+            return $this->bundledVersionsCache;
+        }
+
+        $this->bundledVersionsCache = [
             'panel' => (string) config('obiora.version'),
             'crash_hunter' => $this->readCrashHunterVersion(),
             'crash_analyzer' => $this->readCrashAnalyzerVersion(),
         ];
+
+        return $this->bundledVersionsCache;
     }
 
     /**

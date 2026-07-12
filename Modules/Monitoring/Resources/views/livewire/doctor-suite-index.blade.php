@@ -64,7 +64,7 @@
                             @if($serverDateTime)
                                 <strong>{{ $serverDateTime }}</strong>
                             @else
-                                <span class="text-muted">—</span>
+                                <span class="text-muted">Non chargée — cliquez « Actualiser l'heure »</span>
                             @endif
                         </dd>
                         <dt class="col-sm-5">Fuseau actuel</dt>

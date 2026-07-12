@@ -14,6 +14,56 @@ use Illuminate\Support\Collection;
 final class CrashAnalyzerMetricsService
 {
     /**
+     * Résumé léger pour Doctor & Suite (sans charger toutes les métriques).
+     *
+     * @return array<string, mixed>
+     */
+    public function doctorSummary(Server $server, int $minutes = 30): array
+    {
+        $since = now()->subMinutes($minutes);
+
+        $events = CrashAnalyzerEvent::query()
+            ->where('server_id', $server->id)
+            ->where('detected_at', '>=', $since)
+            ->orderByDesc('detected_at')
+            ->limit(20)
+            ->get();
+
+        $reports = CrashAnalyzerReport::query()
+            ->where('server_id', $server->id)
+            ->latest('generated_at')
+            ->limit(10)
+            ->get(['id', 'external_id', 'trigger_type', 'generated_at', 'hostname']);
+
+        $summaryMetrics = CrashAnalyzerMetric::query()
+            ->where('server_id', $server->id)
+            ->where('sampled_at', '>=', $since)
+            ->whereIn('collector', ['cpu', 'memory', 'load'])
+            ->select(['collector', 'payload'])
+            ->orderByDesc('sampled_at')
+            ->limit(120)
+            ->get();
+
+        return [
+            'summary' => $this->buildSummary($summaryMetrics, $events),
+            'events' => $events->map(fn (CrashAnalyzerEvent $e) => [
+                'id' => $e->id,
+                'event_type' => $e->event_type,
+                'severity' => $e->severity,
+                'title' => $e->title,
+                'details' => $e->details,
+                'detected_at' => $e->detected_at?->toIso8601String(),
+            ])->values()->all(),
+            'reports' => $reports->map(fn (CrashAnalyzerReport $r) => [
+                'id' => $r->id,
+                'external_id' => $r->external_id,
+                'trigger_type' => $r->trigger_type,
+                'generated_at' => $r->generated_at?->toIso8601String(),
+            ])->values()->all(),
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function dashboardData(Server $server, int $minutes = 60): array
