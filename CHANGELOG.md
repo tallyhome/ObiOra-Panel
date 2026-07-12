@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.1 - 2026-07-12
+
+- Fix 500 page métriques serveur (`/monitoring/servers/{id}/metrics`) — erreur Blade dans le script graphiques
+- Moniteurs : colonnes Uptime 24h, intervalle de check, bouton « Métriques »
+- Page métriques moniteur style Pinguzo : presets temps, stats période, graphique réponse, timeline Up/Down
+
 ## v2.7.0 - 2026-07-12
 
 - Monitoring Phase 7 (début) : fiche serveur unifiée `/monitoring/servers/{id}` (Doctor, Crash, incidents, liens Monitor+)

@@ -7,6 +7,7 @@ namespace Modules\Monitoring\Livewire;
 use App\Enums\MonitorType;
 use App\Models\Monitor;
 use App\Services\Monitoring\MonitorImportExportService;
+use App\Services\Monitoring\MonitorRunnerService;
 use App\Support\UserTimezone;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -166,21 +167,28 @@ final class MonitoringMonitorsIndex extends Component
         $this->dispatch('notify', type: 'success', message: "Import : {$result['created']} créé(s), {$result['skipped']} ignoré(s).");
     }
 
-    public function render()
+    public function render(MonitorRunnerService $runner)
     {
         $monitors = Monitor::query()
             ->orderBy('name')
             ->get()
-            ->map(fn (Monitor $monitor) => [
-                'id' => $monitor->id,
-                'name' => $monitor->name,
-                'type' => $monitor->type->label(),
-                'target' => $monitor->displayTarget(),
-                'status' => $monitor->last_status ?? 'unknown',
-                'response_ms' => $monitor->last_response_ms,
-                'last_checked' => UserTimezone::format($monitor->last_checked_at, 'd/m/Y H:i:s'),
-                'is_active' => $monitor->is_active,
-            ]);
+            ->map(function (Monitor $monitor) use ($runner) {
+                $range = $runner->resolvePreset('24h');
+                $stats24h = $runner->statsForPeriod($monitor, $range['from'], $range['to']);
+
+                return [
+                    'id' => $monitor->id,
+                    'name' => $monitor->name,
+                    'type' => $monitor->type->label(),
+                    'target' => $monitor->displayTarget(),
+                    'status' => $monitor->last_status ?? 'unknown',
+                    'response_ms' => $monitor->last_response_ms,
+                    'last_checked' => UserTimezone::format($monitor->last_checked_at, 'd/m/Y H:i:s'),
+                    'is_active' => $monitor->is_active,
+                    'interval_label' => $monitor->intervalLabel(),
+                    'uptime_24h' => $stats24h['uptime_percent'],
+                ];
+            });
 
         return view('monitoring::livewire.monitoring-monitors-index', [
             'monitors' => $monitors,

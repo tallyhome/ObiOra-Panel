@@ -176,7 +176,7 @@
 
 @script
 <script>
-    const seriesData = @json(json_decode($chartPayload, true, 512, JSON_THROW_ON_ERROR));
+    const seriesData = @json($chartPayload);
     const s = seriesData.series || seriesData;
 
     function areaChart(el, title, categories, values, color) {

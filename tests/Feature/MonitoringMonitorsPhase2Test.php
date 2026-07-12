@@ -32,7 +32,9 @@ final class MonitoringMonitorsPhase2Test extends TestCase
         $this->actingAs($user)
             ->get(route('monitoring.monitors'))
             ->assertOk()
-            ->assertSee('API Health');
+            ->assertSee('API Health')
+            ->assertSee('Uptime 24h')
+            ->assertSee('Métriques');
     }
 
     public function test_create_monitor_via_livewire(): void

@@ -24,8 +24,11 @@
                         <th>Type</th>
                         <th>Cible</th>
                         <th>Statut</th>
+                        <th>Uptime 24h</th>
+                        <th>Intervalle</th>
                         <th>Réponse</th>
                         <th>Dernière vérif.</th>
+                        <th></th>
                         @if($canManage)<th></th>@endif
                     </tr>
                 </thead>
@@ -49,8 +52,17 @@
                                 <span class="badge text-bg-secondary">Unknown</span>
                             @endif
                         </td>
+                        <td class="small text-nowrap">
+                            <span @class(['fw-semibold', 'text-success' => $monitor['uptime_24h'] >= 99, 'text-warning' => $monitor['uptime_24h'] < 99 && $monitor['uptime_24h'] >= 90, 'text-danger' => $monitor['uptime_24h'] < 90])>
+                                {{ number_format($monitor['uptime_24h'], 1) }}%
+                            </span>
+                        </td>
+                        <td class="small text-nowrap">{{ $monitor['interval_label'] }}</td>
                         <td class="small">{{ $monitor['response_ms'] ? $monitor['response_ms'].' ms' : '—' }}</td>
                         <td class="small text-nowrap">{{ $monitor['last_checked'] ?: '—' }}</td>
+                        <td class="text-nowrap">
+                            <a href="{{ route('monitoring.monitors.show', $monitor['id']) }}" class="btn btn-outline-primary btn-sm py-0">Métriques</a>
+                        </td>
                         @if($canManage)
                         <td class="text-nowrap">
                             <button type="button" wire:click="editMonitor({{ $monitor['id'] }})" class="btn btn-outline-secondary btn-sm py-0">Modifier</button>

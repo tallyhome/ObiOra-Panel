@@ -19,15 +19,25 @@ final class MonitoringMonitorShow extends Component
 {
     public Monitor $monitor;
 
+    public string $timePreset = '24h';
+
     public function mount(Monitor $monitor): void
     {
         abort_unless(auth()->user()?->can('monitoring.view'), 403);
         $this->monitor = $monitor;
     }
 
+    public function setPreset(string $preset): void
+    {
+        $this->timePreset = $preset;
+    }
+
     public function render(MonitorRunnerService $runner, MonitorVisitService $visits)
     {
-        $stats = $runner->statsForMonitor($this->monitor);
+        $range = $runner->resolvePreset($this->timePreset);
+        $range24h = $runner->resolvePreset('24h');
+        $stats = $runner->statsForPeriod($this->monitor, $range['from'], $range['to']);
+        $stats24h = $runner->statsForPeriod($this->monitor, $range24h['from'], $range24h['to']);
         $visitStats = $visits->statsForMonitor($this->monitor);
         $visits->ensureTrackToken($this->monitor->refresh());
 
@@ -46,10 +56,15 @@ final class MonitoringMonitorShow extends Component
 
         return view('monitoring::livewire.monitoring-monitor-show', [
             'stats' => $stats,
+            'stats24h' => $stats24h,
             'visitStats' => $visitStats,
             'embedSnippet' => $visits->embedSnippet($this->monitor),
-            'chartSeries' => $runner->chartSeriesForMonitor($this->monitor),
+            'chartSeries' => $runner->chartSeriesForPeriod($this->monitor, $range['from'], $range['to']),
+            'statusTimeline' => $runner->statusTimelineForPeriod($this->monitor, $range['from'], $range['to']),
             'recentChecks' => $recentChecks,
+            'timePreset' => $this->timePreset,
+            'presets' => ['1h', '6h', '24h', '3d', '7d', '30d', '3M', '6M', '1Y'],
+            'rangeLabel' => $range['label'],
             'timezoneFooter' => UserTimezone::label(),
             'nowLabel' => UserTimezone::now()->format('d/m/Y H:i:s'),
         ]);

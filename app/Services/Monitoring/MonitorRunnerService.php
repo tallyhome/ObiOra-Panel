@@ -9,6 +9,7 @@ use App\Models\Monitor;
 use App\Models\MonitorCheck;
 use App\Support\UserTimezone;
 use App\Services\Monitoring\Probes\MonitorProbeFactory;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
 final class MonitorRunnerService
@@ -77,15 +78,44 @@ final class MonitorRunnerService
     }
 
     /**
-     * @return array{categories: list<string>, values: list<int|null>, status_segments: list<array{from: string, to: string, status: string}>}
+     * @return array{from: Carbon, to: Carbon, label: string}
+     */
+    public function resolvePreset(string $preset): array
+    {
+        $to = UserTimezone::now();
+
+        return match ($preset) {
+            '1h' => ['from' => $to->copy()->subHour(), 'to' => $to, 'label' => '1 heure'],
+            '6h' => ['from' => $to->copy()->subHours(6), 'to' => $to, 'label' => '6 heures'],
+            '24h' => ['from' => $to->copy()->subDay(), 'to' => $to, 'label' => '24 heures'],
+            '3d' => ['from' => $to->copy()->subDays(3), 'to' => $to, 'label' => '3 jours'],
+            '7d' => ['from' => $to->copy()->subDays(7), 'to' => $to, 'label' => '7 jours'],
+            '30d', '1M' => ['from' => $to->copy()->subDays(30), 'to' => $to, 'label' => '30 jours'],
+            '3M' => ['from' => $to->copy()->subMonths(3), 'to' => $to, 'label' => '3 mois'],
+            '6M' => ['from' => $to->copy()->subMonths(6), 'to' => $to, 'label' => '6 mois'],
+            '1Y' => ['from' => $to->copy()->subYear(), 'to' => $to, 'label' => '1 an'],
+            default => ['from' => $to->copy()->subDay(), 'to' => $to, 'label' => '24 heures'],
+        };
+    }
+
+    /**
+     * @return array{categories: list<string>, values: list<int|null>, status_segments: list<array{at: string, status: string}>}
      */
     public function chartSeriesForMonitor(Monitor $monitor, int $days = 30): array
     {
         $since = now()->subDays($days);
 
+        return $this->chartSeriesForPeriod($monitor, $since, now());
+    }
+
+    /**
+     * @return array{categories: list<string>, values: list<int|null>, status_segments: list<array{at: string, status: string}>}
+     */
+    public function chartSeriesForPeriod(Monitor $monitor, Carbon $from, Carbon $to): array
+    {
         $checks = MonitorCheck::query()
             ->where('monitor_id', $monitor->id)
-            ->where('checked_at', '>=', $since)
+            ->whereBetween('checked_at', [$from, $to])
             ->orderBy('checked_at')
             ->get();
 
@@ -111,15 +141,76 @@ final class MonitorRunnerService
     }
 
     /**
+     * @return list<array{status: string, color: string, title: string}>
+     */
+    public function statusTimelineForPeriod(Monitor $monitor, Carbon $from, Carbon $to, int $slots = 72): array
+    {
+        $checks = MonitorCheck::query()
+            ->where('monitor_id', $monitor->id)
+            ->whereBetween('checked_at', [$from, $to])
+            ->orderBy('checked_at')
+            ->get();
+
+        if ($checks->isEmpty()) {
+            return array_fill(0, min($slots, 24), [
+                'status' => 'nodata',
+                'color' => '#6b7280',
+                'title' => 'Aucune donnée',
+            ]);
+        }
+
+        $duration = max(60, $from->diffInSeconds($to));
+        $bucketSeconds = (int) max(60, ceil($duration / $slots));
+        $buckets = [];
+
+        foreach ($checks as $check) {
+            if ($check->checked_at === null) {
+                continue;
+            }
+
+            $key = (int) floor(($check->checked_at->timestamp - $from->timestamp) / $bucketSeconds);
+            $buckets[$key] ??= ['up' => 0, 'down' => 0];
+            if ($check->status === 'up') {
+                $buckets[$key]['up']++;
+            } else {
+                $buckets[$key]['down']++;
+            }
+        }
+
+        $maxKey = (int) ceil($duration / $bucketSeconds);
+        $segments = [];
+
+        for ($i = 0; $i <= $maxKey; $i++) {
+            $bucket = $buckets[$i] ?? null;
+
+            if ($bucket === null) {
+                $segments[] = ['status' => 'nodata', 'color' => '#6b7280', 'title' => 'Pas de données'];
+            } elseif ($bucket['down'] > 0) {
+                $segments[] = ['status' => 'down', 'color' => '#ef4444', 'title' => 'Down'];
+            } else {
+                $segments[] = ['status' => 'up', 'color' => '#22c55e', 'title' => 'Up'];
+            }
+        }
+
+        return $segments;
+    }
+
+    /**
      * @return array{uptime_percent: float, avg_ms: ?int, min_ms: ?int, max_ms: ?int, checks_total: int, avg_dns_ms: ?int, avg_tcp_ms: ?int, avg_ttfb_ms: ?int}
      */
     public function statsForMonitor(Monitor $monitor, int $days = 30): array
     {
-        $since = now()->subDays($days);
+        return $this->statsForPeriod($monitor, now()->subDays($days), now());
+    }
 
+    /**
+     * @return array{uptime_percent: float, avg_ms: ?int, min_ms: ?int, max_ms: ?int, checks_total: int, avg_dns_ms: ?int, avg_tcp_ms: ?int, avg_ttfb_ms: ?int}
+     */
+    public function statsForPeriod(Monitor $monitor, Carbon $from, Carbon $to): array
+    {
         $checks = MonitorCheck::query()
             ->where('monitor_id', $monitor->id)
-            ->where('checked_at', '>=', $since)
+            ->whereBetween('checked_at', [$from, $to])
             ->get();
 
         $total = $checks->count();

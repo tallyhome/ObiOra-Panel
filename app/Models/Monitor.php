@@ -81,4 +81,15 @@ class Monitor extends Model
 
         return $this->target;
     }
+
+    public function intervalLabel(): string
+    {
+        return match ($this->interval_seconds) {
+            60 => '1 min',
+            300 => '5 min',
+            600 => '10 min',
+            1800 => '30 min',
+            default => max(1, (int) round($this->interval_seconds / 60)).' min',
+        };
+    }
 }
