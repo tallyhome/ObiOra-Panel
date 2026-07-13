@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.8 - 2026-07-13
+
+- Fix installation Doctor & Suite locale : URL `curl` correctement quotée (échec silencieux)
+- Witness flotte : « non installé » si CrashHunter absent (plus de fausse anomalie dead)
+- Timeline Up/Down 1H : 60 segments fixes, prolongation verte après dernier check
+- Métriques serveur : onglets CPU/Memory instantanés (Alpine, sans round-trip Livewire)
+- Moniteur / serveur : indicateur « Chargement… » au changement de preset 1H/24H
+
 ## v2.7.7 - 2026-07-13
 
 - Fix HTTP 500 après reboot VPS au login : vérification Redis au boot (page 503 au lieu de 500)

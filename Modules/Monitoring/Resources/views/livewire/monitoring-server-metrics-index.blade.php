@@ -23,25 +23,35 @@
         <a href="{{ route('monitoring.servers') }}" class="btn btn-outline-secondary btn-sm">← Serveurs</a>
     </div>
 
-    <div class="d-flex flex-wrap gap-1 mb-3">
+    <div class="d-flex flex-wrap gap-1 mb-3" wire:loading.class="opacity-50" wire:target="setPreset">
         @foreach($presets as $preset)
-            <button type="button" wire:click="setPreset('{{ $preset }}')"
+            <button type="button" wire:click="setPreset('{{ $preset }}')" wire:loading.attr="disabled" wire:target="setPreset"
                     @class(['btn btn-sm', $timePreset === $preset ? 'btn-primary' : 'btn-outline-secondary'])>
                 {{ strtoupper($preset) }}
             </button>
         @endforeach
         <span class="small text-muted align-self-center ms-2">{{ $dashboard['range']['from'] }} → {{ $dashboard['range']['to'] }}</span>
+        <span class="small text-primary align-self-center ms-2" wire:loading wire:target="setPreset">Chargement…</span>
     </div>
 
+    <div x-data="{
+        tab: @js($activeTab),
+        setTab(name) {
+            this.tab = name;
+            const url = new URL(window.location.href);
+            url.searchParams.set('activeTab', name);
+            history.replaceState({}, '', url);
+        }
+    }">
     <ul class="nav nav-tabs obiora-nav-tabs mb-3">
         @foreach(['overview' => 'Overview', 'cpu' => 'CPU', 'memory' => 'Memory', 'disk' => 'Disk', 'network' => 'Network', 'processes' => 'Processes'] as $tab => $label)
             <li class="nav-item">
-                <button type="button" @class(['nav-link', 'active' => $activeTab === $tab]) wire:click="setTab('{{ $tab }}')">{{ $label }}</button>
+                <button type="button" @click="setTab('{{ $tab }}')" :class="tab === '{{ $tab }}' ? 'nav-link active' : 'nav-link'">{{ $label }}</button>
             </li>
         @endforeach
     </ul>
 
-    @if($activeTab === 'overview')
+    <div x-show="tab === 'overview'" x-cloak>
     <div class="row g-3 mb-4">
         @foreach([
             ['id' => 'chart-cpu', 'title' => 'CPU %', 'key' => 'cpu', 'color' => '#3b82f6'],
@@ -63,19 +73,19 @@
         </div>
         @endforeach
     </div>
-    @endif
+    </div>
 
-    @if($activeTab === 'cpu')
-    <div class="card obiora-card mb-4"><div class="card-body"><div id="chart-cpu-tab" style="min-height:280px;"></div></div></div>
-    <div class="card obiora-card mb-4"><div class="card-body"><div id="chart-steal-tab" style="min-height:220px;"></div></div></div>
-    @endif
+    <div x-show="tab === 'cpu'" x-cloak>
+        <div class="card obiora-card mb-4"><div class="card-body"><div id="chart-cpu-tab" style="min-height:280px;"></div></div></div>
+        <div class="card obiora-card mb-4"><div class="card-body"><div id="chart-steal-tab" style="min-height:220px;"></div></div></div>
+    </div>
 
-    @if($activeTab === 'memory')
-    <div class="card obiora-card mb-4"><div class="card-body"><div id="chart-memory-tab" style="min-height:280px;"></div></div></div>
-    <div class="card obiora-card mb-4"><div class="card-body"><div id="chart-swap-tab" style="min-height:220px;"></div></div></div>
-    @endif
+    <div x-show="tab === 'memory'" x-cloak>
+        <div class="card obiora-card mb-4"><div class="card-body"><div id="chart-memory-tab" style="min-height:280px;"></div></div></div>
+        <div class="card obiora-card mb-4"><div class="card-body"><div id="chart-swap-tab" style="min-height:220px;"></div></div></div>
+    </div>
 
-    @if($activeTab === 'disk')
+    <div x-show="tab === 'disk'" x-cloak>
     <div class="card obiora-card mb-4"><div class="card-body"><div id="chart-disk-tab" style="min-height:280px;"></div></div></div>
     @if(count($dashboard['partitions']) > 0)
     <div class="card obiora-card">
@@ -100,9 +110,9 @@
         </div>
     </div>
     @endif
-    @endif
+    </div>
 
-    @if($activeTab === 'network')
+    <div x-show="tab === 'network'" x-cloak>
     <div class="row g-3 mb-3">
         <div class="col-md-4">
             <div class="card obiora-card h-100">
@@ -146,9 +156,9 @@
         </div>
     </div>
     @endif
-    @endif
+    </div>
 
-    @if($activeTab === 'processes')
+    <div x-show="tab === 'processes'" x-cloak>
     <div class="card obiora-card">
         <div class="card-header">Top processus (dernier snapshot)</div>
         <div class="table-responsive">
@@ -169,7 +179,8 @@
             </table>
         </div>
     </div>
-    @endif
+    </div>
+    </div>
 
     <p class="small text-muted mt-3 mb-0">Heures en {{ $timezoneFooter }}</p>
     <div id="server-metrics-chart-data" class="d-none" data-chart='@json($chartPayload)'></div>

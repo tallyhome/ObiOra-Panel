@@ -59,13 +59,42 @@ final class DoctorInstallHelper
             return '# Aucun serveur sélectionné';
         }
 
+        return $this->suiteInstallShellCommand($server);
+    }
+
+    public function suiteInstallShellCommand(
+        Server $server,
+        bool $installDoctor = true,
+        bool $installCrashAnalyzer = true,
+        bool $installCrashHunter = true,
+    ): string {
+        $panelUrl = rtrim((string) config('app.url'), '/');
+
         return sprintf(
-            'curl -fsSL %s | sudo OBIORA_PANEL_URL=%s OBIORA_SERVER_ID=%d OBIORA_AGENT_TOKEN=%s bash',
-            $this->suiteUrl(),
-            rtrim((string) config('app.url'), '/'),
+            'curl -fsSL %s | sudo OBIORA_PANEL_URL=%s OBIORA_SERVER_ID=%d OBIORA_AGENT_TOKEN=%s OBIORA_INSTALL_DOCTOR=%s OBIORA_INSTALL_CRASH_ANALYZER=%s OBIORA_INSTALL_CRASH_HUNTER=%s bash',
+            escapeshellarg($panelUrl.'/install/doctor-suite.sh'),
+            escapeshellarg($panelUrl),
             $server->id,
-            $server->agent_token,
+            escapeshellarg((string) ($server->agent_token ?? '')),
+            $installDoctor ? 'yes' : 'no',
+            $installCrashAnalyzer ? 'yes' : 'no',
+            $installCrashHunter ? 'yes' : 'no',
         );
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function suiteComponentList(
+        bool $installDoctor = true,
+        bool $installCrashAnalyzer = true,
+        bool $installCrashHunter = true,
+    ): array {
+        return array_values(array_filter([
+            $installDoctor ? 'doctor' : null,
+            $installCrashAnalyzer ? 'crash_analyzer' : null,
+            $installCrashHunter ? 'crash_hunter' : null,
+        ]));
     }
 
     public function remoteCrashAnalyzerCommand(?Server $server): string

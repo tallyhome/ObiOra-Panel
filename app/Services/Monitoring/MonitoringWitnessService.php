@@ -6,10 +6,15 @@ namespace App\Services\Monitoring;
 
 use App\Models\CrashHunterWitness;
 use App\Models\Server;
+use App\Support\ServerAgentStatus;
 use App\Support\UserTimezone;
 
 final class MonitoringWitnessService
 {
+    public function __construct(
+        private readonly ServerAgentStatus $agents,
+    ) {}
+
     /**
      * @return list<array<string, mixed>>
      */
@@ -22,6 +27,26 @@ final class MonitoringWitnessService
             ->orderBy('name')
             ->get()
             ->map(function (Server $server) use ($timeout) {
+                $flags = $this->agents->flags($server);
+
+                if (! $flags['crash_hunter']) {
+                    return [
+                        'server_id' => $server->id,
+                        'server_name' => $server->name,
+                        'is_master' => $server->is_master,
+                        'ping_ok' => in_array($server->status->value, ['online', 'degraded'], true),
+                        'witness_status' => 'not_installed',
+                        'witness_last_at' => '—',
+                        'witness_gap_seconds' => null,
+                        'stale' => false,
+                        'anomaly' => false,
+                        'remediation' => $server->is_master ? [] : [
+                            'CrashHunter n\'est pas installé sur ce serveur.',
+                            'Doctor & Suite → Déployer sur ce serveur (cocher CrashHunter).',
+                        ],
+                    ];
+                }
+
                 $witness = CrashHunterWitness::query()
                     ->where('server_id', $server->id)
                     ->orderByDesc('received_at')
@@ -40,13 +65,13 @@ final class MonitoringWitnessService
                     'server_name' => $server->name,
                     'is_master' => $server->is_master,
                     'ping_ok' => $pingOk,
-                    'witness_status' => $status,
+                    'witness_status' => $stale && $witness !== null ? ($status === 'alive' ? 'stale' : $status) : $status,
                     'witness_last_at' => UserTimezone::format($witness?->received_at, 'd/m/Y H:i:s'),
                     'witness_gap_seconds' => $gap,
                     'stale' => $stale,
                     'anomaly' => $anomaly,
                     'remediation' => $anomaly ? [
-                        'Vérifier que l\'agent CrashHunter tourne sur le serveur (systemctl status crashhunter ou obiora-crashhunter).',
+                        'Vérifier que l\'agent CrashHunter tourne sur le serveur (systemctl status crashhunter).',
                         'Redémarrer : sudo systemctl restart crashhunter',
                         'Si absent : réinstaller via Doctor & Suite → Déployer sur ce serveur.',
                         'Un ping OK avec witness mort = kernel/agent gelé ou service crashé alors que le réseau répond encore.',

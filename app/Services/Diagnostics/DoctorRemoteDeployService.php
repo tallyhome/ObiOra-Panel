@@ -39,15 +39,11 @@ final class DoctorRemoteDeployService
         }
 
         if ($installDoctor || $installCrashAnalyzer || $installCrashHunter) {
-            $command = sprintf(
-                'curl -fsSL %s/install/doctor-suite.sh | sudo OBIORA_PANEL_URL=%s OBIORA_SERVER_ID=%d OBIORA_AGENT_TOKEN=%s OBIORA_INSTALL_DOCTOR=%s OBIORA_INSTALL_CRASH_ANALYZER=%s OBIORA_INSTALL_CRASH_HUNTER=%s bash',
-                $panelUrl,
-                $panelUrl,
-                $server->id,
-                $server->agent_token,
-                $installDoctor ? 'yes' : 'no',
-                $installCrashAnalyzer ? 'yes' : 'no',
-                $installCrashHunter ? 'yes' : 'no',
+            $command = $this->doctor->suiteInstallShellCommand(
+                $server,
+                $installDoctor,
+                $installCrashAnalyzer,
+                $installCrashHunter,
             );
             $result = $this->runRemote($connection, $command);
             $steps[] = [
@@ -105,10 +101,11 @@ final class DoctorRemoteDeployService
 
         if ($success) {
             $remoteHost = $connection->host;
-            $installedAgents = array_values(array_filter([
-                $installCrashHunter ? 'crash_hunter' : null,
-                $installCrashAnalyzer ? 'crash_analyzer' : null,
-            ]));
+            $installedAgents = $this->doctor->suiteComponentList(
+                $installDoctor,
+                $installCrashAnalyzer,
+                $installCrashHunter,
+            );
             app(DiagnosticsAgentVersionService::class)->stampDeployedVersions($server, $installedAgents);
 
             $server->forceFill([
@@ -118,7 +115,7 @@ final class DoctorRemoteDeployService
                         'deployed_at' => now()->toIso8601String(),
                         'method' => 'ssh_key',
                         'remote_host' => $remoteHost,
-                        'components' => array_column($steps, 'component'),
+                        'components' => $installedAgents,
                     ],
                 ]),
             ])->save();

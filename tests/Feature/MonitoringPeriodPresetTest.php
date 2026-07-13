@@ -43,9 +43,11 @@ final class MonitoringPeriodPresetTest extends TestCase
         $timeline = $runner->statusTimelineForPeriod($monitor, $range['from'], $range['to'], '1h');
 
         $this->assertSame(1, $stats['checks_total']);
+        $this->assertCount(60, $timeline, 'La timeline 1H doit avoir 60 segments.');
         $this->assertNotEmpty(array_filter($timeline, fn (array $s) => $s['status'] === 'up'));
 
         $last = $timeline[array_key_last($timeline)];
         $this->assertSame('up', $last['status'], 'Le dernier segment doit reprendre le statut up, pas « pas de données ».');
+        $this->assertSame(0, count(array_filter($timeline, fn (array $s, int $i) => $i > 40 && $s['status'] === 'nodata', ARRAY_FILTER_USE_BOTH)), 'Les segments après le dernier check doivent rester up.');
     }
 }

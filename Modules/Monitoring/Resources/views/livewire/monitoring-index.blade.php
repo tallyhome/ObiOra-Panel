@@ -44,7 +44,13 @@
                     <tr @class(['table-warning' => $row['anomaly']])>
                         <td class="small fw-medium">{{ $row['server_name'] }}</td>
                         <td class="small">{{ $row['ping_ok'] ? 'OK' : 'KO' }}</td>
-                        <td class="small">{{ $row['witness_status'] }}</td>
+                        <td class="small">
+                            @if($row['witness_status'] === 'not_installed')
+                                <span class="text-muted">non installé</span>
+                            @else
+                                {{ $row['witness_status'] }}
+                            @endif
+                        </td>
                         <td class="small text-nowrap">{{ $row['witness_last_at'] ?: '—' }}</td>
                         <td>
                             @if($row['anomaly'])

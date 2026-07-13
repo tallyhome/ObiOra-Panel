@@ -6,6 +6,7 @@ namespace App\Services\Diagnostics;
 
 use App\Contracts\SystemExecutorInterface;
 use App\Models\Server;
+use App\Services\Diagnostics\DiagnosticsAgentVersionService;
 use App\Support\DoctorInstallHelper;
 
 /**
@@ -50,15 +51,11 @@ final class LocalDoctorDeployService
             $onProgress(30, 'Installation locale (sans SSH)…', $steps);
         }
 
-        $command = sprintf(
-            'curl -fsSL %s/install/doctor-suite.sh | sudo OBIORA_PANEL_URL=%s OBIORA_SERVER_ID=%d OBIORA_AGENT_TOKEN=%s OBIORA_INSTALL_DOCTOR=%s OBIORA_INSTALL_CRASH_ANALYZER=%s OBIORA_INSTALL_CRASH_HUNTER=%s bash',
-            escapeshellarg($panelUrl),
-            escapeshellarg($panelUrl),
-            $server->id,
-            escapeshellarg($server->agent_token),
-            $installDoctor ? 'yes' : 'no',
-            $installCrashAnalyzer ? 'yes' : 'no',
-            $installCrashHunter ? 'yes' : 'no',
+        $command = $this->doctor->suiteInstallShellCommand(
+            $server,
+            $installDoctor,
+            $installCrashAnalyzer,
+            $installCrashHunter,
         );
         $result = $this->runShell($command, 900);
         $steps[] = [
@@ -70,13 +67,20 @@ final class LocalDoctorDeployService
         $success = $steps !== [] && collect($steps)->every(fn (array $s) => $s['success']);
 
         if ($success) {
+            $installedAgents = $this->doctor->suiteComponentList(
+                $installDoctor,
+                $installCrashAnalyzer,
+                $installCrashHunter,
+            );
+            app(DiagnosticsAgentVersionService::class)->stampDeployedVersions($server, $installedAgents);
+
             $server->forceFill([
                 'metadata' => array_merge($server->metadata ?? [], [
                     'doctor_deploy' => [
                         'deployed_at' => now()->toIso8601String(),
                         'method' => 'local',
                         'remote_host' => $server->ip_address,
-                        'components' => array_column($steps, 'component'),
+                        'components' => $installedAgents,
                     ],
                 ]),
             ])->save();

@@ -29,14 +29,15 @@
         <a href="{{ route('monitoring.monitors') }}" class="btn btn-outline-secondary btn-sm">← Moniteurs</a>
     </div>
 
-    <div class="d-flex flex-wrap gap-1 mb-3">
+    <div class="d-flex flex-wrap gap-1 mb-3" wire:loading.class="opacity-50" wire:target="setPreset">
         @foreach($presets as $preset)
-            <button type="button" wire:click="setPreset('{{ $preset }}')"
+            <button type="button" wire:click="setPreset('{{ $preset }}')" wire:loading.attr="disabled" wire:target="setPreset"
                     @class(['btn btn-sm', $timePreset === $preset ? 'btn-primary' : 'btn-outline-secondary'])>
                 {{ strtoupper($preset) }}
             </button>
         @endforeach
         <span class="small text-muted align-self-center ms-2">{{ $rangeLabel }}</span>
+        <span class="small text-primary align-self-center ms-2" wire:loading wire:target="setPreset">Chargement…</span>
     </div>
 
     <div class="row g-3 mb-4">

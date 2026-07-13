@@ -141,6 +141,9 @@ final class MonitorRunnerService
      */
     public function statusTimelineForPeriod(Monitor $monitor, Carbon $from, Carbon $to, ?string $preset = null): array
     {
+        $presetKey = strtolower($preset ?? '24h');
+        $slots = $this->periods->timelineSlots($presetKey);
+
         $checks = MonitorCheck::query()
             ->where('monitor_id', $monitor->id)
             ->where('checked_at', '>=', $from)
@@ -148,58 +151,75 @@ final class MonitorRunnerService
             ->orderBy('checked_at')
             ->get();
 
-        $slots = $this->periods->timelineSlots($preset ?? '24h');
-
         if ($checks->isEmpty()) {
-            return array_fill(0, min($slots, 24), [
-                'status' => 'nodata',
-                'color' => '#6b7280',
-                'title' => 'Aucune donnée',
-            ]);
+            return array_fill(0, $slots, $this->timelineSegment('nodata'));
         }
 
-        $duration = max(60, $from->diffInSeconds($to));
-        $bucketSeconds = (int) max(60, ceil($duration / $slots));
-        $buckets = [];
+        $fromTs = $from->timestamp;
+        $toTs = $to->timestamp;
+        $duration = max(60, $toTs - $fromTs);
+        $bucketSeconds = $duration / $slots;
+
+        /** @var array<int, array{up: int, down: int}>|array<int, null> $buckets */
+        $buckets = array_fill(0, $slots, null);
 
         foreach ($checks as $check) {
             if ($check->checked_at === null) {
                 continue;
             }
 
-            $key = (int) floor(($check->checked_at->timestamp - $from->timestamp) / $bucketSeconds);
-            $buckets[$key] ??= ['up' => 0, 'down' => 0];
+            $offset = max(0, $check->checked_at->timestamp - $fromTs);
+            $index = (int) min($slots - 1, floor($offset / $bucketSeconds));
+
+            $buckets[$index] ??= ['up' => 0, 'down' => 0];
             if ($check->status === 'up') {
-                $buckets[$key]['up']++;
+                $buckets[$index]['up']++;
             } else {
-                $buckets[$key]['down']++;
+                $buckets[$index]['down']++;
             }
         }
 
-        $nowKey = (int) floor((now()->timestamp - $from->timestamp) / $bucketSeconds);
-        $maxKey = min((int) ceil($duration / $bucketSeconds), $nowKey, $slots - 1);
-        $segments = [];
         $lastKnown = 'nodata';
+        $segments = [];
+        $lastDataIndex = null;
 
-        for ($i = 0; $i <= $maxKey; $i++) {
-            $bucket = $buckets[$i] ?? null;
+        for ($i = 0; $i < $slots; $i++) {
+            $bucket = $buckets[$i];
 
             if ($bucket === null) {
-                if ($i === $maxKey && $lastKnown !== 'nodata') {
-                    $segments[] = ['status' => $lastKnown, 'color' => $lastKnown === 'up' ? '#22c55e' : '#ef4444', 'title' => $lastKnown === 'up' ? 'Up' : 'Down'];
-                } else {
-                    $segments[] = ['status' => 'nodata', 'color' => '#6b7280', 'title' => 'Pas de données'];
-                }
+                $segments[] = $this->timelineSegment('nodata');
             } elseif ($bucket['down'] > 0) {
                 $lastKnown = 'down';
-                $segments[] = ['status' => 'down', 'color' => '#ef4444', 'title' => 'Down'];
+                $lastDataIndex = $i;
+                $segments[] = $this->timelineSegment('down');
             } else {
                 $lastKnown = 'up';
-                $segments[] = ['status' => 'up', 'color' => '#22c55e', 'title' => 'Up'];
+                $lastDataIndex = $i;
+                $segments[] = $this->timelineSegment('up');
+            }
+        }
+
+        if ($lastDataIndex !== null && $lastKnown !== 'nodata') {
+            for ($i = $lastDataIndex + 1; $i < $slots; $i++) {
+                if (($buckets[$i] ?? null) === null) {
+                    $segments[$i] = $this->timelineSegment($lastKnown);
+                }
             }
         }
 
         return $segments;
+    }
+
+    /**
+     * @return array{status: string, color: string, title: string}
+     */
+    private function timelineSegment(string $status): array
+    {
+        return match ($status) {
+            'up' => ['status' => 'up', 'color' => '#22c55e', 'title' => 'Up'],
+            'down' => ['status' => 'down', 'color' => '#ef4444', 'title' => 'Down'],
+            default => ['status' => 'nodata', 'color' => '#6b7280', 'title' => 'Pas de données'],
+        };
     }
 
     /**

@@ -160,7 +160,13 @@
                     <tr @class(['table-warning' => $row['anomaly']])>
                         <td><a href="{{ route('monitoring.servers.show', $row['server_id']) }}">{{ $row['server_name'] }}</a></td>
                         <td>{{ $row['ping_ok'] ? 'OK' : 'KO' }}</td>
-                        <td>{{ $row['witness_status'] }}</td>
+                        <td>
+                            @if($row['witness_status'] === 'not_installed')
+                                <span class="text-muted">non installé</span>
+                            @else
+                                {{ $row['witness_status'] }}
+                            @endif
+                        </td>
                         <td class="small">{{ $row['witness_last_at'] ?: '—' }}</td>
                     </tr>
                     @endforeach
