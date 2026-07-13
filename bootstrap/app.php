@@ -94,4 +94,34 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             });
         }
+
+        $redisConnectionException = 'Illuminate\\Redis\\Connections\\ConnectionException';
+        if (class_exists($redisConnectionException)) {
+            $exceptions->render(function ($e, Request $request) use ($panelUnavailable, $redisConnectionException) {
+                if (! $e instanceof $redisConnectionException) {
+                    return null;
+                }
+
+                if ($panelUnavailable($request)) {
+                    return response()->view('errors.panel-unavailable', [], 503);
+                }
+
+                return null;
+            });
+        }
+
+        $viteManifestException = 'Illuminate\\Foundation\\ViteManifestNotFoundException';
+        if (class_exists($viteManifestException)) {
+            $exceptions->render(function ($e, Request $request) use ($panelUnavailable, $viteManifestException) {
+                if (! $e instanceof $viteManifestException) {
+                    return null;
+                }
+
+                if ($panelUnavailable($request)) {
+                    return response()->view('errors.panel-unavailable', [], 503);
+                }
+
+                return null;
+            });
+        }
     })->create();

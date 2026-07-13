@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Support\PanelDatabase;
+use App\Support\PanelInfrastructure;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,7 +20,7 @@ final class EnsurePanelDatabaseAvailable
             return $next($request);
         }
 
-        if (! PanelDatabase::isAvailable()) {
+        if (! PanelInfrastructure::isReady()) {
             return response()->view('errors.panel-unavailable', [], Response::HTTP_SERVICE_UNAVAILABLE);
         }
 

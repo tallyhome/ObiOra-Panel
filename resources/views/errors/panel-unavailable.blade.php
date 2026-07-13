@@ -16,7 +16,7 @@
 <body>
     <div class="box">
         <h1>ObiOra Panel — démarrage en cours</h1>
-        <p>Le panel est temporairement indisponible (base de données ou services en cours de démarrage après un reboot).</p>
+        <p>Le panel est temporairement indisponible (base de données, Redis ou assets en cours de démarrage après un reboot).</p>
         <p>La page se rafraîchira automatiquement dans quelques secondes.</p>
         <p class="retry">Si le problème persiste : <code>systemctl status mariadb redis php-fpm nginx obiora-queue</code></p>
     </div>

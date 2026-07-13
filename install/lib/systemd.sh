@@ -58,8 +58,8 @@ ensure_boot_service_order() {
     info "Ordre de démarrage au boot (MariaDB/Redis avant le panel)..."
 
     local dropin='[Unit]
-After=mariadb.service mysqld.service redis.service redis-server.service network-online.target
-Wants=mariadb.service mysqld.service redis.service redis-server.service
+After=obiora-panel-ready.service mariadb.service mysqld.service redis.service redis-server.service network-online.target
+Wants=obiora-panel-ready.service mariadb.service mysqld.service redis.service redis-server.service
 '
 
     local svc

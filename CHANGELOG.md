@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.7 - 2026-07-13
+
+- Fix HTTP 500 après reboot VPS au login : vérification Redis au boot (page 503 au lieu de 500)
+- Dashboard : métriques réseau tolérantes si Redis indisponible (mode dégradé)
+- Boot systemd : PHP-FPM/Nginx attendent `obiora-panel-ready` (MariaDB + Redis prêts)
+- Handler 503 si manifest Vite absent ou connexion Redis échoue
+
 ## v2.7.6 - 2026-07-12
 
 - Moniteur site web : tableau « Derniers checks » pliable (fermé par défaut), jusqu'à 200 entrées

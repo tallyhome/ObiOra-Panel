@@ -7,6 +7,7 @@ namespace App\Support;
 use App\Models\Server;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Throwable;
 
 final class NetworkMetrics
 {
@@ -146,7 +147,7 @@ final class NetworkMetrics
     {
         $key = "obiora:net:last:{$serverId}";
         $now = microtime(true);
-        $last = Cache::get($key);
+        $last = $this->cacheGet($key);
 
         $rxRate = 0.0;
         $txRate = 0.0;
@@ -157,7 +158,7 @@ final class NetworkMetrics
             $txRate = max(0, ($counters['tx'] - (int) ($last['tx'] ?? $counters['tx'])) / $elapsed);
         }
 
-        Cache::put($key, [
+        $this->cachePut($key, [
             'rx' => $counters['rx'],
             'tx' => $counters['tx'],
             'ts' => $now,
@@ -176,7 +177,7 @@ final class NetworkMetrics
         $now = Carbon::now();
 
         /** @var array<string, mixed> $state */
-        $state = Cache::get($key, [
+        $state = $this->cacheGet($key, [
             'interface' => $interface,
             'last_rx' => $counters['rx'],
             'last_tx' => $counters['tx'],
@@ -231,7 +232,7 @@ final class NetworkMetrics
         $state['last_rx'] = $counters['rx'];
         $state['last_tx'] = $counters['tx'];
 
-        Cache::forever($key, $state);
+        $this->cacheForever($key, $state);
 
         $rows = [
             ['label' => 'Cette heure', 'rx' => (int) $state['hour']['rx'], 'tx' => (int) $state['hour']['tx']],
@@ -278,5 +279,32 @@ final class NetworkMetrics
                 ['date' => now()->subDays(2)->format('Y-m-d'), 'rx' => 3_221_225_472, 'tx' => 1_288_490_188],
             ],
         ];
+    }
+
+    private function cacheGet(string $key, mixed $default = null): mixed
+    {
+        try {
+            return Cache::get($key, $default);
+        } catch (Throwable) {
+            return $default;
+        }
+    }
+
+    private function cachePut(string $key, mixed $value, int $ttl): void
+    {
+        try {
+            Cache::put($key, $value, $ttl);
+        } catch (Throwable) {
+            // Redis indisponible — dashboard dégradé sans historique réseau
+        }
+    }
+
+    private function cacheForever(string $key, mixed $value): void
+    {
+        try {
+            Cache::forever($key, $value);
+        } catch (Throwable) {
+            // Redis indisponible — dashboard dégradé sans historique réseau
+        }
     }
 }
