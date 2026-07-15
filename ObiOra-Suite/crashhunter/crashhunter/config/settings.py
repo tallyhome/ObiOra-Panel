@@ -166,8 +166,9 @@ class EbpfSettings:
 @dataclass
 class RetentionSettings:
     enabled: bool = True
-    retention_days: int = 90
-    compress_after_days: int = 7
+    retention_days: int = 7
+    compress_after_days: int = 1
+    max_bundles: int = 3
 
 
 @dataclass
@@ -574,8 +575,9 @@ def load_settings(config_path: Path | None = None) -> Settings:
         ),
         retention=RetentionSettings(
             enabled=bool(retention_raw.get("enabled", True)),
-            retention_days=int(retention_raw.get("retention_days", 90)),
-            compress_after_days=int(retention_raw.get("compress_after_days", 7)),
+            retention_days=int(retention_raw.get("retention_days", 7)),
+            compress_after_days=int(retention_raw.get("compress_after_days", 2)),
+            max_bundles=int(retention_raw.get("max_bundles", 3)),
         ),
         prometheus=PrometheusSettings(
             enabled=bool(prom_raw.get("enabled", False)),

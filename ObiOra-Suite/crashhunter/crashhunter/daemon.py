@@ -437,6 +437,8 @@ class CrashHunterDaemon:
                     self.settings.reports_dir,
                     self.settings.retention.retention_days,
                     self.settings.retention.compress_after_days,
+                    bundles_dir=self.settings.bundles_dir,
+                    max_bundles=self.settings.retention.max_bundles,
                 ).run()
 
         logger.info("CrashHunter Enterprise stopped")

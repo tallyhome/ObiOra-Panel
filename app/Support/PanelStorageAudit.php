@@ -24,6 +24,7 @@ final class PanelStorageAudit
             $this->entry('sessions', 'Sessions fichier', storage_path('framework/sessions'), true, 'Si driver session=file'),
             $this->entry('crash_pdf', 'PDF Crash Analyzer', storage_path('app/crash-analyzer'), true, 'Rapports PDF ingérés'),
             $this->entry('crash_local', 'Fichiers Crash Analyzer', storage_path('app/private/crash-analyzer'), true, 'Exports locaux'),
+            $this->entry('crashhunter', 'CrashHunter (/opt)', '/opt/crashhunter', true, 'Bundles & reports — purger via Doctor & Suite'),
             $this->entry('backups', 'Sauvegardes panel', storage_path('app/backups'), true, 'Vérifier avant suppression'),
             $this->entry('node_modules', 'node_modules (dev)', $base.'/node_modules', true, 'Peut être réinstallé via npm ci'),
             $this->entry('vendor', 'vendor PHP', $base.'/vendor', false, 'Ne pas supprimer — composer install'),

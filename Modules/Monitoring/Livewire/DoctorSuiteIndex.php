@@ -7,6 +7,7 @@ namespace Modules\Monitoring\Livewire;
 use App\DTOs\SshConnection;
 use App\Models\DiagnosticReport;
 use App\Models\Server;
+use App\Services\CrashHunter\CrashHunterDiskService;
 use App\Services\CrashHunter\CrashHunterMetricsService;
 use App\Services\Core\ServerManager;
 use App\Services\Diagnostics\DiagnosticsAgentVersionService;
@@ -72,6 +73,9 @@ final class DoctorSuiteIndex extends Component
     /** @var array<string, mixed>|null */
     public ?array $selectedSnapshot = null;
 
+    /** @var array<string, mixed> */
+    public array $crashHunterDisk = [];
+
     public bool $deployRunning = false;
 
     public int $deployProgress = 0;
@@ -122,6 +126,7 @@ final class DoctorSuiteIndex extends Component
         ServerManager $servers,
         DoctorInstallHelper $doctor,
         ServerSshKeyService $sshKeys,
+        CrashHunterDiskService $crashDisk,
     ): void {
         abort_unless(auth()->user()?->can('modules.view'), 403);
 
@@ -141,12 +146,14 @@ final class DoctorSuiteIndex extends Component
         $this->refreshSshState($current, $sshKeys);
         $this->sshHost = $current?->ip_address ?? '';
         $this->resumeDeployIfRunning();
+        $this->loadCrashHunterDisk($crashDisk, $current);
     }
 
     public function updatedServerId(
         DoctorInstallHelper $doctor,
         ServerSshKeyService $sshKeys,
         ServerManager $servers,
+        CrashHunterDiskService $crashDisk,
     ): void {
         $server = Server::query()->find($this->serverId);
         if ($server !== null) {
@@ -157,6 +164,8 @@ final class DoctorSuiteIndex extends Component
         if ($server !== null) {
             $this->sshHost = $server->ip_address;
         }
+        $this->selectedSnapshot = null;
+        $this->loadCrashHunterDisk($crashDisk, $server);
         $this->sshTestOk = false;
         $this->sshBootstrapResult = null;
         $this->deployError = null;
@@ -626,6 +635,42 @@ final class DoctorSuiteIndex extends Component
         $this->selectedSnapshot = null;
     }
 
+    public function refreshCrashHunterDisk(CrashHunterDiskService $crashDisk): void
+    {
+        $server = $this->serverId !== null ? Server::query()->find($this->serverId) : null;
+        $this->loadCrashHunterDisk($crashDisk, $server);
+    }
+
+    public function purgeCrashHunterDisk(string $mode, CrashHunterDiskService $crashDisk): void
+    {
+        $this->authorizeDeploy();
+
+        $server = Server::query()->findOrFail($this->serverId);
+        if (! $crashDisk->isLocalHunterServer($server)) {
+            $this->dispatch('notify', type: 'warning', message: 'Purge disque CrashHunter disponible sur le serveur panel (local/master) pour le moment.');
+
+            return;
+        }
+
+        $result = $mode === 'all'
+            ? $crashDisk->purgeLocal('all')
+            : $crashDisk->purgeLocal('keep', 3);
+
+        $this->crashHunterDisk = $result['audit'];
+        $this->dispatch('notify', type: $result['success'] ? 'success' : 'danger', message: $result['message']);
+    }
+
+    private function loadCrashHunterDisk(CrashHunterDiskService $crashDisk, ?Server $server): void
+    {
+        if ($server === null || ! $crashDisk->isLocalHunterServer($server)) {
+            $this->crashHunterDisk = [];
+
+            return;
+        }
+
+        $this->crashHunterDisk = $crashDisk->auditLocal();
+    }
+
     public function inspectSnapshot(int $snapshotId, CrashHunterMetricsService $metrics): void
     {
         if ($this->serverId === null) {
@@ -725,6 +770,7 @@ final class DoctorSuiteIndex extends Component
             'agentVersionRows' => $server !== null ? $agentVersions->compare($server) : [],
             'agentUpgradeNeeded' => $server !== null && $agentVersions->needsUpgrade($server),
             'bundledAgentVersions' => $agentVersions->bundledVersions(),
+            'canManage' => auth()->user()?->can('modules.manage') ?? false,
         ]);
     }
 

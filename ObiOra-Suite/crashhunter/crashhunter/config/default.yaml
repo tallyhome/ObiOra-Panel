@@ -11,8 +11,8 @@ ring:
   capacity: 0
   use_tmpfs: true
   tmpfs_path: /dev/shm/crashhunter-ring
-  tmpfs_size_mb: 128
-  sync_interval_seconds: 30
+  tmpfs_size_mb: 64
+  sync_interval_seconds: 60
 
 witness:
   enabled: false
@@ -43,31 +43,31 @@ netconsole:
   interface: eth0
 
 perf:
-  enabled: true
-  duration_seconds: 30
+  enabled: false
+  duration_seconds: 15
 
 ftrace:
-  enabled: true
-  duration_seconds: 10
-  function_graph_max_seconds: 4
-  irqsoff_max_seconds: 3
-  preemptoff_max_seconds: 3
-  wakeup_max_seconds: 3
+  enabled: false
+  duration_seconds: 5
+  function_graph_max_seconds: 2
+  irqsoff_max_seconds: 2
+  preemptoff_max_seconds: 2
+  wakeup_max_seconds: 2
   lock_timeout_seconds: 0.5
-  buffer_size_kb: 256
-  trace_read_max_bytes: 500000
-  max_graph_functions: 24
+  buffer_size_kb: 128
+  trace_read_max_bytes: 100000
+  max_graph_functions: 12
   watchdog_enabled: true
 
 qemu_gdb:
-  enabled: true
+  enabled: false
   timeout_seconds: 15
   max_processes: 3
 
 benchmark:
-  enabled: true
-  run_fio: true
-  run_stress_ng: true
+  enabled: false
+  run_fio: false
+  run_stress_ng: false
   run_smart: true
   ping_target: "1.1.1.1"
 
@@ -187,8 +187,9 @@ prometheus:
 
 retention:
   enabled: true
-  retention_days: 90
-  compress_after_days: 7
+  retention_days: 7
+  compress_after_days: 1
+  max_bundles: 3
 
 rules:
   path: ""

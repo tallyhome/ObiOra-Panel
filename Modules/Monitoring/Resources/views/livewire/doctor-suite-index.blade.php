@@ -705,6 +705,30 @@
     </div>
     @endif
 
+    @if(!empty($crashHunterDisk['available']) && (empty($overview['crash_hunter'])))
+    <div class="card obiora-card border-warning border-opacity-50 mb-4" id="crash-hunter-disk">
+        <div class="card-header">CrashHunter — Espace disque</div>
+        <div class="card-body">
+            <div @class(['alert mb-0 py-2', 'alert-warning' => !empty($crashHunterDisk['warning']), 'alert-secondary' => empty($crashHunterDisk['warning'])])>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div class="small">
+                        <strong>{{ $crashHunterDisk['total_human'] ?? '—' }}</strong>
+                        — bundles {{ $crashHunterDisk['bundles_human'] ?? '—' }}
+                        ({{ $crashHunterDisk['bundle_count'] ?? 0 }} dossiers)
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" wire:click="refreshCrashHunterDisk">Actualiser</button>
+                        @if($canManage)
+                        <button type="button" class="btn btn-outline-warning btn-sm" wire:click="purgeCrashHunterDisk('keep')" wire:confirm="Garder les 3 derniers bundles/rapports ?">Garder 3 derniers</button>
+                        <button type="button" class="btn btn-outline-danger btn-sm" wire:click="purgeCrashHunterDisk('all')" wire:confirm="Vider tous les bundles/rapports CrashHunter ?">Tout vider</button>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     @if($overview && !empty($overview['crash_hunter']))
     @php($hunter = $overview['crash_hunter']['summary'] ?? [])
     @php($hunterInsights = $overview['crash_hunter']['latest_report_insights'] ?? null)
@@ -713,6 +737,38 @@
             <div class="card obiora-card border-warning border-opacity-50" id="crash-hunter-black-box">
                 <div class="card-header">CrashHunter Enterprise — Black Box &amp; Witness</div>
                 <div class="card-body">
+                    @if(!empty($crashHunterDisk['available']))
+                    <div @class(['alert mb-3 py-2', 'alert-warning' => !empty($crashHunterDisk['warning']), 'alert-secondary' => empty($crashHunterDisk['warning'])])>
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div class="small">
+                                <strong>Espace disque CrashHunter</strong> :
+                                {{ $crashHunterDisk['total_human'] ?? '—' }}
+                                (bundles {{ $crashHunterDisk['bundles_human'] ?? '—' }}
+                                · {{ $crashHunterDisk['bundle_count'] ?? 0 }} dossiers
+                                · reports {{ $crashHunterDisk['reports_human'] ?? '—' }})
+                                @if(!empty($crashHunterDisk['message']))
+                                    <span class="d-block text-muted">{{ $crashHunterDisk['message'] }}</span>
+                                @endif
+                            </div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" wire:click="refreshCrashHunterDisk">Actualiser</button>
+                                @if($canManage ?? auth()->user()?->can('modules.manage'))
+                                <button type="button" class="btn btn-outline-warning btn-sm"
+                                        wire:click="purgeCrashHunterDisk('keep')"
+                                        wire:confirm="Garder les 3 derniers bundles/rapports et supprimer le reste ?">
+                                    Garder 3 derniers
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm"
+                                        wire:click="purgeCrashHunterDisk('all')"
+                                        wire:confirm="Supprimer TOUS les bundles et rapports CrashHunter ? (config conservée)">
+                                    Tout vider
+                                </button>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
                     <div class="row g-3 mb-3">
                         <div class="col-md-2"><span class="small text-muted d-block">Witness</span>
                             @php($ws = $hunter['witness_status'] ?? 'unknown')

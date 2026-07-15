@@ -4,7 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
-## v4.0.11 - 2026-07-15
+## v4.0.13 - 2026-07-15
+
+### CrashHunter disque (léger)
+
+- **Explication** : `/opt/crashhunter/bundles/` = archives diagnostiques (~300 Mo) laissées en dossier quand l'export est tué (OOM)
+- **Doctor & Suite** : audit taille + boutons « Garder 3 » / « Tout vider » (`crashhunter-disk-purge.sh`)
+- **Mode léger** : `perf` / `ftrace` / `benchmark` / `qemu_gdb` désactivés par défaut ; ring 64 Mo ; `max_bundles: 3`
+- **Export** : bundles en `.tar.gz`/`.zst` via temp (plus de staging permanent dans `bundles/`)
+- **Rétention** : purge auto des dossiers orphelins + garde max 3 archives
+
+## v4.0.12 - 2026-07-15
 
 ### Correctifs scan sécurité
 
