@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.8 - 2026-07-15
+
+### Sécurité
+
+- **Scan sécurité** : correction `sudo usage` — la commande était mal passée à `PrivilegedScriptRunner` (double `bash -c` / chemin invalide)
+
 ## v4.0.7 - 2026-07-15
 
 ### Correctif critique

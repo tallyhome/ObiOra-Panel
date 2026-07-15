@@ -45,11 +45,7 @@ final class SecurityScanTriggerService
 
         if (! is_file($scanScript)) {
             $this->progress->update($server->id, 40, 'Lancement du service obiora-doctor-agent…');
-            $result = $this->scripts->run(
-                'systemctl start obiora-doctor-agent.service',
-                [],
-                180,
-            );
+            $result = $this->scripts->runCommand('systemctl start obiora-doctor-agent.service', 180);
             $output = trim($result->output.$result->errorOutput);
 
             return [
@@ -65,15 +61,9 @@ final class SecurityScanTriggerService
             'OBIORA_AGENT_TOKEN' => (string) ($server->agent_token ?? ''),
         ];
 
-        $envPrefix = implode(' ', array_map(
-            fn (string $k, string $v) => $k.'='.escapeshellarg($v),
-            array_keys($env),
-            array_values($env),
-        ));
-
         $this->progress->update($server->id, 35, 'Exécution du script run-security-scan.sh (modules SSH, firewall, rootkits…)');
 
-        $result = $this->scripts->run('bash -c '.escapeshellarg("{$envPrefix} {$scanScript}"), [], 300);
+        $result = $this->scripts->run($scanScript, [], 300, $env);
         $this->progress->update($server->id, 85, 'Analyse des résultats et envoi du rapport Doctor…');
         $output = trim($result->output.$result->errorOutput);
         $success = $result->successful && str_contains($output, 'OK:');
