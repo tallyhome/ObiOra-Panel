@@ -51,6 +51,16 @@
         @endforeach
     </ul>
 
+    @if(!($dashboard['has_samples'] ?? false))
+    <div class="alert alert-warning mb-4">
+        <strong>Aucune métrique agent sur cette période.</strong>
+        <span class="d-block small mt-1">Installez ou redémarrez l'agent métriques : <code>sudo systemctl restart obiora-agent</code> — ou via Doctor & Suite → Installation agent.</span>
+        <a href="{{ route('doctor.index', ['server' => $server->id]) }}" class="btn btn-outline-warning btn-sm mt-2">Doctor & Suite</a>
+    </div>
+    @else
+    <p class="small text-muted mb-3">{{ $dashboard['sample_count'] ?? 0 }} échantillons sur la période sélectionnée.</p>
+    @endif
+
     <div x-show="tab === 'overview'" x-cloak>
     <div class="row g-3 mb-4">
         @foreach([

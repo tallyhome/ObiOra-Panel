@@ -16,6 +16,7 @@ final class SecurityScanTriggerService
     public function __construct(
         private readonly PrivilegedScriptRunner $scripts,
         private readonly ServerManager $servers,
+        private readonly SecurityScanProgressService $progress,
     ) {}
 
     /**
@@ -23,11 +24,16 @@ final class SecurityScanTriggerService
      */
     public function trigger(Server $server): array
     {
-        if ($server->is_master || $server->type->value === 'local') {
-            return $this->triggerLocal($server);
-        }
+        $this->progress->start($server->id);
+        $this->progress->update($server->id, 15, 'Connexion au serveur et vérification de l\'agent Doctor…');
 
-        return $this->triggerRemote($server);
+        $result = $server->is_master || $server->type->value === 'local'
+            ? $this->triggerLocal($server)
+            : $this->triggerRemote($server);
+
+        $this->progress->finish($server->id, $result);
+
+        return $result;
     }
 
     /**
@@ -38,6 +44,7 @@ final class SecurityScanTriggerService
         $scanScript = base_path('agent/scripts/run-security-scan.sh');
 
         if (! is_file($scanScript)) {
+            $this->progress->update($server->id, 40, 'Lancement du service obiora-doctor-agent…');
             $result = $this->scripts->run(
                 'systemctl start obiora-doctor-agent.service',
                 [],
@@ -64,7 +71,10 @@ final class SecurityScanTriggerService
             array_values($env),
         ));
 
+        $this->progress->update($server->id, 35, 'Exécution du script run-security-scan.sh (modules SSH, firewall, rootkits…)');
+
         $result = $this->scripts->run('bash -c '.escapeshellarg("{$envPrefix} {$scanScript}"), [], 300);
+        $this->progress->update($server->id, 85, 'Analyse des résultats et envoi du rapport Doctor…');
         $output = trim($result->output.$result->errorOutput);
         $success = $result->successful && str_contains($output, 'OK:');
 
@@ -80,6 +90,7 @@ final class SecurityScanTriggerService
      */
     private function triggerRemote(Server $server): array
     {
+        $this->progress->update($server->id, 40, 'Scan sécurité distant via SSH…');
         $executor = $this->servers->executorFor($server);
         $result = $executor->run(
             'systemctl start obiora-doctor-agent.service 2>/dev/null || /opt/obiora-doctor-agent/run-security-scan.sh 2>/dev/null || /opt/obiora-doctor-agent/run-scan.sh',

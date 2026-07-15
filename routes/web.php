@@ -29,6 +29,10 @@ Route::middleware('setup')->group(function () {
     Route::get('/login', Login::class)->name('login')->middleware('guest');
 });
 
+Route::get('/demo/enter/{user}', \App\Http\Controllers\DemoEnterController::class)
+    ->middleware('signed')
+    ->name('demo.enter');
+
 Route::get('/locale/{locale}', \App\Http\Controllers\LocaleController::class)->name('locale');
 
 Route::get('/panel-health', static function () {
@@ -287,6 +291,7 @@ Route::middleware(['setup', 'auth', 'demo.active', 'server'])->group(function ()
             Route::get('/servers/{server}/score-history', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'scoreHistory'])->name('score-history');
             Route::get('/servers/{server}/compare', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'compare'])->name('compare');
             Route::post('/alerts/{alert}/read', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'markAlertRead'])->name('alerts.read');
+            Route::post('/alerts/read-all', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'markAllAlertsRead'])->name('alerts.read-all');
             Route::get('/servers/{server}/metrics', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'serverMetrics'])->name('server-metrics');
             Route::get('/servers/{server}/install-command', [\App\Http\Controllers\Api\MonitoringFleetController::class, 'installCommand'])->name('install-command');
             Route::get('/servers/{server}/diagnostics/latest', [DiagnosticReportController::class, 'latest'])->name('diagnostics.latest');

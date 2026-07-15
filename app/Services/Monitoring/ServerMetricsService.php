@@ -44,6 +44,8 @@ final class ServerMetricsService
 
         return [
             'server' => $this->serializeServerHeader($server, $latest),
+            'sample_count' => $samples->count(),
+            'has_samples' => $samples->isNotEmpty(),
             'range' => [
                 'from' => UserTimezone::format($from, 'd/m/Y H:i'),
                 'to' => UserTimezone::format($to, 'd/m/Y H:i'),

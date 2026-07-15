@@ -9,6 +9,7 @@ use App\Models\Server;
 use App\Services\Core\ServerManager;
 use App\Services\Security\SecurityAuditService;
 use App\Services\Security\SecurityRemediationService;
+use App\Services\Security\SecurityScanProgressService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -29,11 +30,14 @@ final class SecurityIndex extends Component
 
     public bool $scanning = false;
 
+    /** @var array<string, mixed>|null */
+    public ?array $scanProgress = null;
+
     public ?string $actionMessage = null;
 
     public bool $actionOk = false;
 
-    public function mount(ServerManager $servers, SecurityAuditService $auditService): void
+    public function mount(ServerManager $servers, SecurityAuditService $auditService, SecurityScanProgressService $progress): void
     {
         abort_unless(auth()->user()?->can('modules.view'), 403);
 
@@ -51,16 +55,21 @@ final class SecurityIndex extends Component
         }
 
         $this->refreshAudit($auditService, $servers);
+        $this->syncScanProgress($progress);
     }
 
-    public function updatedServerId(ServerManager $servers, SecurityAuditService $auditService): void
+    public function updatedServerId(ServerManager $servers, SecurityAuditService $auditService, SecurityScanProgressService $progress): void
     {
         $this->refreshAudit($auditService, $servers);
+        $this->syncScanProgress($progress);
     }
 
     public function refreshAudit(SecurityAuditService $auditService, ServerManager $servers): void
     {
-        $this->actionMessage = null;
+        if (! $this->scanning) {
+            $this->actionMessage = null;
+        }
+
         $eligible = $servers->all()->filter(fn (Server $s) => $auditService->isEligible($s));
         $this->fleet = $auditService->fleetOverview($eligible);
 
@@ -68,7 +77,7 @@ final class SecurityIndex extends Component
         $this->audit = $server ? $auditService->serverAudit($server) : [];
     }
 
-    public function runScan(ServerManager $servers, SecurityAuditService $auditService): void
+    public function runScan(ServerManager $servers, SecurityAuditService $auditService, SecurityScanProgressService $progress): void
     {
         abort_unless(auth()->user()?->can('modules.manage'), 403);
 
@@ -80,12 +89,53 @@ final class SecurityIndex extends Component
         }
 
         $this->scanning = true;
-        TriggerSecurityScanJob::dispatch($server->id);
-        $this->scanning = false;
-        $this->actionOk = true;
-        $this->actionMessage = 'Scan sécurité lancé en arrière-plan. Actualisez la page dans 1 à 2 minutes.';
+        $this->scanProgress = [
+            'status' => 'running',
+            'progress' => 5,
+            'message' => 'Mise en file du scan sécurité…',
+            'output' => '',
+        ];
+        $this->actionMessage = null;
 
-        $this->dispatch('notify', type: 'success', message: $this->actionMessage);
+        TriggerSecurityScanJob::dispatch($server->id);
+        $this->syncScanProgress($progress);
+    }
+
+    public function pollScanProgress(SecurityScanProgressService $progress, ServerManager $servers, SecurityAuditService $auditService): void
+    {
+        if ($this->serverId === null) {
+            return;
+        }
+
+        $this->syncScanProgress($progress);
+
+        if (! $this->scanning) {
+            return;
+        }
+
+        $status = (string) ($this->scanProgress['status'] ?? '');
+        $progressPct = (int) ($this->scanProgress['progress'] ?? 0);
+        $startedAt = isset($this->scanProgress['started_at'])
+            ? \Illuminate\Support\Carbon::parse((string) $this->scanProgress['started_at'])
+            : null;
+
+        if ($status === 'running' && $startedAt !== null && $progressPct <= 10
+            && $startedAt->diffInSeconds(now()) >= 45) {
+            $this->scanProgress['message'] = 'En attente du worker queue (obiora-queue)… Vérifiez : sudo systemctl status obiora-queue';
+        }
+
+        if ($status === 'completed') {
+            $this->scanning = false;
+            $this->actionOk = true;
+            $this->actionMessage = (string) ($this->scanProgress['message'] ?? 'Scan terminé.');
+            $this->refreshAudit($auditService, $servers);
+            $this->dispatch('notify', type: 'success', message: $this->actionMessage);
+        } elseif ($status === 'failed') {
+            $this->scanning = false;
+            $this->actionOk = false;
+            $this->actionMessage = (string) ($this->scanProgress['message'] ?? 'Scan échoué.');
+            $this->dispatch('notify', type: 'danger', message: $this->actionMessage);
+        }
     }
 
     public function applyHardening(string $action, SecurityRemediationService $remediation, ServerManager $servers, SecurityAuditService $auditService): void
@@ -125,5 +175,21 @@ final class SecurityIndex extends Component
         return $servers->all()
             ->filter(fn (Server $s) => $auditService->isEligible($s))
             ->firstWhere('id', $this->serverId);
+    }
+
+    private function syncScanProgress(SecurityScanProgressService $progress): void
+    {
+        if ($this->serverId === null) {
+            $this->scanProgress = null;
+
+            return;
+        }
+
+        $state = $progress->get($this->serverId);
+        $this->scanProgress = $state;
+
+        if ($state !== null && ($state['status'] ?? '') === 'running') {
+            $this->scanning = true;
+        }
     }
 }

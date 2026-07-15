@@ -22,20 +22,24 @@
       <span class="small d-block mt-1">Les données ci-dessous proviennent du chargement serveur. Cliquez Actualiser après avoir corrigé le panel (php-fpm / nginx).</span>
     </div>
 
-    <div v-if="alerts.length" class="row g-2 mb-3">
-      <div
-        v-for="alert in alerts"
-        :key="alert.id"
-        class="col-md-6"
-      >
+    <div v-if="visibleAlerts.length" class="mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-2 gap-2 flex-wrap">
+        <span class="small fw-medium">Alertes ({{ visibleAlerts.length }})</span>
+        <button type="button" class="btn btn-outline-secondary btn-sm" @click="dismissAllAlerts">
+          Tout marquer lu
+        </button>
+      </div>
+      <div class="vstack gap-2">
         <div
-          class="alert obiora-fleet-alert mb-0 h-100"
+          v-for="alert in visibleAlerts"
+          :key="'alert-' + alert.id"
+          class="alert obiora-fleet-alert mb-0"
           :class="alertClass(alert.severity)"
           role="alert"
         >
-          <div class="d-flex justify-content-between align-items-start gap-2">
+          <div class="d-flex justify-content-between align-items-start gap-3">
             <div class="min-w-0 flex-grow-1">
-              <div class="small fw-semibold text-truncate">
+              <div class="small fw-semibold">
                 {{ alert.title }}<span v-if="alert.server" class="fw-normal text-muted"> — {{ alert.server }}</span>
               </div>
               <div class="small obiora-fleet-alert-msg">{{ alert.message }}</div>
@@ -43,7 +47,7 @@
             <button
               type="button"
               class="btn btn-sm btn-outline-secondary flex-shrink-0 obiora-alert-mark-read"
-              @click="dismissAlert(alert.id)"
+              @click.stop="dismissAlert(alert.id)"
             >
               Marquer lu
             </button>
@@ -372,6 +376,7 @@ const installLoading = ref(false);
 
 const servers = ref([]);
 const alerts = ref([]);
+const dismissedAlertIds = ref(new Set());
 const streamConnected = ref(false);
 const reverbConnected = ref(false);
 const loading = ref(true);
@@ -404,6 +409,10 @@ const summaryCards = computed(() => {
     { label: 'Critiques / Avert.', value: `${critical} / ${warnings}` },
   ];
 });
+
+const visibleAlerts = computed(() =>
+  alerts.value.filter((alert) => !dismissedAlertIds.value.has(Number(alert.id))),
+);
 
 const moduleWarnings = computed(() => {
   if (!latestReport.value?.results) return [];
@@ -604,7 +613,9 @@ async function fetchFleet() {
     }
     const data = await response.json();
     servers.value = data.servers || [];
-    alerts.value = data.alerts || [];
+    alerts.value = (data.alerts || []).filter(
+      (alert) => !dismissedAlertIds.value.has(Number(alert.id)),
+    );
   } catch {
     fetchError.value = 'Impossible de joindre l\'API monitoring (panel en 502 ou réseau).';
   } finally {
@@ -615,7 +626,9 @@ async function fetchFleet() {
 function applyFleetPayload(data) {
   if (!data) return;
   servers.value = data.servers || [];
-  alerts.value = data.alerts || [];
+  alerts.value = (data.alerts || []).filter(
+    (alert) => !dismissedAlertIds.value.has(Number(alert.id)),
+  );
 }
 
 function connectReverb() {
@@ -726,15 +739,47 @@ async function runCompare() {
 
 async function dismissAlert(alertId) {
   if (!props.alertsReadBase) return;
-  const response = await fetch(`${props.alertsReadBase}/${alertId}/read`, {
+
+  const id = Number(alertId);
+  dismissedAlertIds.value.add(id);
+  alerts.value = alerts.value.filter((a) => Number(a.id) !== id);
+
+  const response = await fetch(`${props.alertsReadBase}/${id}/read`, {
     method: 'POST',
     headers: {
       Accept: 'application/json',
       'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
     },
+    credentials: 'same-origin',
   });
+
   if (response.ok) {
-    alerts.value = alerts.value.filter((a) => a.id !== alertId);
+    await fetchFleet();
+  } else {
+    dismissedAlertIds.value.delete(id);
+    await fetchFleet();
+  }
+}
+
+async function dismissAllAlerts() {
+  if (!props.alertsReadBase) return;
+
+  const ids = visibleAlerts.value.map((a) => Number(a.id));
+  ids.forEach((id) => dismissedAlertIds.value.add(id));
+  alerts.value = [];
+
+  const response = await fetch(`${props.alertsReadBase}/read-all`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+    },
+    credentials: 'same-origin',
+  });
+
+  if (!response.ok) {
+    ids.forEach((id) => dismissedAlertIds.value.delete(id));
+    await fetchFleet();
   }
 }
 

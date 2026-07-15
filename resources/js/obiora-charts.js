@@ -44,6 +44,32 @@ export function obioraApexChartColors() {
     };
 }
 
+function obioraRenderEmptyChart(el, message = 'Aucune donnée sur cette période') {
+    if (!el) {
+        return false;
+    }
+
+    el.innerHTML = `<div class="d-flex align-items-center justify-content-center h-100 text-muted small px-3 text-center" style="min-height:180px;">${message}</div>`;
+
+    return false;
+}
+
+function obioraHasSeriesData(categories, values) {
+    if (!categories?.length || !values?.length) {
+        return false;
+    }
+
+    return values.some((value) => value !== null && value !== undefined);
+}
+
+function obioraHasMultiSeriesData(categories, series) {
+    if (!categories?.length || !series?.length) {
+        return false;
+    }
+
+    return series.some((row) => (row.data || []).some((value) => value !== null && value !== undefined));
+}
+
 /**
  * Axe catégories avec repères espacés (évite le bloc blanc illisible).
  */
@@ -96,6 +122,12 @@ export function obioraRenderResponseChart(el, categories, values, options = {}) 
         return null;
     }
 
+    if (!obioraHasSeriesData(categories, values)) {
+        obioraRenderEmptyChart(el, options.emptyMessage || 'Aucun check enregistré sur la période');
+
+        return null;
+    }
+
     el.innerHTML = '';
 
     const chart = new ApexCharts(el, {
@@ -145,6 +177,12 @@ export function obioraRenderAreaChart(el, title, categories, values, color, opti
         return null;
     }
 
+    if (!obioraHasSeriesData(categories, values)) {
+        obioraRenderEmptyChart(el, options.emptyMessage || 'Aucune métrique agent — vérifiez obiora-agent.service');
+
+        return null;
+    }
+
     el.innerHTML = '';
 
     const chart = new ApexCharts(el, {
@@ -188,6 +226,12 @@ export function obioraRenderLineChart(el, categories, series, options = {}) {
         return null;
     }
 
+    if (!obioraHasMultiSeriesData(categories, series)) {
+        obioraRenderEmptyChart(el, options.emptyMessage || 'Aucune donnée sur la période');
+
+        return null;
+    }
+
     el.innerHTML = '';
 
     const chart = new ApexCharts(el, {
@@ -221,6 +265,12 @@ export function obioraRenderLineChart(el, categories, series, options = {}) {
  */
 export function obioraRenderLoadChart(el, categories, series, options = {}) {
     if (!el || typeof ApexCharts === 'undefined') {
+        return null;
+    }
+
+    if (!obioraHasMultiSeriesData(categories, series)) {
+        obioraRenderEmptyChart(el, options.emptyMessage || 'Load average indisponible — agent métriques requis');
+
         return null;
     }
 

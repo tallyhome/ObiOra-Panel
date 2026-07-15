@@ -38,9 +38,10 @@
                             <button type="button"
                                     wire:click="runScan"
                                     wire:loading.attr="disabled"
+                                    @disabled($scanning)
                                     class="btn btn-primary btn-sm">
                                 <span wire:loading.remove wire:target="runScan">Lancer un scan</span>
-                                <span wire:loading wire:target="runScan">Scan en cours…</span>
+                                <span wire:loading wire:target="runScan">Lancement…</span>
                             </button>
                         @endif
                         <button type="button" wire:click="refreshAudit" class="btn btn-outline-secondary btn-sm">
@@ -48,7 +49,32 @@
                         </button>
                     </div>
                 </div>
-                @if($actionMessage)
+
+                @if($scanning)
+                <div class="mt-3" wire:poll.2s="pollScanProgress">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="fw-medium">{{ $scanProgress['message'] ?? 'Scan en cours…' }}</span>
+                        <span>{{ $scanProgress['progress'] ?? 0 }}%</span>
+                    </div>
+                    <div class="progress mb-2" style="height:10px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                             style="width: {{ min(100, max(0, (int) ($scanProgress['progress'] ?? 0))) }}%"></div>
+                    </div>
+                    @if(!empty($scanProgress['output']))
+                        <pre class="small bg-dark text-light p-2 rounded mb-0" style="max-height:120px;overflow:auto;">{{ \Illuminate\Support\Str::limit($scanProgress['output'], 800) }}</pre>
+                    @else
+                        <p class="small text-muted mb-0">Modules analysés : SSH, pare-feu, utilisateurs, services, rootkits (rkhunter/chkrootkit), agent Doctor…</p>
+                    @endif
+                    @if(str_contains((string) ($scanProgress['message'] ?? ''), 'obiora-queue'))
+                        <div class="alert alert-warning small mt-2 mb-0 py-2">
+                            Le scan est en file d'attente. Sans worker actif, rien ne s'exécute :
+                            <code class="d-block mt-1">sudo systemctl enable --now obiora-queue</code>
+                        </div>
+                    @endif
+                </div>
+                @endif
+
+                @if($actionMessage && !$scanning)
                     <div class="mt-3 small {{ $actionOk ? 'text-success' : 'text-danger' }}">{{ $actionMessage }}</div>
                 @endif
             </div>

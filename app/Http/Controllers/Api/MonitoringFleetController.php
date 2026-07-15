@@ -65,7 +65,43 @@ final class MonitoringFleetController extends Controller
 
     public function markAlertRead(MonitoringAlert $alert): JsonResponse
     {
-        $alert->forceFill(['read_at' => now()])->save();
+        abort_unless(auth()->user()?->can('monitoring.view'), 403);
+
+        $now = now();
+        $alert->forceFill(['read_at' => $now])->save();
+
+        $payload = $alert->payload ?? [];
+        $fingerprint = (string) ($payload['fingerprint'] ?? '');
+        $eventType = (string) ($payload['event_type'] ?? '');
+
+        $query = MonitoringAlert::query()
+            ->where('server_id', $alert->server_id)
+            ->where('type', $alert->type)
+            ->whereNull('read_at');
+
+        if ($alert->type === 'crash_analyzer' && $eventType === 'oom_killer') {
+            $query->where('payload->event_type', 'oom_killer');
+        } elseif ($fingerprint !== '') {
+            $query->where(function ($builder) use ($fingerprint, $alert): void {
+                $builder->where('payload->fingerprint', $fingerprint)
+                    ->orWhere('title', $alert->title);
+            });
+        } else {
+            $query->where('title', $alert->title);
+        }
+
+        $query->update(['read_at' => $now]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function markAllAlertsRead(): JsonResponse
+    {
+        abort_unless(auth()->user()?->can('monitoring.view'), 403);
+
+        MonitoringAlert::query()
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
 
         return response()->json(['ok' => true]);
     }

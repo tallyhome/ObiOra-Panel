@@ -4,6 +4,23 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.6 - 2026-07-15
+
+### Monitoring & alertes
+
+- **Marquer lu OOM** : un clic ferme toutes les alertes OOM du serveur (plus bloquées par empreinte différente)
+- **Flotte avancée** : alertes en pile pleine largeur, bouton « Tout marquer lu », CSS anti-chevauchement
+- **Métriques serveur** : bannière si aucun échantillon agent + graphiques « Aucune donnée » explicites
+- **Onglet onglets métriques** : correction Alpine.js (tabs CPU/RAM/Disk fonctionnels)
+
+### Sécurité
+
+- **Scan** : barre de progression + message par étape ; alerte si worker `obiora-queue` inactif
+
+### Espace disque
+
+- **Préférences → Rétention** : audit tailles (logs, vues, cache, Crash Analyzer, MariaDB…) + boutons purge
+
 ## v4.0.5 - 2026-07-15
 
 ### Récupération MariaDB / SSH

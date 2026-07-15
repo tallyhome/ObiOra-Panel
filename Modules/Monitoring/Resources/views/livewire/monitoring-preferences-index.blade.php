@@ -89,6 +89,52 @@ OBIORA_PROMETHEUS_TOKEN=votre-token-secret</pre>
                 </div>
             </div>
         </div>
+        <div class="col-12">
+            <div class="card obiora-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Espace disque panel</span>
+                    @if($canManage)
+                    <button type="button" wire:click="refreshStorage" class="btn btn-outline-secondary btn-sm">Actualiser</button>
+                    @endif
+                </div>
+                <div class="card-body small">
+                    @php
+                        $fmt = fn (int $bytes) => $bytes >= 1073741824
+                            ? number_format($bytes / 1073741824, 1).' Go'
+                            : ($bytes >= 1048576 ? number_format($bytes / 1048576, 0).' Mo' : number_format($bytes / 1024, 0).' Ko');
+                    @endphp
+                    <p class="mb-2">Total estimé (panel + BDD) : <strong>{{ $fmt($storageAudit['total_bytes'] ?? 0) }}</strong>
+                        — MariaDB : <strong>{{ $fmt($storageAudit['database_bytes'] ?? 0) }}</strong></p>
+                    <div class="table-responsive">
+                        <table class="table table-sm obiora-table mb-3">
+                            <thead class="obiora-table-head">
+                                <tr><th>Emplacement</th><th>Taille</th><th>Chemin</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach($storageAudit['paths'] ?? [] as $row)
+                                <tr>
+                                    <td>{{ $row['label'] }}</td>
+                                    <td class="text-nowrap">{{ $fmt($row['bytes'] ?? 0) }}</td>
+                                    <td class="small text-muted"><code>{{ $row['path'] }}</code></td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @if($canManage)
+                    <p class="text-muted mb-2">Actions de nettoyage :</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" wire:click="purgeStorage('views')" wire:confirm="Supprimer les vues compilées ?" class="btn btn-outline-warning btn-sm">Vues compilées</button>
+                        <button type="button" wire:click="purgeStorage('cache')" wire:confirm="Vider le cache framework ?" class="btn btn-outline-warning btn-sm">Cache framework</button>
+                        <button type="button" wire:click="purgeStorage('logs')" wire:confirm="Supprimer les logs &gt; 7 jours ?" class="btn btn-outline-warning btn-sm">Logs anciens</button>
+                        <button type="button" wire:click="purgeStorage('crash')" wire:confirm="Supprimer les exports Crash Analyzer ?" class="btn btn-outline-warning btn-sm">Crash Analyzer</button>
+                        <button type="button" wire:click="purgeStorage('prune')" wire:confirm="Lancer obiora:prune (métriques expirées) ?" class="btn btn-outline-danger btn-sm">Purge BDD monitoring</button>
+                    </div>
+                    <p class="small text-muted mt-3 mb-0">Sur le serveur : <code>sudo du -sh /opt/obiora-panel/* /var/lib/mysql /var/log</code> — journaux système : <code>sudo journalctl --vacuum-size=200M</code></p>
+                    @endif
+                </div>
+            </div>
+        </div>
     </div>
     @endif
 

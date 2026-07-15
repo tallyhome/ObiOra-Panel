@@ -658,18 +658,23 @@ body {
 
 .obiora-fleet-alert {
     padding: 0.55rem 0.75rem;
+    position: relative;
+    overflow: hidden;
 }
 
 .obiora-fleet-alert-msg {
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    word-break: break-word;
     color: var(--obiora-text-muted);
     margin-top: 0.15rem;
 }
 
 .obiora-alert-mark-read {
+    position: relative;
+    z-index: 2;
     color: var(--obiora-text) !important;
     border-color: rgba(232, 232, 240, 0.45) !important;
     background: rgba(255, 255, 255, 0.06);
