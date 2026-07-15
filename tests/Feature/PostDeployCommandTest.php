@@ -36,4 +36,12 @@ final class PostDeployCommandTest extends TestCase
         $this->assertDatabaseHas('alert_policies', ['name' => 'High Disk Usage']);
         $this->assertDatabaseHas('alert_policies', ['name' => 'Monitor Down']);
     }
+
+    public function test_post_deploy_ensures_master_server(): void
+    {
+        $this->artisan('obiora:post-deploy', ['--skip-migrate' => true])
+            ->assertSuccessful();
+
+        $this->assertDatabaseHas('servers', ['is_master' => true]);
+    }
 }

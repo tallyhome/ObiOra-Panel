@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.13 - 2026-07-15
+
+- Fix serveur maître absent après install : `SettingsSeeder` intégré à `obiora:post-deploy`
+- Fix page Services vide : liste systemd via agent ou script sudo (`systemctl-list.sh`)
+- Dashboard / métriques : le serveur maître est recréé automatiquement au post-deploy
+
 ## v2.7.12 - 2026-07-15
 
 - Fix install AlmaLinux : conflit Nginx `duplicate default server` (nginx.conf + obiora-panel)

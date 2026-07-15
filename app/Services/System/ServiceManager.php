@@ -42,18 +42,46 @@ final class ServiceManager
         }
 
         if ($this->isLocal($server)) {
-            $services = $this->filterManageableServices(
-                $this->parseLocalList(
-                    $this->serverManager->executorFor($server)->run(
-                        'systemctl list-units --type=service --all --no-pager --no-legend'
-                    )->output
-                )
-            );
+            $services = $this->fetchLocalServices($server);
 
             return $this->enrichWithTimers($services, $server);
         }
 
         return $this->fetchRemoteList($server);
+    }
+
+    /**
+     * @return list<array{name: string, load: string, active: string, sub: string, description: string}>
+     */
+    private function fetchLocalServices(Server $server): array
+    {
+        $fromAgent = $this->fetchRemoteList($server);
+        if ($fromAgent !== []) {
+            return $this->filterManageableServices($fromAgent);
+        }
+
+        $output = $this->runLocalSystemctlList($server, 'service');
+
+        return $this->filterManageableServices($this->parseLocalList($output));
+    }
+
+    private function runLocalSystemctlList(Server $server, string $unitType = 'service'): string
+    {
+        $script = base_path('agent/scripts/systemctl-list.sh');
+
+        if (is_file($script)) {
+            $result = $this->scripts->run($script, [$unitType], 30);
+            $output = trim($result->output.$result->errorOutput);
+
+            if ($output !== '') {
+                return $output;
+            }
+        }
+
+        return trim($this->serverManager->executorFor($server)->run(
+            'systemctl list-units --type='.escapeshellarg($unitType).' --all --no-pager --no-legend 2>/dev/null',
+            ['timeout' => 30],
+        )->output);
     }
 
     /**
@@ -249,9 +277,21 @@ final class ServiceManager
      */
     private function fetchUnitRow(string $unit, Server $server): ?array
     {
-        $output = trim($this->serverManager->executorFor($server)->run(
-            'systemctl list-units '.escapeshellarg($unit).' --all --no-pager --no-legend'
-        )->output);
+        $output = '';
+
+        if ($this->isLocal($server)) {
+            $output = trim($this->runLocalSystemctlList($server, str_ends_with($unit, '.timer') ? 'timer' : 'service'));
+            foreach (explode("\n", $output) as $line) {
+                if (str_starts_with(trim($line), $unit)) {
+                    $output = trim($line);
+                    break;
+                }
+            }
+        } else {
+            $output = trim($this->serverManager->executorFor($server)->run(
+                'systemctl list-units '.escapeshellarg($unit).' --all --no-pager --no-legend'
+            )->output);
+        }
 
         if ($output === '') {
             return null;
