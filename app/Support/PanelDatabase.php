@@ -25,6 +25,13 @@ final class PanelDatabase
             return self::$available;
         }
 
+        if (! self::canReachMysqlPort()) {
+            self::$available = false;
+            self::$checkedAt = time();
+
+            return false;
+        }
+
         try {
             DB::connection()->getPdo();
             DB::connection()->select('select 1 as ok');
@@ -45,6 +52,33 @@ final class PanelDatabase
     {
         self::$available = null;
         self::$checkedAt = 0;
+    }
+
+    private static function canReachMysqlPort(): bool
+    {
+        $host = (string) config('database.connections.mysql.host', '127.0.0.1');
+        $port = (int) config('database.connections.mysql.port', 3306);
+
+        if ($host === 'localhost') {
+            return is_readable('/var/lib/mysql/mysql.sock')
+                || is_readable('/run/mysqld/mysqld.sock')
+                || self::probeTcp('127.0.0.1', $port);
+        }
+
+        return self::probeTcp($host, $port);
+    }
+
+    private static function probeTcp(string $host, int $port): bool
+    {
+        $socket = @fsockopen($host, $port, $errno, $errstr, 1.5);
+
+        if ($socket === false) {
+            return false;
+        }
+
+        fclose($socket);
+
+        return true;
     }
 
     private static function cacheValid(): bool

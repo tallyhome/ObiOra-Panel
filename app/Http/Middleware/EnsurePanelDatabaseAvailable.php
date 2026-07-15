@@ -16,12 +16,16 @@ final class EnsurePanelDatabaseAvailable
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->is('up') || $request->is('install/*')) {
+        if ($request->is('up', 'panel-health', 'install/*')) {
             return $next($request);
         }
 
+        PanelInfrastructure::fallbackCacheOffRedis();
+
         if (! PanelInfrastructure::isReady()) {
-            return response()->view('errors.panel-unavailable', [], Response::HTTP_SERVICE_UNAVAILABLE);
+            return response()->view('errors.panel-unavailable', [
+                'diagnostics' => PanelInfrastructure::diagnostics(true),
+            ], Response::HTTP_SERVICE_UNAVAILABLE);
         }
 
         return $next($request);

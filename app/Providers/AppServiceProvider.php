@@ -40,6 +40,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->app->booted(function (): void {
+            \App\Support\PanelInfrastructure::fallbackCacheOffRedis();
+        });
+
         Gate::before(function ($user, string $ability) {
             if ($user !== null && method_exists($user, 'hasRole') && $user->hasRole('super-admin')) {
                 return true;

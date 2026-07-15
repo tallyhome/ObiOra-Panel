@@ -73,7 +73,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (QueryException $e, Request $request) use ($panelUnavailable) {
             if ($panelUnavailable($request)) {
-                return response()->view('errors.panel-unavailable', [], 503);
+                return response()->view('errors.panel-unavailable', [
+                    'diagnostics' => \App\Support\PanelInfrastructure::diagnostics(true),
+                ], 503);
             }
 
             return null;
@@ -81,7 +83,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (\PDOException $e, Request $request) use ($panelUnavailable) {
             if ($panelUnavailable($request)) {
-                return response()->view('errors.panel-unavailable', [], 503);
+                return response()->view('errors.panel-unavailable', [
+                    'diagnostics' => \App\Support\PanelInfrastructure::diagnostics(true),
+                ], 503);
             }
 
             return null;
@@ -90,7 +94,9 @@ return Application::configure(basePath: dirname(__DIR__))
         if (class_exists(\RedisException::class)) {
             $exceptions->render(function (\RedisException $e, Request $request) use ($panelUnavailable) {
                 if ($panelUnavailable($request)) {
-                    return response()->view('errors.panel-unavailable', [], 503);
+                    return response()->view('errors.panel-unavailable', [
+                        'diagnostics' => \App\Support\PanelInfrastructure::diagnostics(true),
+                    ], 503);
                 }
 
                 return null;
@@ -105,7 +111,9 @@ return Application::configure(basePath: dirname(__DIR__))
                 }
 
                 if ($panelUnavailable($request)) {
-                    return response()->view('errors.panel-unavailable', [], 503);
+                    return response()->view('errors.panel-unavailable', [
+                        'diagnostics' => \App\Support\PanelInfrastructure::diagnostics(true),
+                    ], 503);
                 }
 
                 return null;

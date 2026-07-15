@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.4 - 2026-07-15
+
+### Correctifs critiques panel bloqué
+
+- **503 permanent** : le panel ne bloque plus sur Redis — seule MariaDB est requise pour servir l'UI
+- **Fallback cache** : si Redis est KO, bascule automatique sur `CACHE_STORE=database`
+- **Diagnostic** : page 503 affiche MariaDB/Redis OK/KO + route `/panel-health` (JSON)
+- **Timeouts** : sonde TCP rapide MariaDB/Redis (évite PHP-FPM bloqué)
+- **Install petits VPS** : `CACHE_STORE=database` si ≤ 4 Go RAM
+
 ## v4.0.3 - 2026-07-15
 
 ### Correctifs & UX monitoring

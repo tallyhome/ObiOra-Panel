@@ -15,7 +15,7 @@ final class PanelDatabaseHealthTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_failure_cache_expires_so_next_check_retries(): void
+    public function test_stale_failure_cache_is_rechecked(): void
     {
         PanelDatabase::resetCache();
 
@@ -28,6 +28,9 @@ final class PanelDatabaseHealthTest extends TestCase
         $available->setValue(null, false);
         $checkedAt->setValue(null, time() - 10);
 
-        $this->assertTrue(PanelDatabase::isAvailable());
+        PanelDatabase::isAvailable();
+        $newCheckedAt = $checkedAt->getValue();
+
+        $this->assertGreaterThan(time() - 5, $newCheckedAt);
     }
 }

@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
+use PDOException;
 use Throwable;
 
 /**
@@ -20,9 +23,44 @@ final class PanelInfrastructure
 
     private const REDIS_FAILURE_RETRY_SECONDS = 2;
 
+    /**
+     * Le panel web ne doit bloquer que si MariaDB est indisponible.
+     * Redis est requis pour le cache perf mais pas pour servir l'UI.
+     */
     public static function isReady(bool $forceCheck = false): bool
     {
-        return PanelDatabase::isAvailable($forceCheck) && self::isRedisAvailable($forceCheck);
+        return PanelDatabase::isAvailable($forceCheck);
+    }
+
+    /**
+     * @return array{ready: bool, database: bool, redis: ?bool, redis_required: bool, hints: list<string>}
+     */
+    public static function diagnostics(bool $forceCheck = true): array
+    {
+        $database = PanelDatabase::isAvailable($forceCheck);
+        $redisRequired = self::isRedisRequired();
+        $redis = $redisRequired ? self::isRedisAvailable($forceCheck) : null;
+        $hints = [];
+
+        if (! $database) {
+            $hints[] = 'MariaDB injoignable — sudo systemctl restart mariadb puis php artisan config:clear';
+        }
+
+        if ($redisRequired && $redis === false) {
+            $hints[] = 'Redis injoignable — sudo systemctl restart redis ; le panel peut démarrer sans Redis (cache BDD).';
+        }
+
+        if ($database && $redisRequired && $redis === false) {
+            $hints[] = 'Contournement : CACHE_STORE=database dans .env puis config:clear et restart php-fpm.';
+        }
+
+        return [
+            'ready' => $database,
+            'database' => $database,
+            'redis' => $redis,
+            'redis_required' => $redisRequired,
+            'hints' => $hints,
+        ];
     }
 
     public static function isRedisRequired(): bool
@@ -59,6 +97,13 @@ final class PanelInfrastructure
             return self::$redisAvailable;
         }
 
+        if (! self::canReachRedisPort()) {
+            self::$redisAvailable = false;
+            self::$redisCheckedAt = time();
+
+            return false;
+        }
+
         try {
             $ping = Redis::connection()->ping();
             self::$redisAvailable = $ping === true || $ping === 'PONG' || $ping === '+PONG';
@@ -71,11 +116,44 @@ final class PanelInfrastructure
         return self::$redisAvailable;
     }
 
+    public static function fallbackCacheOffRedis(): void
+    {
+        if ((string) config('cache.default') !== 'redis') {
+            return;
+        }
+
+        if (self::isRedisAvailable(true)) {
+            return;
+        }
+
+        config(['cache.default' => 'database']);
+    }
+
     public static function resetCache(): void
     {
         PanelDatabase::resetCache();
         self::$redisAvailable = null;
         self::$redisCheckedAt = 0;
+    }
+
+    private static function canReachRedisPort(): bool
+    {
+        $host = (string) config('database.redis.default.host', '127.0.0.1');
+        $port = (int) config('database.redis.default.port', 6379);
+
+        if ($host === 'localhost') {
+            $host = '127.0.0.1';
+        }
+
+        $socket = @fsockopen($host, $port, $errno, $errstr, 1.0);
+
+        if ($socket === false) {
+            return false;
+        }
+
+        fclose($socket);
+
+        return true;
     }
 
     private static function redisCacheValid(): bool

@@ -64,7 +64,15 @@ setup_laravel() {
     sed -i "s|^DB_DATABASE=.*|DB_DATABASE=${DB_DATABASE}|" .env
     sed -i "s|^DB_USERNAME=.*|DB_USERNAME=${DB_USERNAME}|" .env
     sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|" .env
-    sed -i "s|^CACHE_STORE=.*|CACHE_STORE=redis|" .env
+
+    local ram_mb
+    ram_mb="$(awk '/MemTotal:/ {print int($2/1024)}' /proc/meminfo 2>/dev/null || echo 8192)"
+    if (( ram_mb <= 4096 )); then
+        sed -i "s|^CACHE_STORE=.*|CACHE_STORE=database|" .env
+        info "Petit VPS (${ram_mb} MiB RAM) — CACHE_STORE=database (Redis optionnel pour le cache)"
+    else
+        sed -i "s|^CACHE_STORE=.*|CACHE_STORE=redis|" .env
+    fi
     sed -i "s|^QUEUE_CONNECTION=.*|QUEUE_CONNECTION=database|" .env
     sed -i "s|^OBIORA_INSTALLATION_UUID=.*|OBIORA_INSTALLATION_UUID=${install_uuid}|" .env
 

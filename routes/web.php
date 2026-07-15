@@ -31,6 +31,10 @@ Route::middleware('setup')->group(function () {
 
 Route::get('/locale/{locale}', \App\Http\Controllers\LocaleController::class)->name('locale');
 
+Route::get('/panel-health', static function () {
+    return response()->json(\App\Support\PanelInfrastructure::diagnostics(true));
+})->name('panel.health');
+
 Route::post('/logout', function () {
     Auth::logout();
     session()->invalidate();
