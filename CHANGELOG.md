@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.16 - 2026-07-15
+
+- Fix install Doctor & Suite sur serveur local : exécution via `PrivilegedScriptRunner` (`sudo -n`) au lieu de `curl | sudo bash` (plus de mot de passe interactif depuis obiora-queue)
+
 ## v2.7.15 - 2026-07-15
 
 - Fix agent Unauthorized : resync auto token agent.json + restart obiora-agent à la connexion

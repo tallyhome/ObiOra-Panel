@@ -7,6 +7,7 @@ namespace App\Services\Diagnostics;
 use App\Contracts\SystemExecutorInterface;
 use App\Models\Server;
 use App\Services\Diagnostics\DiagnosticsAgentVersionService;
+use App\Services\System\PrivilegedScriptRunner;
 use App\Support\DoctorInstallHelper;
 
 /**
@@ -16,6 +17,7 @@ final class LocalDoctorDeployService
 {
     public function __construct(
         private readonly SystemExecutorInterface $executor,
+        private readonly PrivilegedScriptRunner $scripts,
         private readonly DoctorInstallHelper $doctor,
     ) {}
 
@@ -45,23 +47,26 @@ final class LocalDoctorDeployService
         ?callable $onProgress = null,
     ): array {
         $steps = [];
-        $panelUrl = rtrim((string) config('app.url'), '/');
 
         if ($onProgress !== null) {
             $onProgress(30, 'Installation locale (sans SSH)…', $steps);
         }
 
-        $command = $this->doctor->suiteInstallShellCommand(
-            $server,
-            $installDoctor,
-            $installCrashAnalyzer,
-            $installCrashHunter,
+        $result = $this->scripts->run(
+            $this->doctor->suiteInstallScriptPath(),
+            $this->doctor->suiteInstallLocalArgs(
+                $server,
+                $installDoctor,
+                $installCrashAnalyzer,
+                $installCrashHunter,
+            ),
+            900,
         );
-        $result = $this->runShell($command, 900);
+        $output = trim($result->output.$result->errorOutput);
         $steps[] = [
             'component' => 'doctor_suite',
-            'success' => $result['success'],
-            'output' => $result['output'],
+            'success' => $result->successful,
+            'output' => $output !== '' ? $output : ($result->successful ? 'OK' : 'Échec installation locale'),
         ];
 
         $success = $steps !== [] && collect($steps)->every(fn (array $s) => $s['success']);

@@ -20,11 +20,11 @@ final class DoctorInstallHelper
         }
 
         return sprintf(
-            'sudo OBIORA_PANEL_URL=%s OBIORA_SERVER_ID=%d OBIORA_AGENT_TOKEN=%s bash %s/agent/scripts/bootstrap-doctor-agent.sh',
-            rtrim((string) config('app.url'), '/'),
-            $server->id,
-            $server->agent_token,
-            base_path(),
+            'sudo -n %s __obiora_env 3 OBIORA_PANEL_URL=%s OBIORA_SERVER_ID=%s OBIORA_AGENT_TOKEN=%s',
+            escapeshellarg(base_path('agent/scripts/bootstrap-doctor-agent.sh')),
+            base64_encode(rtrim((string) config('app.url'), '/')),
+            base64_encode((string) $server->id),
+            base64_encode((string) ($server->agent_token ?? '')),
         );
     }
 
@@ -60,6 +60,52 @@ final class DoctorInstallHelper
         }
 
         return $this->suiteInstallShellCommand($server);
+    }
+
+    public function suiteInstallScriptPath(): string
+    {
+        return base_path('agent/scripts/install-doctor-suite.sh');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function suiteInstallEnv(
+        Server $server,
+        bool $installDoctor = true,
+        bool $installCrashAnalyzer = true,
+        bool $installCrashHunter = true,
+    ): array {
+        return [
+            'OBIORA_PANEL_URL' => rtrim((string) config('app.url'), '/'),
+            'OBIORA_SERVER_ID' => (string) $server->id,
+            'OBIORA_AGENT_TOKEN' => (string) ($server->agent_token ?? ''),
+            'OBIORA_INSTALL_DOCTOR' => $installDoctor ? 'yes' : 'no',
+            'OBIORA_INSTALL_CRASH_ANALYZER' => $installCrashAnalyzer ? 'yes' : 'no',
+            'OBIORA_INSTALL_CRASH_HUNTER' => $installCrashHunter ? 'yes' : 'no',
+            'OBIORA_SCRIPT_DIR' => base_path('agent/scripts'),
+        ];
+    }
+
+    /**
+     * Arguments pour exécution locale via sudo NOPASSWD (worker obiora-queue).
+     *
+     * @return list<string>
+     */
+    public function suiteInstallLocalArgs(
+        Server $server,
+        bool $installDoctor = true,
+        bool $installCrashAnalyzer = true,
+        bool $installCrashHunter = true,
+    ): array {
+        $env = $this->suiteInstallEnv($server, $installDoctor, $installCrashAnalyzer, $installCrashHunter);
+        $args = ['__obiora_env', (string) count($env)];
+
+        foreach ($env as $key => $value) {
+            $args[] = $key.'='.base64_encode($value);
+        }
+
+        return $args;
     }
 
     public function suiteInstallShellCommand(
