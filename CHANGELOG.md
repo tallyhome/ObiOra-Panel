@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.9 - 2026-07-15
+
+- Fix install « File not found » : permissions web avant PHP-FPM, redémarrage FPM, user pool dans groupe `obiora`
+- Installateur : étapes numérotées + barre de progression %, vérification HTTP `/up` en fin d'install
+- Log install documenté : `/var/log/obiora-install.log`
+
 ## v2.7.8 - 2026-07-13
 
 - Fix installation Doctor & Suite locale : URL `curl` correctement quotée (échec silencieux)

@@ -177,26 +177,49 @@ main() {
     mkdir -p "$(dirname "${OBIORA_LOG_FILE}")" "${OBIORA_SNAPSHOT_DIR}"
     touch "${OBIORA_LOG_FILE}"
 
+    install_step 1 "Vérification système"
     assert_supported_os
     check_prerequisites
 
     create_snapshot "pre-install"
 
+    install_step 2 "Paquets système (Nginx, PHP, MariaDB, Redis…)"
     install_base_packages
+
+    install_step 3 "Utilisateurs et permissions"
     create_system_users
+
+    install_step 4 "Base de données MariaDB"
     setup_database
+
+    install_step 5 "Téléchargement du code ObiOra Panel"
     clone_panel
+
+    install_step 6 "Configuration Laravel (Composer, NPM, migrations)"
     setup_laravel
+
+    install_step 7 "Configuration Nginx"
     setup_nginx
+
+    install_step 8 "Certificat SSL (si domaine fourni)"
     setup_ssl
+
+    install_step 9 "Services systemd (queue, scheduler, agent)"
     setup_systemd
+
+    install_step 10 "Temps réel Reverb + proxy WebSocket"
     setup_reverb
     append_reverb_nginx
+
+    install_step 11 "Sudoers, helper MAJ et pare-feu"
     setup_sudoers
     # shellcheck source=lib/panel-update-helper.sh
     source "${SCRIPT_DIR}/lib/panel-update-helper.sh"
     setup_panel_update_helper
     setup_firewall
+
+    install_step 12 "Vérification finale"
+    verify_panel_http || true
 
     # Désactiver le trap rollback après succès
     trap - ERR

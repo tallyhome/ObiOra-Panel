@@ -27,6 +27,11 @@ setup_nginx() {
         nginx_conf="/etc/nginx/conf.d/obiora-panel.conf"
     fi
 
+    # Permissions AVANT le démarrage PHP-FPM : /opt/obiora-panel est en 750,
+    # sans groupe obiora le worker répond « File not found » à index.php.
+    setup_web_permissions
+    setup_selinux_panel
+
     systemctl_enable_start php8.3-fpm 2>/dev/null || systemctl_enable_start php-fpm
 
     local php_sock
@@ -75,11 +80,44 @@ NGINX
         rm -f /etc/nginx/sites-enabled/default
     fi
 
-    setup_web_permissions
-    setup_selinux_panel
-
     nginx -t
     systemctl_enable_start nginx
 
+    # Recharge les workers PHP-FPM après usermod (groupe obiora).
+    systemctl restart php8.3-fpm 2>/dev/null || systemctl restart php-fpm 2>/dev/null || true
+
     success "Nginx configuré pour ${server_name}"
+}
+
+verify_panel_http() {
+    local url code body
+    url="http://127.0.0.1/up"
+    info "Vérification HTTP du panel (${url})..."
+
+    for _ in 1 2 3 4 5; do
+        code="$(curl -sS -o /tmp/obiora-verify-body.txt -w '%{http_code}' --max-time 10 "${url}" 2>/dev/null || echo "000")"
+        body="$(cat /tmp/obiora-verify-body.txt 2>/dev/null || true)"
+        rm -f /tmp/obiora-verify-body.txt
+
+        if [[ "${code}" == "200" ]]; then
+            success "Panel accessible (HTTP ${code})"
+            return 0
+        fi
+
+        if [[ "${body}" == *"File not found"* ]]; then
+            warn "PHP-FPM ne trouve pas index.php — redémarrage des services web..."
+            setup_web_permissions
+            systemctl restart php8.3-fpm 2>/dev/null || systemctl restart php-fpm 2>/dev/null || true
+            systemctl restart nginx
+            sleep 2
+            continue
+        fi
+
+        sleep 2
+    done
+
+    warn "Le panel ne répond pas correctement (HTTP ${code:-?})."
+    warn "Consultez : ${OBIORA_LOG_FILE}, journalctl -u nginx -u php-fpm --no-pager -n 50"
+    warn "Test manuel : curl -v http://127.0.0.1/up && ls -la ${OBIORA_INSTALL_DIR}/public/index.php"
+    return 1
 }

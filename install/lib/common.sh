@@ -31,6 +31,26 @@ die() {
     exit 1
 }
 
+# --- Affichage progression install ---
+OBIORA_INSTALL_STEP=0
+OBIORA_INSTALL_STEPS_TOTAL=12
+
+install_step() {
+    local n="$1"
+    local label="$2"
+    OBIORA_INSTALL_STEP="${n}"
+    local pct=$(( n * 100 / OBIORA_INSTALL_STEPS_TOTAL ))
+    printf '\n\033[1;36m┌──────────────────────────────────────────────────────────────┐\033[0m\n'
+    printf '\033[1;36m│\033[0m Étape %2d/%d — %s\n' "${n}" "${OBIORA_INSTALL_STEPS_TOTAL}" "${label}"
+    printf '\033[1;36m└──────────────────────────────────────────────────────────────┘\033[0m\n'
+    printf 'Progression : ['
+    local i filled=$(( pct / 5 ))
+    for ((i=0; i<20; i++)); do
+        if (( i < filled )); then printf '█'; else printf '░'; fi
+    done
+    printf '] %3d%%\n\n' "${pct}"
+}
+
 require_root() {
     if [[ "${EUID}" -ne 0 ]]; then
         die "Ce script doit être exécuté en root (utilisez: sudo -i)"
@@ -126,11 +146,19 @@ detect_php_fpm_socket() {
 
 # Permissions lecture web : nginx + php-fpm (apache sur RHEL)
 setup_web_permissions() {
-    local web_user
+    local web_user pool_conf pool_user
 
     for web_user in nginx apache www-data; do
         if id "${web_user}" &>/dev/null; then
             usermod -aG "${OBIORA_GROUP:-obiora}" "${web_user}" 2>/dev/null || true
+        fi
+    done
+
+    for pool_conf in /etc/php/*/fpm/pool.d/www.conf /etc/php-fpm.d/www.conf /etc/opt/remi/php*/php-fpm.d/www.conf; do
+        [[ -f "${pool_conf}" ]] || continue
+        pool_user="$(grep -E '^user\s*=' "${pool_conf}" 2>/dev/null | head -1 | sed -E 's/^user\s*=\s*//;s/\s*;.*//;s/^[[:space:]]+//;s/[[:space:]]+$//' || true)"
+        if [[ -n "${pool_user}" ]] && id "${pool_user}" &>/dev/null; then
+            usermod -aG "${OBIORA_GROUP:-obiora}" "${pool_user}" 2>/dev/null || true
         fi
     done
 
