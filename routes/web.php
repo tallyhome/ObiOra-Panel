@@ -29,10 +29,6 @@ Route::middleware('setup')->group(function () {
     Route::get('/login', Login::class)->name('login')->middleware('guest');
 });
 
-Route::get('/demo/enter/{user}', \App\Http\Controllers\DemoEnterController::class)
-    ->middleware('signed')
-    ->name('demo.enter');
-
 Route::get('/locale/{locale}', \App\Http\Controllers\LocaleController::class)->name('locale');
 
 Route::get('/panel-health', static function () {

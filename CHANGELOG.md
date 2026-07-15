@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.7 - 2026-07-15
+
+### Correctif critique
+
+- **Panel cassé après v4.0.6** : retrait de la route `demo.enter` référençant un contrôleur non livré (erreur fatale au boot, MAJ impossible)
+
 ## v4.0.6 - 2026-07-15
 
 ### Monitoring & alertes
