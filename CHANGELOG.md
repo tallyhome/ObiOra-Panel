@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.5 - 2026-07-15
+
+### Récupération MariaDB / SSH
+
+- **Script SSH** : `agent/scripts/panel-recover-ssh.sh` — redémarre MariaDB, resync mot de passe `.env`, git pull, migrate, caches
+- **Diagnostic BDD** : message d'erreur SQL affiché sur la page 503 + JSON `/panel-health`
+- **Health check** : test PDO direct (plus de faux « MariaDB KO » si TCP bloqué mais socket OK)
+
 ## v4.0.4 - 2026-07-15
 
 ### Correctifs critiques panel bloqué

@@ -15,6 +15,8 @@ final class PanelDatabase
 
     private static int $checkedAt = 0;
 
+    private static ?string $lastError = null;
+
     private const SUCCESS_TTL_SECONDS = 15;
 
     private const FAILURE_RETRY_SECONDS = 2;
@@ -25,22 +27,19 @@ final class PanelDatabase
             return self::$available;
         }
 
-        if (! self::canReachMysqlPort()) {
-            self::$available = false;
-            self::$checkedAt = time();
-
-            return false;
-        }
+        self::$lastError = null;
 
         try {
             DB::connection()->getPdo();
             DB::connection()->select('select 1 as ok');
 
             self::$available = true;
-        } catch (QueryException|PDOException) {
+        } catch (QueryException|PDOException $e) {
             self::$available = false;
-        } catch (Throwable) {
+            self::$lastError = self::sanitizeError($e->getMessage());
+        } catch (Throwable $e) {
             self::$available = false;
+            self::$lastError = self::sanitizeError($e->getMessage());
         }
 
         self::$checkedAt = time();
@@ -48,37 +47,23 @@ final class PanelDatabase
         return self::$available;
     }
 
+    public static function lastError(): ?string
+    {
+        return self::$lastError;
+    }
+
     public static function resetCache(): void
     {
         self::$available = null;
         self::$checkedAt = 0;
+        self::$lastError = null;
     }
 
-    private static function canReachMysqlPort(): bool
+    private static function sanitizeError(string $message): string
     {
-        $host = (string) config('database.connections.mysql.host', '127.0.0.1');
-        $port = (int) config('database.connections.mysql.port', 3306);
+        $message = preg_replace('/(password=)\S+/i', '$1***', $message) ?? $message;
 
-        if ($host === 'localhost') {
-            return is_readable('/var/lib/mysql/mysql.sock')
-                || is_readable('/run/mysqld/mysqld.sock')
-                || self::probeTcp('127.0.0.1', $port);
-        }
-
-        return self::probeTcp($host, $port);
-    }
-
-    private static function probeTcp(string $host, int $port): bool
-    {
-        $socket = @fsockopen($host, $port, $errno, $errstr, 1.5);
-
-        if ($socket === false) {
-            return false;
-        }
-
-        fclose($socket);
-
-        return true;
+        return preg_replace('/using password:\s*\S+/i', 'using password: ***', $message) ?? $message;
     }
 
     private static function cacheValid(): bool

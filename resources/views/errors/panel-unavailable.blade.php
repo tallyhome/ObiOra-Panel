@@ -31,6 +31,9 @@
             @if($diagnostics['redis_required'] ?? false)
             <div>Redis : <strong class="{{ ($diagnostics['redis'] ?? false) ? 'ok' : 'ko' }}">{{ ($diagnostics['redis'] ?? false) ? 'OK' : 'KO (cache)' }}</strong></div>
             @endif
+            @if(!empty($diagnostics['database_error']))
+            <div class="small text-muted mt-1" style="word-break:break-word;">{{ $diagnostics['database_error'] }}</div>
+            @endif
             @if(!empty($diagnostics['hints']))
             <ul>
                 @foreach($diagnostics['hints'] as $hint)
@@ -44,9 +47,8 @@
         <p>La page se rafraîchit automatiquement toutes les <strong>5 secondes</strong>.</p>
         <button type="button" class="btn" onclick="window.location.reload()">Réessayer maintenant</button>
         <p class="retry">Diagnostic JSON : <code>/panel-health</code></p>
-        <p class="retry">Si le problème persiste :</p>
-        <p class="retry"><code>sudo systemctl restart mariadb php-fpm nginx</code></p>
-        <p class="retry"><code>cd /opt/obiora-panel && sudo -u obiora php artisan config:clear</code></p>
+        <p class="retry">Récupération SSH (root) :</p>
+        <p class="retry"><code>sudo bash /opt/obiora-panel/agent/scripts/panel-recover-ssh.sh</code></p>
     </div>
 </body>
 </html>

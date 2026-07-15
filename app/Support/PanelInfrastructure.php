@@ -43,7 +43,12 @@ final class PanelInfrastructure
         $hints = [];
 
         if (! $database) {
+            $dbError = PanelDatabase::lastError();
             $hints[] = 'MariaDB injoignable — sudo systemctl restart mariadb puis php artisan config:clear';
+            if ($dbError !== null && $dbError !== '') {
+                $hints[] = 'Erreur : '.$dbError;
+            }
+            $hints[] = 'SSH : sudo bash /opt/obiora-panel/agent/scripts/panel-recover-ssh.sh';
         }
 
         if ($redisRequired && $redis === false) {
@@ -57,6 +62,7 @@ final class PanelInfrastructure
         return [
             'ready' => $database,
             'database' => $database,
+            'database_error' => PanelDatabase::lastError(),
             'redis' => $redis,
             'redis_required' => $redisRequired,
             'hints' => $hints,
