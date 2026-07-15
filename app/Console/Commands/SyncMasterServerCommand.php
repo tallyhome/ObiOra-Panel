@@ -15,15 +15,10 @@ final class SyncMasterServerCommand extends Command
 
     public function handle(MasterServerSync $sync): int
     {
-        $server = $sync->ensure();
+        $server = $sync->reconcile();
 
         $this->info("Serveur maître : {$server->name} (#{$server->id}) — {$server->ip_address}");
-
-        if (PHP_OS_FAMILY === 'Linux') {
-            @shell_exec('sudo -n systemctl restart obiora-agent 2>/dev/null');
-            @shell_exec('sudo -n systemctl restart obiora-queue 2>/dev/null');
-            $this->line('Services obiora-agent / obiora-queue redémarrés (best-effort).');
-        }
+        $this->line('agent.json resynchronisé et obiora-agent redémarré si nécessaire.');
 
         return self::SUCCESS;
     }

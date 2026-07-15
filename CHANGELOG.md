@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.15 - 2026-07-15
+
+- Fix agent Unauthorized : resync auto token agent.json + restart obiora-agent à la connexion
+- Services locaux : liste baseline systemd en priorité (nginx, php-fpm, mariadb…)
+
 ## v2.7.14 - 2026-07-15
 
 - Fix prod : `MasterServerSync` (serveur maître + agent.json + auto-réparation à la connexion)

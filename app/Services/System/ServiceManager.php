@@ -55,19 +55,20 @@ final class ServiceManager
      */
     private function fetchLocalServices(Server $server): array
     {
+        // Baseline en premier : fiable même si le token agent est désynchronisé.
+        $baseline = $this->fetchBaselineServices();
+        if ($baseline !== []) {
+            return $baseline;
+        }
+
         $fromAgent = $this->fetchRemoteList($server);
         if ($fromAgent !== []) {
             return $this->filterManageableServices($fromAgent);
         }
 
         $output = $this->runLocalSystemctlList($server, 'service');
-        $services = $this->filterManageableServices($this->parseLocalList($output));
 
-        if ($services !== []) {
-            return $services;
-        }
-
-        return $this->fetchBaselineServices();
+        return $this->filterManageableServices($this->parseLocalList($output));
     }
 
     /**

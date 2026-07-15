@@ -9,6 +9,7 @@ use App\Enums\ServerType;
 use App\Models\Server;
 use App\Models\ServerNode;
 use App\Models\Setting;
+use App\Services\System\PrivilegedScriptRunner;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -18,6 +19,10 @@ use Illuminate\Support\Str;
  */
 final class MasterServerSync
 {
+    public function __construct(
+        private readonly PrivilegedScriptRunner $scripts,
+    ) {}
+
     public function ensure(): Server
     {
         $existing = Server::query()->where('is_master', true)->first();
@@ -48,7 +53,29 @@ final class MasterServerSync
         );
 
         $this->ensureInstallationUuid();
-        $this->syncAgentConfig($server);
+        $changed = $this->syncAgentConfig($server);
+
+        if ($changed) {
+            $this->restartAgent();
+        }
+
+        return $server->fresh() ?? $server;
+    }
+
+    /** Répare le serveur maître et resynchronise agent.json si le token a dérivé. */
+    public function reconcile(): Server
+    {
+        $server = Server::query()->where('is_master', true)->first();
+
+        if ($server === null) {
+            return $this->ensure();
+        }
+
+        if ($this->agentTokenDrifted($server)) {
+            Log::warning('Token agent désynchronisé — resynchronisation agent.json');
+            $this->syncAgentConfig($server, force: true);
+            $this->restartAgent();
+        }
 
         return $server->fresh() ?? $server;
     }
@@ -56,7 +83,15 @@ final class MasterServerSync
     public function ensureIfMissing(): ?Server
     {
         if (Server::query()->where('is_master', true)->exists()) {
-            return Server::query()->where('is_master', true)->first();
+            try {
+                return $this->reconcile();
+            } catch (\Throwable $exception) {
+                Log::error('Réconciliation serveur maître échouée', [
+                    'message' => $exception->getMessage(),
+                ]);
+
+                return Server::query()->where('is_master', true)->first();
+            }
         }
 
         try {
@@ -68,6 +103,38 @@ final class MasterServerSync
 
             return null;
         }
+    }
+
+    private function agentTokenDrifted(Server $server): bool
+    {
+        $configFile = base_path('agent/config/agent.json');
+
+        if (! is_file($configFile)) {
+            return true;
+        }
+
+        $json = json_decode((string) file_get_contents($configFile), true);
+
+        if (! is_array($json)) {
+            return true;
+        }
+
+        return (string) ($json['token'] ?? '') !== (string) ($server->agent_token ?? '');
+    }
+
+    private function restartAgent(): void
+    {
+        if (PHP_OS_FAMILY !== 'Linux') {
+            return;
+        }
+
+        $script = base_path('agent/scripts/systemctl-action.sh');
+
+        if (! is_file($script)) {
+            return;
+        }
+
+        $this->scripts->run($script, ['restart', 'obiora-agent.service'], 30);
     }
 
     private function ensureInstallationUuid(): void
@@ -90,16 +157,16 @@ final class MasterServerSync
         );
     }
 
-    private function syncAgentConfig(Server $server): void
+    private function syncAgentConfig(Server $server, bool $force = false): bool
     {
         if (PHP_OS_FAMILY !== 'Linux') {
-            return;
+            return false;
         }
 
         $token = (string) ($server->agent_token ?? '');
 
         if ($token === '') {
-            return;
+            return false;
         }
 
         $configDir = base_path('agent/config');
@@ -115,8 +182,8 @@ final class MasterServerSync
 
         $encoded = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n";
 
-        if (is_file($configFile) && file_get_contents($configFile) === $encoded) {
-            return;
+        if (! $force && is_file($configFile) && file_get_contents($configFile) === $encoded) {
+            return false;
         }
 
         File::put($configFile, $encoded);
@@ -131,6 +198,8 @@ final class MasterServerSync
 
         @chmod($configFile, 0600);
         \App\Support\AgentScripts::ensureExecutable();
+
+        return true;
     }
 
     private function detectHostname(): string
