@@ -25,6 +25,7 @@ final class PanelUpdateIntegrity
         'app/Services/Core/PanelUpdater.php',
         'app/Jobs/ApplyPanelUpdateJob.php',
         'app/Console/Commands/UpdateProgressCommand.php',
+        'app/Console/Commands/CompleteUpdateCommand.php',
         'app/Console/Commands/RecoverPanelHttpCommand.php',
         'app/Console/Commands/PostDeployCommand.php',
         'VERSION',

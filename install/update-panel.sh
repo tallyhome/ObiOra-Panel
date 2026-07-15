@@ -41,6 +41,7 @@ on_update_error() {
     local code="$2"
     echo "ERREUR: mise à jour interrompue (ligne ${line}, code ${code})" >&2
     progress "${LAST_PROGRESS}" "Échec — récupération HTTP du panel…"
+    mark_update_complete failed "Échec — récupération HTTP du panel"
     finalize_panel_http || true
     exit "${code}"
 }
@@ -53,6 +54,16 @@ finalize_panel_http() {
         clear_panel_caches
     fi
     release_update_lock
+}
+
+mark_update_complete() {
+    local status="${1:-completed}"
+    local msg="${2:-Mise à jour terminée}"
+
+    if [[ -n "${OBIORA_UPDATE_HISTORY_ID}" ]] && [[ -f "${OBIORA_INSTALL_DIR}/artisan" ]]; then
+        sudo -u "${OBIORA_USER}" php "${OBIORA_INSTALL_DIR}/artisan" obiora:update-complete \
+            "${OBIORA_UPDATE_HISTORY_ID}" "${status}" --message="${msg}" >/dev/null 2>&1 || true
+    fi
 }
 
 trap 'on_update_error ${LINENO} $?' ERR
@@ -350,4 +361,5 @@ finalize_panel_http
 
 trap - ERR
 progress 100 "Mise à jour terminée avec succès"
+mark_update_complete completed "Mise à jour terminée avec succès"
 echo "OK: panel mis a jour."

@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.1 - 2026-07-15
+
+### Fix MAJ panel
+
+- Overlay « mise à jour en cours » bloqué : laisser passer le polling Livewire (`/livewire/`) pendant le verrou `obiora-update.lock`
+- Nouvelle commande `obiora:update-complete` : clôture `update_history` + suppression du lock depuis `update-panel.sh`
+- Fallback UI si historique `running` à 100 % (worker queue mort) + import `File` manquant pour « Débloquer »
+
 ## v4.0.0 - 2026-07-15
 
 ### Monitor+ NOC (lots 1–4)

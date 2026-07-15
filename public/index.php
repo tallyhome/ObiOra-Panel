@@ -6,7 +6,10 @@ use Illuminate\Http\Request;
 define('LARAVEL_START', microtime(true));
 
 $updateLock = __DIR__.'/../storage/framework/obiora-update.lock';
-if (is_file($updateLock)) {
+$requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '');
+$isLivewirePoll = str_contains($requestUri, '/livewire/');
+
+if (is_file($updateLock) && ! $isLivewirePoll) {
     http_response_code(503);
     header('Content-Type: text/html; charset=utf-8');
     header('Retry-After: 15');

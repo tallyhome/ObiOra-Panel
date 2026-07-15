@@ -14,6 +14,7 @@ use App\Services\Core\UpdateManager;
 use App\Services\Core\UpdateRecovery;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -150,6 +151,10 @@ final class SettingsIndex extends Component
 
         $history = UpdateHistory::query()->find($this->pendingHistoryId);
 
+        if ($history !== null) {
+            $history = $this->resolveCompletedRunningHistory($history);
+        }
+
         if ($history === null || in_array($history->status, ['completed', 'failed'], true)) {
             $this->updateRunning = false;
             $this->pendingHistoryId = null;
@@ -276,6 +281,17 @@ final class SettingsIndex extends Component
             return;
         }
 
+        $pending = $this->resolveCompletedRunningHistory($pending);
+
+        if (! in_array($pending->status, ['queued', 'running'], true)) {
+            if ($pending->status === 'completed') {
+                $this->updateSuccess = true;
+                $this->updateMessage = "Mise à jour vers v{$pending->to_version} terminée. Rechargez la page (Ctrl+F5).";
+            }
+
+            return;
+        }
+
         $this->pendingHistoryId = $pending->id;
         $this->updateRunning = true;
         $this->updateSuccess = true;
@@ -384,6 +400,36 @@ final class SettingsIndex extends Component
         if ($license?->license_key) {
             $this->licenseKey = (string) $license->license_key;
         }
+    }
+
+    /**
+     * Le script shell peut atteindre 100 % avant que le job queue ne clôture l'entrée.
+     */
+    private function resolveCompletedRunningHistory(UpdateHistory $history): UpdateHistory
+    {
+        if ($history->status !== 'running') {
+            return $history;
+        }
+
+        $progress = (int) ($history->progress ?? 0);
+        $message = (string) ($history->progress_message ?? '');
+
+        $looksDone = $progress >= 100
+            || str_contains(mb_strtolower($message), 'terminée')
+            || str_contains(mb_strtolower($message), 'terminee');
+
+        if (! $looksDone) {
+            return $history;
+        }
+
+        $history->update([
+            'status' => 'completed',
+            'progress' => 100,
+            'progress_message' => $message !== '' ? $message : 'Mise à jour terminée',
+            'completed_at' => $history->completed_at ?? now(),
+        ]);
+
+        return $history->fresh() ?? $history;
     }
 
     public function render(SystemMaintenance $systemMaintenance, ChangelogParser $changelog)
