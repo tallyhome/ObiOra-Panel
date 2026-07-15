@@ -117,7 +117,9 @@ Options:
   --ftp               Installer vsftpd
   --tag TAG           Version Git à installer (défaut: ${OBIORA_TAG})
   --dir PATH          Répertoire d'installation (défaut: ${OBIORA_INSTALL_DIR})
-  --full-upgrade      Mise à niveau système complet avant install (grub/kernel, lent)
+  --mode MODE         standard | full — sans question interactive
+  --full-upgrade      Équivalent à --mode full (rétrocompatibilité)
+  --no-prompt         Pas de question : mode standard par défaut
   -h, --help          Afficher cette aide
 
 OS supportés:
@@ -134,7 +136,17 @@ parse_args() {
             --ftp)     INSTALL_FTP="true"; shift ;;
             --tag)     OBIORA_TAG="$2"; shift 2 ;;
             --dir)     OBIORA_INSTALL_DIR="$2"; shift 2 ;;
-            --full-upgrade) OBIORA_FULL_SYSTEM_UPGRADE="true"; shift ;;
+            --mode)
+                case "${2:-}" in
+                    standard|std|1) OBIORA_FULL_SYSTEM_UPGRADE="false" ;;
+                    full|complete|2) OBIORA_FULL_SYSTEM_UPGRADE="true" ;;
+                    *) die "Mode invalide: ${2} (utilisez: standard | full)" ;;
+                esac
+                OBIORA_INSTALL_MODE_CHOSEN="true"
+                shift 2
+                ;;
+            --full-upgrade) OBIORA_FULL_SYSTEM_UPGRADE="true"; OBIORA_INSTALL_MODE_CHOSEN="true"; shift ;;
+            --no-prompt) OBIORA_INSTALL_MODE_CHOSEN="true"; shift ;;
             -h|--help) usage; exit 0 ;;
             *) die "Option inconnue: $1" ;;
         esac
@@ -153,6 +165,7 @@ print_summary() {
     printf '\n\033[0;32m╔══════════════════════════════════════════════════╗\n║       ObiOra Panel installé avec succès !        ║\n╚══════════════════════════════════════════════════╝\033[0m\n\n'
     cat <<EOF
   Version  : v${OBIORA_VERSION}
+  Mode     : $(if [[ "${OBIORA_FULL_SYSTEM_UPGRADE}" == "true" ]]; then echo "complète + MAJ système"; else echo "standard"; fi)
   URL      : ${url}
   Setup    : ${url}/setup
   Dossier  : ${OBIORA_INSTALL_DIR}
@@ -170,14 +183,12 @@ EOF
 main() {
     parse_args "$@"
 
-    echo ""
-    echo "  ObiOra Panel v${OBIORA_VERSION}"
-    echo "  ================================"
-    echo ""
-
     require_root
     mkdir -p "$(dirname "${OBIORA_LOG_FILE}")" "${OBIORA_SNAPSHOT_DIR}"
     touch "${OBIORA_LOG_FILE}"
+
+    install_banner "ObiOra Panel v${OBIORA_VERSION}"
+    prompt_install_mode
 
     install_step 1 "Vérification système"
     assert_supported_os

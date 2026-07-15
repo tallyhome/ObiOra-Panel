@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.11 - 2026-07-15
+
+- Installateur : choix interactif au démarrage — install standard (1) ou complète + MAJ système (2)
+- Options non interactives : `--mode standard|full`, `--full-upgrade`, `--no-prompt`
+
 ## v2.7.10 - 2026-07-15
 
 - Installateur : sortie dnf/apt/composer/npm redirigée vers le journal (UI étapes visible dans PuTTY)

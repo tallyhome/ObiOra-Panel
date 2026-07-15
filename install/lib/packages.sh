@@ -8,11 +8,10 @@ install_base_packages() {
     run_quiet "Synchronisation des dépôts (apt/dnf update)" pkg_update
 
     if [[ "${OBIORA_FULL_SYSTEM_UPGRADE}" == "true" ]]; then
-        warn "Mise à niveau système complète (--full-upgrade) : peut mettre à jour grub/kernel (lent)."
+        install_substep "Mise à niveau système complet (grub, kernel…) — mode install complète"
         run_quiet "Mise à niveau système complet (grub, kernel…)" pkg_upgrade
     else
-        info "Mise à niveau système ignorée (défaut). Seuls les paquets ObiOra seront installés."
-        info "Pour forcer un upgrade complet : relancer avec --full-upgrade"
+        install_substep "Mode standard — paquets ObiOra uniquement (sans upgrade système)"
     fi
 
     install_substep "Configuration du dépôt PHP 8.3…"

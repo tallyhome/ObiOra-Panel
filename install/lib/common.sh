@@ -37,6 +37,64 @@ OBIORA_INSTALL_STEPS_TOTAL=12
 OBIORA_INSTALL_STEP_LABEL=""
 # Par défaut : pas de « dnf upgrade » complet (grub/kernel = très lent sur VPS).
 OBIORA_FULL_SYSTEM_UPGRADE="${OBIORA_FULL_SYSTEM_UPGRADE:-false}"
+OBIORA_INSTALL_MODE_CHOSEN="${OBIORA_INSTALL_MODE_CHOSEN:-false}"
+
+install_banner() {
+    local title="$1"
+    printf '\n\033[1;35m╔══════════════════════════════════════════════════════════════╗\033[0m\n'
+    printf '\033[1;35m║\033[0m  %-58s\033[1;35m  ║\033[0m\n' "${title}"
+    printf '\033[1;35m╚══════════════════════════════════════════════════════════════╝\033[0m\n\n'
+}
+
+prompt_install_mode() {
+    if [[ "${OBIORA_INSTALL_MODE_CHOSEN}" == "true" ]]; then
+        return 0
+    fi
+
+    if [[ ! -t 0 ]]; then
+        info "Terminal non interactif — mode standard (paquets ObiOra uniquement)."
+        OBIORA_FULL_SYSTEM_UPGRADE="false"
+        return 0
+    fi
+
+    install_banner "ObiOra Panel v${OBIORA_VERSION:-?} — Mode d'installation"
+
+    cat <<'PROMPT'
+  ┌────────────────────────────────────────────────────────────┐
+  │  [1]  Install standard                        (recommandé) │
+  │       Installe uniquement les paquets ObiOra Panel          │
+  │       Rapide — environ 5 à 15 minutes                       │
+  ├────────────────────────────────────────────────────────────┤
+  │  [2]  Install complète + mise à jour système                │
+  │       apt/dnf upgrade complet (grub, kernel, sécurité…)     │
+  │       Plus long — peut prendre 15 à 30 minutes              │
+  └────────────────────────────────────────────────────────────┘
+
+PROMPT
+
+    local choice=""
+    while true; do
+        read -r -p "  Votre choix [1/2] (Entrée = 1) : " choice
+        choice="${choice:-1}"
+        case "${choice}" in
+            1|standard|std)
+                OBIORA_FULL_SYSTEM_UPGRADE="false"
+                OBIORA_INSTALL_MODE_CHOSEN="true"
+                success "Mode sélectionné : install standard"
+                return 0
+                ;;
+            2|full|complete)
+                OBIORA_FULL_SYSTEM_UPGRADE="true"
+                OBIORA_INSTALL_MODE_CHOSEN="true"
+                warn "Mode sélectionné : install complète + mise à jour système"
+                return 0
+                ;;
+            *)
+                warn "Choix invalide — tapez 1 ou 2."
+                ;;
+        esac
+    done
+}
 
 install_step() {
     local n="$1"
