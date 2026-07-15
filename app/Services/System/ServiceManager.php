@@ -61,6 +61,32 @@ final class ServiceManager
         }
 
         $output = $this->runLocalSystemctlList($server, 'service');
+        $services = $this->filterManageableServices($this->parseLocalList($output));
+
+        if ($services !== []) {
+            return $services;
+        }
+
+        return $this->fetchBaselineServices();
+    }
+
+    /**
+     * @return list<array{name: string, load: string, active: string, sub: string, description: string}>
+     */
+    private function fetchBaselineServices(): array
+    {
+        $script = base_path('agent/scripts/systemctl-baseline.sh');
+
+        if (! is_file($script)) {
+            return [];
+        }
+
+        $result = $this->scripts->run($script, [], 30);
+        $output = trim($result->output.$result->errorOutput);
+
+        if ($output === '') {
+            return [];
+        }
 
         return $this->filterManageableServices($this->parseLocalList($output));
     }

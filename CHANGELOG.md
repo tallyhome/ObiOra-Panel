@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.14 - 2026-07-15
+
+- Fix prod : `MasterServerSync` (serveur maître + agent.json + auto-réparation à la connexion)
+- Commande `php artisan obiora:sync-master` pour réparer manuellement le VPS prod
+- Services : fallback `systemctl-baseline.sh` (nginx, php-fpm, mariadb, redis, obiora-*)
+
 ## v2.7.13 - 2026-07-15
 
 - Fix serveur maître absent après install : `SettingsSeeder` intégré à `obiora:post-deploy`

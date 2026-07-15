@@ -37,10 +37,14 @@ final class PostDeployCommand extends Command
 
         $this->components->task(
             'Serveur maître et réglages installation',
-            fn () => $this->callSilent('db:seed', [
-                '--class' => 'Database\\Seeders\\SettingsSeeder',
-                '--force' => true,
-            ]) === self::SUCCESS
+            function (): bool {
+                app(\App\Services\Core\MasterServerSync::class)->ensure();
+
+                return $this->callSilent('db:seed', [
+                    '--class' => 'Database\\Seeders\\SettingsSeeder',
+                    '--force' => true,
+                ]) === self::SUCCESS;
+            }
         );
 
         $this->components->task(
