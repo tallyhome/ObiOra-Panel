@@ -7,25 +7,35 @@ from pathlib import Path
 
 from core.module import DiagnosticModule
 from core.plugins import discover_plugins
+from modules.accounts import AccountsModule
 from modules.apache import ApacheModule
+from modules.auth_logs import AuthLogsModule
 from modules.benchmark import BenchmarkModule
 from modules.cpanel import CpanelModule
 from modules.cpu import CpuModule
 from modules.directadmin import DirectadminModule
 from modules.disk import DiskModule
 from modules.docker import DockerModule
+from modules.docker_security import DockerSecurityModule
 from modules.firewall import FirewallModule
+from modules.hosting_security import HostingSecurityModule
 from modules.kernel import KernelModule
 from modules.kvm import KvmModule
 from modules.laravel import LaravelModule
 from modules.litespeed import LitespeedModule
 from modules.lxc import LxcModule
+from modules.lynis import LynisModule
+from modules.mail_dns import MailDnsModule
+from modules.malware import MalwareModule
 from modules.memcached import MemcachedModule
 from modules.mysql import MysqlModule
 from modules.network import NetworkModule
+from modules.obiora import ObioraModule
 from modules.nginx import NginxModule
 from modules.php import PhpModule
+from modules.persistence import PersistenceModule
 from modules.plesk import PleskModule
+from modules.privesc import PrivescModule
 from modules.postgresql import PostgresqlModule
 from modules.raid import RaidModule
 from modules.ram import RamModule
@@ -36,6 +46,8 @@ from modules.smart import SmartModule
 from modules.ssl import SslModule
 from modules.swap import SwapModule
 from modules.virtualizor import VirtualizorModule
+from modules.waf import WafModule
+from modules.web_perms import WebPermsModule
 from modules.whmcs import WhmcsModule
 
 MODULES_CONFIG = Path(__file__).resolve().parents[1] / "config" / "modules.json"
@@ -66,6 +78,18 @@ BUILTIN_MODULES: list[type[DiagnosticModule]] = [
     DirectadminModule,
     FirewallModule,
     SecurityModule,
+    ObioraModule,
+    MalwareModule,
+    AccountsModule,
+    PersistenceModule,
+    PrivescModule,
+    AuthLogsModule,
+    WebPermsModule,
+    DockerSecurityModule,
+    LynisModule,
+    MailDnsModule,
+    WafModule,
+    HostingSecurityModule,
     SslModule,
     RedisModule,
     MemcachedModule,

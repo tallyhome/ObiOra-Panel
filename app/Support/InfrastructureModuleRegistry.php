@@ -54,6 +54,12 @@ final class InfrastructureModuleRegistry
                 'icon' => '💥',
                 'active' => ['crash-analyzer.*'],
             ],
+            'security' => [
+                'route' => 'security.index',
+                'name' => 'Sécurité',
+                'icon' => '🔐',
+                'active' => ['security.*'],
+            ],
         ];
     }
 

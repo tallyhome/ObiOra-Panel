@@ -38,11 +38,13 @@ class SslModule(DiagnosticModule):
                     not_after = line.split("=", 1)[-1].strip()
             if not_after:
                 days_left = self._days_until_expiry(not_after)
+                tls_proto = self._check_tls_protocol(host)
                 certs.append(
                     {
                         "host": host,
                         "not_after": not_after,
                         "days_left": days_left,
+                        "tls_protocol": tls_proto,
                     }
                 )
         return {"metrics": {"certificates": certs, "checked_hosts": hosts[:3]}}
@@ -63,6 +65,7 @@ class SslModule(DiagnosticModule):
             days_left = cert.get("days_left")
             host = cert["host"]
             not_after = cert["not_after"]
+            tls_proto = cert.get("tls_protocol") or ""
             if isinstance(days_left, int) and days_left <= 0:
                 level = Severity.CRITICAL
                 title = f"Certificat expire — {host}"
@@ -84,7 +87,27 @@ class SslModule(DiagnosticModule):
                     [f"openssl s_client -connect {host}:443"],
                 )
             )
+            if tls_proto and any(v in tls_proto for v in ("TLSv1 ", "TLSv1.0", "TLSv1.1", "SSLv3")):
+                findings.append(
+                    Finding(
+                        Severity.WARNING,
+                        f"TLS obsolete — {host}",
+                        f"Protocole detecte: {tls_proto}",
+                        "Desactiver TLS 1.0/1.1 dans nginx/apache.",
+                        [f"openssl s_client -connect {host}:443 -tls1"],
+                    )
+                )
         return findings
+
+    def _check_tls_protocol(self, host: str) -> str:
+        result = self.runner.run(
+            ["openssl", "s_client", "-connect", f"{host}:443", "-servername", host],
+            timeout_seconds=10,
+        )
+        for line in (result.stdout + result.stderr).splitlines():
+            if "Protocol" in line or "SSL-Session" in line:
+                return line.strip()
+        return ""
 
     def _days_until_expiry(self, not_after: str) -> int | None:
         try:

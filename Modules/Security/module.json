@@ -1,0 +1,15 @@
+{
+  "migrations": false,
+  "description": "Audit securite serveur et durcissement",
+  "permissions": [
+    "modules.view"
+  ],
+  "dependencies": [
+    "servers"
+  ],
+  "routes": true,
+  "slug": "security",
+  "name": "Security",
+  "default_enabled": true,
+  "version": "1.0.0"
+}

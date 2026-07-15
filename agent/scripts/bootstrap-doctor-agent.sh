@@ -58,6 +58,13 @@ ENV_FILE="/opt/obiora-doctor-agent/agent.env"
 # shellcheck source=/dev/null
 [[ -f "${ENV_FILE}" ]] && source "${ENV_FILE}"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SECURITY_SCAN="${SCRIPT_DIR}/run-security-scan.sh"
+
+if [[ -x "${SECURITY_SCAN}" ]]; then
+    exec "${SECURITY_SCAN}"
+fi
+
 PANEL_URL="${OBIORA_PANEL_URL:?OBIORA_PANEL_URL manquant}"
 SERVER_ID="${OBIORA_SERVER_ID:?OBIORA_SERVER_ID manquant}"
 AGENT_TOKEN="${OBIORA_AGENT_TOKEN:?OBIORA_AGENT_TOKEN manquant}"
@@ -119,6 +126,20 @@ echo "OK: rapport Doctor envoye (score ${score}%)"
 SCAN
 
 chmod +x "${INSTALL_DIR}/run-scan.sh"
+
+# Copier scripts securite + installer ObiOra-Doctor Python si disponible
+SCRIPT_SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+for script in run-security-scan.sh security-harden.sh install-obiora-doctor-python.sh; do
+    if [[ -f "${SCRIPT_SRC}/${script}" ]]; then
+        cp "${SCRIPT_SRC}/${script}" "${INSTALL_DIR}/${script}"
+        chmod +x "${INSTALL_DIR}/${script}"
+    fi
+done
+
+if [[ -f "${INSTALL_DIR}/install-obiora-doctor-python.sh" ]]; then
+    OBIORA_DOCTOR_SOURCE="${SCRIPT_SRC}/../../ObiOra-Doctor" \
+        bash "${INSTALL_DIR}/install-obiora-doctor-python.sh" 2>/dev/null || true
+fi
 
 cat > /etc/systemd/system/obiora-doctor-agent.service << UNIT
 [Unit]

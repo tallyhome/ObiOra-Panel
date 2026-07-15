@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v3.0.0 - 2026-07-15
+
+- **Sécurité serveur** : page `/security` intégrée à Doctor (panel + slaves Obiora)
+- Modules Doctor : `obiora`, `malware`, `accounts`, `persistence`, `privesc`, `auth_logs`, `web_perms`, `docker_security`, `lynis`, `mail_dns`, `waf`, `hosting_security`
+- Enrichissement : ports/processus, SSL/TLS, CVE/kernel reboot, logs SSH brute-force, panels admin, backups
+- Durcissement sûr uniquement : fail2ban, pare-feu, permissions, rkhunter (sans blocage SSH root/mot de passe)
+- Scan périodique via agent Doctor + actions correctives depuis le panel
+
+## v2.7.20 - 2026-07-15
+
+- Install Virtualizor : détection auto, règles udev KVM (`65-kvm.rules`), SSH port 2212, proposition de reboot en fin d'install
+
 ## v2.7.19 - 2026-07-15
 
 - Test pipeline MAJ panel (badge « test MAJ v2.7.19 » sur Licence & MAJ)

@@ -76,6 +76,7 @@ final class DiagnosticReportManager
         }
 
         $this->processSslFindings($server, $payload);
+        $this->processSecurityMetadata($server, $payload);
 
         return $report;
     }
@@ -120,6 +121,55 @@ final class DiagnosticReportManager
         }
 
         return $critical;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function processSecurityMetadata(Server $server, array $payload): void
+    {
+        $securityModules = [
+            'security', 'obiora', 'firewall', 'malware', 'network', 'ssl',
+            'accounts', 'persistence', 'privesc', 'auth_logs', 'web_perms',
+            'docker_security', 'lynis', 'mail_dns', 'waf', 'hosting_security',
+        ];
+        $critical = 0;
+        $warning = 0;
+        $modulesRun = [];
+
+        foreach ($payload['results'] ?? [] as $result) {
+            $module = (string) ($result['module'] ?? '');
+            if (! in_array($module, $securityModules, true)) {
+                continue;
+            }
+            $modulesRun[] = $module;
+            foreach ($result['findings'] ?? [] as $finding) {
+                $level = (string) ($finding['level'] ?? '');
+                if ($level === 'CRITICAL') {
+                    $critical++;
+                } elseif ($level === 'WARNING') {
+                    $warning++;
+                }
+            }
+        }
+
+        if ($modulesRun === []) {
+            return;
+        }
+
+        $securityScore = max(0, 100 - ($critical * 25) - ($warning * 10));
+
+        $server->forceFill([
+            'metadata' => array_merge($server->metadata ?? [], [
+                'security' => [
+                    'score' => $securityScore,
+                    'critical_count' => $critical,
+                    'warning_count' => $warning,
+                    'modules' => $modulesRun,
+                    'last_scan_at' => now()->toIso8601String(),
+                ],
+            ]),
+        ])->save();
     }
 
     /**

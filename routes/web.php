@@ -319,6 +319,7 @@ Route::middleware(['setup', 'auth', 'demo.active', 'server'])->group(function ()
         Route::get('/virtualizor', \Modules\Virtualizor\Livewire\VirtualizorIndex::class)->name('virtualizor.index');
         Route::get('/cluster', \Modules\Cluster\Livewire\ClusterIndex::class)->name('cluster.index');
         Route::get('/doctor', \Modules\Monitoring\Livewire\DoctorSuiteIndex::class)->name('doctor.index');
+        Route::get('/security', \Modules\Security\Livewire\SecurityIndex::class)->name('security.index');
         Route::get('/crash-analyzer', \Modules\CrashAnalyzer\Livewire\CrashAnalyzerIndex::class)->name('crash-analyzer.index');
 
         $stubSlugs = array_keys(ModuleStubRegistry::infrastructure());
@@ -363,6 +364,7 @@ Route::middleware(['setup', 'auth', 'demo.active', 'server'])->group(function ()
 
     Route::redirect('/modules/ssl', '/ssl');
     Route::redirect('/modules/firewall', '/firewall');
+    Route::redirect('/modules/security', '/security');
     Route::redirect('/modules/users', '/users');
 
     Route::middleware('permission:updates.view')->get('/settings', \Modules\Updates\Livewire\SettingsIndex::class)->name('settings.index');
