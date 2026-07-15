@@ -43,25 +43,42 @@ _obiora_bootstrap() {
         exit 1
     fi
 
+    local log_file="/var/log/obiora-install.log"
+    mkdir -p "$(dirname "${log_file}")"
+    touch "${log_file}"
+
+    printf '\n\033[1;35m╔══════════════════════════════════════════════════════════════╗\033[0m\n'
+    printf '\033[1;35m║\033[0m  %-58s\033[1;35m  ║\033[0m\n' "ObiOra Panel — Préparation"
+    printf '\033[1;35m╚══════════════════════════════════════════════════════════════╝\033[0m\n\n'
+    printf '  \033[0;36m→\033[0m Journal : %s\n\n' "${log_file}"
+
     if ! command -v git &>/dev/null; then
-        echo "Installation de git..."
+        printf '  \033[0;36m→\033[0m Installation de git (paquets système, 1 à 3 min)…\n'
+        printf '  \033[0;36m→\033[0m Import GPG / dépendances : voir le journal, pas de blocage.\n\n'
         if command -v apt-get &>/dev/null; then
-            apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git
+            apt-get update -qq >> "${log_file}" 2>&1
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git >> "${log_file}" 2>&1
         elif command -v dnf &>/dev/null; then
-            dnf install -y -q git
+            dnf install -y -q git >> "${log_file}" 2>&1
         else
             echo "Impossible d'installer git automatiquement (apt/dnf introuvable)." >&2
             exit 1
         fi
+        printf '  \033[0;32m✓\033[0m git installé\n\n'
     fi
 
     local bootstrap_dir
     bootstrap_dir="$(mktemp -d)"
     trap 'rm -rf "${bootstrap_dir}"' EXIT
-    echo "Téléchargement d'ObiOra Panel depuis ${OBIORA_REPO} (${OBIORA_BRANCH})..."
-    if ! git clone --depth 1 --branch "${OBIORA_BRANCH}" "${OBIORA_REPO}" "${bootstrap_dir}"; then
-        git clone --depth 1 "${OBIORA_REPO}" "${bootstrap_dir}"
+
+    printf '  \033[0;36m→\033[0m Téléchargement ObiOra Panel depuis GitHub…\n'
+    printf '  \033[0;36m→\033[0m %s (%s)\n\n' "${OBIORA_REPO}" "${OBIORA_BRANCH}"
+
+    if ! git clone --depth 1 --branch "${OBIORA_BRANCH}" "${OBIORA_REPO}" "${bootstrap_dir}" >> "${log_file}" 2>&1; then
+        git clone --depth 1 "${OBIORA_REPO}" "${bootstrap_dir}" >> "${log_file}" 2>&1
     fi
+
+    printf '  \033[0;32m✓\033[0m Code téléchargé — lancement de l installateur complet…\n\n'
     exec env OBIORA_FROM_CLONE=1 bash "${bootstrap_dir}/install/install.sh" "$@"
 }
 
@@ -187,7 +204,7 @@ main() {
     mkdir -p "$(dirname "${OBIORA_LOG_FILE}")" "${OBIORA_SNAPSHOT_DIR}"
     touch "${OBIORA_LOG_FILE}"
 
-    install_banner "ObiOra Panel v${OBIORA_VERSION}"
+    install_banner "ObiOra Panel v${OBIORA_VERSION} — Installateur"
     prompt_install_mode
 
     install_step 1 "Vérification système"

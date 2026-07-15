@@ -32,7 +32,7 @@ setup_nginx() {
     setup_web_permissions
     setup_selinux_panel
 
-    systemctl_enable_start php8.3-fpm 2>/dev/null || systemctl_enable_start php-fpm
+    systemctl_quiet_enable_start php8.3-fpm 2>/dev/null || systemctl_quiet_enable_start php-fpm
 
     local php_sock
     php_sock="$(detect_php_fpm_socket)"
@@ -80,8 +80,15 @@ NGINX
         rm -f /etc/nginx/sites-enabled/default
     fi
 
-    nginx -t
-    systemctl_enable_start nginx
+    nginx_remove_foreign_default_servers "${nginx_conf}"
+
+    if ! nginx -t >> "${OBIORA_LOG_FILE}" 2>&1; then
+        error "Configuration Nginx invalide — voir ${OBIORA_LOG_FILE}"
+        nginx -t
+        return 1
+    fi
+
+    systemctl_quiet_enable_start nginx
 
     # Recharge les workers PHP-FPM après usermod (groupe obiora).
     systemctl restart php8.3-fpm 2>/dev/null || systemctl restart php-fpm 2>/dev/null || true

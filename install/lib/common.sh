@@ -57,17 +57,13 @@ prompt_install_mode() {
         return 0
     fi
 
-    install_banner "ObiOra Panel v${OBIORA_VERSION:-?} — Mode d'installation"
-
     cat <<'PROMPT'
   ┌────────────────────────────────────────────────────────────┐
   │  [1]  Install standard                        (recommandé) │
-  │       Installe uniquement les paquets ObiOra Panel          │
-  │       Rapide — environ 5 à 15 minutes                       │
+  │       Paquets ObiOra uniquement — rapide (5 à 15 min)       │
   ├────────────────────────────────────────────────────────────┤
   │  [2]  Install complète + mise à jour système                │
-  │       apt/dnf upgrade complet (grub, kernel, sécurité…)     │
-  │       Plus long — peut prendre 15 à 30 minutes              │
+  │       apt/dnf upgrade complet (grub, kernel…) — 15 à 30 min │
   └────────────────────────────────────────────────────────────┘
 
 PROMPT
@@ -134,6 +130,36 @@ run_quiet() {
     fi
     error "Échec : ${label} — voir ${OBIORA_LOG_FILE}"
     return 1
+}
+
+# Retire default_server des autres vhosts (conflit AlmaLinux nginx.conf:39).
+nginx_remove_foreign_default_servers() {
+    local keep_conf="$1"
+    local f resolved_keep resolved_f
+
+    resolved_keep="$(readlink -f "${keep_conf}" 2>/dev/null || echo "${keep_conf}")"
+
+    for f in /etc/nginx/conf.d/welcome.conf /etc/nginx/conf.d/default.conf; do
+        if [[ -f "${f}" && ! -f "${f}.obiora-bak" ]]; then
+            mv -f "${f}" "${f}.obiora-bak"
+        fi
+    done
+
+    for f in /etc/nginx/nginx.conf /etc/nginx/conf.d/*.conf /etc/nginx/sites-enabled/*; do
+        [[ -f "${f}" ]] || continue
+        [[ "${f}" == *.obiora-bak ]] && continue
+        resolved_f="$(readlink -f "${f}" 2>/dev/null || echo "${f}")"
+        [[ "${resolved_f}" == "${resolved_keep}" ]] && continue
+        sed -i -E 's/\bdefault_server\b//g' "${f}" 2>/dev/null || true
+    done
+}
+
+systemctl_quiet_enable_start() {
+    local service="$1"
+    install_substep "Service ${service}…"
+    systemctl daemon-reload >> "${OBIORA_LOG_FILE}" 2>&1
+    systemctl enable "${service}" >> "${OBIORA_LOG_FILE}" 2>&1
+    systemctl restart "${service}" >> "${OBIORA_LOG_FILE}" 2>&1
 }
 
 require_root() {

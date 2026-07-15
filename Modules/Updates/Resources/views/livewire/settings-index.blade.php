@@ -36,6 +36,9 @@
                     <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                     {{ $updateProgressMessage ?: ($updateMessage ?? 'Mise à jour en cours…') }}
                 </p>
+                <p class="mb-0 mt-2 small text-muted">
+                    Si une page d'erreur apparaît brièvement, c'est normal : le panel affiche une page de mise à jour puis se rétablit automatiquement.
+                </p>
             </div>
         </div>
     @elseif($updateMessage)

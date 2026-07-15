@@ -318,6 +318,14 @@ final class SettingsIndex extends Component
             // best-effort
         }
 
+        try {
+            if (File::exists(storage_path('framework/obiora-update.lock'))) {
+                File::delete(storage_path('framework/obiora-update.lock'));
+            }
+        } catch (\Throwable) {
+            // best-effort
+        }
+
         $this->updateRunning = false;
         $this->pendingHistoryId = null;
         $this->updateProgress = 0;

@@ -6,7 +6,17 @@ OBIORA_INSTALL_DIR="${OBIORA_INSTALL_DIR:-/opt/obiora-panel}"
 OBIORA_USER="${OBIORA_USER:-obiora}"
 OBIORA_GROUP="${OBIORA_GROUP:-obiora}"
 OBIORA_UPDATE_HISTORY_ID="${OBIORA_UPDATE_HISTORY_ID:-}"
+UPDATE_LOCK="${OBIORA_INSTALL_DIR}/storage/framework/obiora-update.lock"
 LAST_PROGRESS=8
+
+release_update_lock() {
+    rm -f "${UPDATE_LOCK}"
+}
+
+acquire_update_lock() {
+    mkdir -p "$(dirname "${UPDATE_LOCK}")"
+    touch "${UPDATE_LOCK}"
+}
 
 # ID historique MAJ passé en 1er argument par PanelUpdater (via sudo)
 if [[ -n "${1:-}" ]] && [[ "${1}" =~ ^[0-9]+$ ]]; then
@@ -42,6 +52,7 @@ finalize_panel_http() {
         sudo -u "${OBIORA_USER}" php artisan up >/dev/null 2>&1 || true
         clear_panel_caches
     fi
+    release_update_lock
 }
 
 trap 'on_update_error ${LINENO} $?' ERR
@@ -59,6 +70,9 @@ if [[ "${EUID}" -ne 0 ]]; then
 fi
 
 cd "${OBIORA_INSTALL_DIR}"
+
+acquire_update_lock
+trap 'release_update_lock' EXIT
 
 verify_update_integrity() {
     local rel missing=0

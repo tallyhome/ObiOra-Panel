@@ -27,7 +27,13 @@ final class ServerManager
         $id = session('current_server_id');
 
         if ($id) {
-            return Server::query()->find($id);
+            $server = Server::query()->find($id);
+
+            if ($server !== null) {
+                return $server;
+            }
+
+            session()->forget('current_server_id');
         }
 
         return Server::query()->where('is_master', true)->first();

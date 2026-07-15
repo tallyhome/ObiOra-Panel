@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.12 - 2026-07-15
+
+- Fix install AlmaLinux : conflit Nginx `duplicate default server` (nginx.conf + obiora-panel)
+- Bootstrap install : messages clairs (git, GPG, clone) sans défilement brut dans PuTTY
+- Docker / systemctl : sortie redirigée vers le journal pendant l'install
+- MAJ panel : page « mise à jour en cours » (plus de flash HTTP 500) via verrou `obiora-update.lock`
+- Dashboard : métriques locales si serveur maître absent ou session serveur invalide
+
 ## v2.7.11 - 2026-07-15
 
 - Installateur : choix interactif au démarrage — install standard (1) ou complète + MAJ système (2)

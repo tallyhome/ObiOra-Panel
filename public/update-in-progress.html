@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="refresh" content="12">
+    <title>ObiOra Panel — mise à jour</title>
+    <style>
+        body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .box { max-width: 34rem; padding: 2rem; background: #1e293b; border-radius: 12px; text-align: center; border: 1px solid #334155; }
+        h1 { font-size: 1.25rem; margin: 0 0 1rem; color: #3dd68c; }
+        p { color: #94a3b8; line-height: 1.6; margin: 0.5rem 0; }
+        .bar { height: 8px; background: #334155; border-radius: 4px; overflow: hidden; margin: 1.25rem 0; }
+        .bar > span { display: block; height: 100%; width: 45%; background: linear-gradient(90deg, #3dd68c, #38bdf8); animation: pulse 1.8s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+        .hint { margin-top: 1.25rem; color: #64748b; font-size: 0.875rem; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>Mise à jour ObiOra Panel en cours</h1>
+        <p>Le panel met à jour son code, ses dépendances et ses assets. Cette étape dure généralement 2 à 8 minutes.</p>
+        <div class="bar"><span></span></div>
+        <p>Ne fermez pas cette page — elle se rafraîchira automatiquement.</p>
+        <p class="hint">Journal SSH : <code>tail -f /var/log/obiora-install.log</code> ou historique « Licence &amp; MAJ ».</p>
+    </div>
+</body>
+</html>

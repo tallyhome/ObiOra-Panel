@@ -74,24 +74,26 @@ install_base_packages() {
 }
 
 install_docker() {
-    info "Installation de Docker..."
     if command -v docker &>/dev/null; then
-        info "Docker déjà installé"
+        install_substep "Docker déjà installé"
         return
     fi
 
     case "$(get_pkg_manager)" in
         apt)
-            pkg_install docker.io docker-compose-plugin
+            run_quiet "Installation Docker" pkg_install docker.io docker-compose-plugin
             ;;
         dnf)
-            pkg_install dnf-plugins-core
-            dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-            pkg_install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+            install_substep "Dépôt Docker (download.docker.com)…"
+            run_quiet "dnf-plugins-core" pkg_install dnf-plugins-core
+            dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo \
+                >> "${OBIORA_LOG_FILE}" 2>&1
+            run_quiet "Installation Docker CE" pkg_install docker-ce docker-ce-cli containerd.io docker-compose-plugin
             ;;
     esac
 
-    systemctl enable docker
-    systemctl start docker
+    systemctl enable docker >> "${OBIORA_LOG_FILE}" 2>&1
+    systemctl start docker >> "${OBIORA_LOG_FILE}" 2>&1
     usermod -aG docker "${OBIORA_USER}" 2>/dev/null || true
+    install_substep "Docker installé"
 }

@@ -24,6 +24,10 @@ final class MetricsCollector
         $server ??= $this->serverManager->getCurrentServer();
 
         if ($server === null) {
+            if (PHP_OS_FAMILY === 'Linux') {
+                return $this->collectLocal();
+            }
+
             return $this->emptyMetrics();
         }
 
@@ -31,7 +35,13 @@ final class MetricsCollector
             return $this->collectLocal();
         }
 
-        return $this->collectRemote($server);
+        $remote = $this->collectRemote($server);
+
+        if (($remote['hostname'] ?? '') === 'offline' && $server->is_master) {
+            return $this->collectLocal();
+        }
+
+        return $remote;
     }
 
     /**

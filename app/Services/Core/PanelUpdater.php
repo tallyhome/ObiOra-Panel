@@ -124,6 +124,8 @@ final class PanelUpdater
             'progress_message' => 'Démarrage de la mise à jour…',
         ]);
 
+        $this->acquireUpdateLock();
+
         $panelRoot = base_path();
         $updateScript = $panelRoot.'/install/update-panel.sh';
         $helper = '/usr/local/bin/obiora-panel-update';
@@ -337,25 +339,49 @@ final class PanelUpdater
             Log::warning('Récupération artisan post-MAJ partielle', ['message' => $exception->getMessage()]);
         }
 
-        if (PHP_OS_FAMILY !== 'Linux') {
-            return;
+        if (PHP_OS_FAMILY === 'Linux') {
+            $script = base_path('install/lib/update-recover.sh');
+
+            if (is_file($script)) {
+                try {
+                    $this->executor->run(
+                        'sudo -n /bin/bash '.escapeshellarg($script).' 2>&1',
+                        ['timeout' => 120],
+                    );
+                } catch (Throwable $exception) {
+                    Log::warning('Récupération HTTP post-MAJ (systemd) ignorée', [
+                        'message' => $exception->getMessage(),
+                    ]);
+                }
+            }
         }
 
-        $script = base_path('install/lib/update-recover.sh');
+        $this->releaseUpdateLock();
+    }
 
-        if (! is_file($script)) {
-            return;
-        }
+    private function updateLockPath(): string
+    {
+        return storage_path('framework/obiora-update.lock');
+    }
 
+    private function acquireUpdateLock(): void
+    {
         try {
-            $this->executor->run(
-                'sudo -n /bin/bash '.escapeshellarg($script).' 2>&1',
-                ['timeout' => 120],
-            );
+            File::ensureDirectoryExists(storage_path('framework'));
+            File::put($this->updateLockPath(), now()->toIso8601String());
         } catch (Throwable $exception) {
-            Log::warning('Récupération HTTP post-MAJ (systemd) ignorée', [
-                'message' => $exception->getMessage(),
-            ]);
+            Log::warning('Impossible de créer le verrou MAJ', ['message' => $exception->getMessage()]);
+        }
+    }
+
+    private function releaseUpdateLock(): void
+    {
+        try {
+            if (File::exists($this->updateLockPath())) {
+                File::delete($this->updateLockPath());
+            }
+        } catch (Throwable) {
+            // best-effort
         }
     }
 }
