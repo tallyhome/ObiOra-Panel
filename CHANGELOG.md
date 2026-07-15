@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.2 - 2026-07-15
+
+### Correctifs
+
+- Migration `maintenance_windows` : colonnes `dateTime` au lieu de `timestamp` (MariaDB/MySQL — erreur 1067 `Invalid default value for ends_at`)
+- Suppression du badge de test « test MAJ v2.7.19 » sur la page Licence & MAJ
+
 ## v4.0.1 - 2026-07-15
 
 ### Fix MAJ panel

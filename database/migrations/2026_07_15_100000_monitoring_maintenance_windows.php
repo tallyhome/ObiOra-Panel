@@ -14,11 +14,11 @@ return new class extends Migration
             $table->id();
             $table->string('resource_type', 16)->default('all');
             $table->json('resource_ids')->nullable();
-            $table->timestamp('starts_at');
-            $table->timestamp('ends_at');
+            $table->dateTime('starts_at');
+            $table->dateTime('ends_at');
             $table->text('note')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamp('cancelled_at')->nullable();
+            $table->dateTime('cancelled_at')->nullable();
             $table->timestamps();
 
             $table->index(['starts_at', 'ends_at']);

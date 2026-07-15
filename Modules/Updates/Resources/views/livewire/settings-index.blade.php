@@ -2,7 +2,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-1">Licence & Mises à jour</h1>
-            <p class="text-muted mb-0">AdminLicence et mises à jour GitHub Releases <span class="badge bg-success ms-1">test MAJ v2.7.19</span></p>
+            <p class="text-muted mb-0">Licence et mises à jour GitHub Releases</p>
         </div>
     </div>
 
