@@ -97,6 +97,8 @@ final class SecurityIndex extends Component
         ];
         $this->actionMessage = null;
 
+        $progress->clear($this->serverId);
+
         TriggerSecurityScanJob::dispatch($server->id);
         $this->syncScanProgress($progress);
     }

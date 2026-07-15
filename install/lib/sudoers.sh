@@ -2,6 +2,10 @@
 # Sudoers ObiOra — scripts agent sans mot de passe
 
 setup_sudoers() {
+    OBIORA_INSTALL_DIR="${OBIORA_INSTALL_DIR:-/opt/obiora-panel}"
+    OBIORA_USER="${OBIORA_USER:-obiora}"
+    OBIORA_GROUP="${OBIORA_GROUP:-obiora}"
+
     info "Configuration sudoers agent..."
 
     if declare -F ensure_agent_executables &>/dev/null; then

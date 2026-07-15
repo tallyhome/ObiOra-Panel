@@ -37,11 +37,11 @@ for env_file in "${ENV_FILE}" /etc/obiora/monitor-agent.env; do
 done
 
 if [[ -z "${OBIORA_PANEL_URL:-}" && -f /opt/obiora-panel/.env ]]; then
-    OBIORA_PANEL_URL="$(grep -E '^APP_URL=' /opt/obiora-panel/.env | head -1 | cut -d= -f2- | tr -d \"'\'')"
+    OBIORA_PANEL_URL="$(grep -E '^APP_URL=' /opt/obiora-panel/.env | head -1 | cut -d= -f2- | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")"
     export OBIORA_PANEL_URL
 fi
 
-PANEL_URL="${OBIORA_PANEL_URL:?OBIORA_PANEL_URL manquant — installez l'agent Doctor ou vérifiez /opt/obiora-doctor-agent/agent.env}"
+PANEL_URL="${OBIORA_PANEL_URL:?OBIORA_PANEL_URL manquant - installez l agent Doctor ou verifiez agent.env}"
 SERVER_ID="${OBIORA_SERVER_ID:?OBIORA_SERVER_ID manquant}"
 AGENT_TOKEN="${OBIORA_AGENT_TOKEN:?OBIORA_AGENT_TOKEN manquant}"
 API="${PANEL_URL%/}/api/v1/servers/${SERVER_ID}"

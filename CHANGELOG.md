@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.11 - 2026-07-15
+
+### Correctifs scan sécurité
+
+- **run-security-scan.sh** : syntaxe bash corrigée (guillemets `tr -d` cassés → erreur ligne 163)
+- **sudoers** : défauts `OBIORA_INSTALL_DIR` / `OBIORA_USER` + script `repair-sudoers.sh`
+- **UI Sécurité** : purge cache progression avant nouveau scan
+
 ## v4.0.10 - 2026-07-15
 
 ### Sécurité (correctif définitif scan)
