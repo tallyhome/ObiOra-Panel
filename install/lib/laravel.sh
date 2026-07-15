@@ -58,6 +58,8 @@ setup_laravel() {
     sed -i "s|^APP_ENV=.*|APP_ENV=production|" .env
     sed -i "s|^APP_DEBUG=.*|APP_DEBUG=false|" .env
     sed -i "s|^APP_URL=.*|APP_URL=${app_url}|" .env
+    sed -i "s|^APP_TIMEZONE=.*|APP_TIMEZONE=Europe/Paris|" .env
+    sed -i "s|^OBIORA_DEFAULT_TIMEZONE=.*|OBIORA_DEFAULT_TIMEZONE=Europe/Paris|" .env
     sed -i "s|^DB_CONNECTION=.*|DB_CONNECTION=mysql|" .env
     sed -i "s|^DB_HOST=.*|DB_HOST=127.0.0.1|" .env
     sed -i "s|^DB_PORT=.*|DB_PORT=3306|" .env

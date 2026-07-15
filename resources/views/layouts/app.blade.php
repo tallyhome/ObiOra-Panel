@@ -31,8 +31,11 @@
                 @auth
                     @if(auth()->user()->is_demo && auth()->user()->demo_expires_at)
                         <div class="alert alert-info py-2 mb-3 small" role="status">
-                            {{ __('panel.demo.banner', ['date' => auth()->user()->demo_expires_at->format('d/m/Y à H:i')]) }}
-                            @if(auth()->user()->demoExpiresInHours() !== null && auth()->user()->demoExpiresInHours() <= 2)
+                            {{ __('panel.demo.banner', ['date' => auth()->user()->demoExpiresAtLabel()]) }}
+                            @if(auth()->user()->demoRemainingLabel() !== '')
+                                <span class="ms-1">{{ __('panel.demo.remaining', ['time' => auth()->user()->demoRemainingLabel()]) }}</span>
+                            @endif
+                            @if(auth()->user()->demoExpiresInMinutes() !== null && auth()->user()->demoExpiresInMinutes() <= 30)
                                 <strong class="ms-1">{{ __('panel.demo.soon') }}</strong>
                             @endif
                         </div>

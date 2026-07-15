@@ -6,6 +6,8 @@ return [
 
     'name' => env('OBIORA_NAME', 'ObiOra Panel'),
 
+    'public_url' => rtrim((string) env('OBIORA_PUBLIC_URL', env('APP_URL', 'http://localhost')), '/'),
+
     'version' => ltrim(trim((string) @file_get_contents(dirname(__DIR__).'/VERSION')), 'v') ?: '1.9.2',
 
     'installation_uuid' => env('OBIORA_INSTALLATION_UUID'),
@@ -104,5 +106,7 @@ return [
 
     'locales' => ['fr', 'en', 'de', 'es'],
     'default_locale' => env('OBIORA_DEFAULT_LOCALE', 'fr'),
+
+    'default_timezone' => env('OBIORA_DEFAULT_TIMEZONE', 'Europe/Paris'),
 
 ];

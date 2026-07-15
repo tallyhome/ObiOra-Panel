@@ -8,6 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Services\Demo\DemoAccountService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 final class DemoAccountController extends Controller
 {
@@ -24,7 +26,18 @@ final class DemoAccountController extends Controller
         $ttl = $validated['ttl_hours'] ?? (int) config('obiora.site_api.demo_ttl_hours', 24);
         $name = $validated['name'] ?? explode('@', $validated['email'])[0];
 
-        $account = $this->service->create($validated['email'], $name, $ttl);
+        try {
+            $account = $this->service->create($validated['email'], $name, $ttl);
+        } catch (Throwable $e) {
+            Log::error('Demo account creation failed', [
+                'email' => $validated['email'],
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'error' => 'Impossible de créer le compte démo. Vérifiez que les migrations panel sont à jour (php artisan migrate).',
+            ], 503);
+        }
 
         return response()->json($account, 201);
     }

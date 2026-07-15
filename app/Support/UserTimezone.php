@@ -19,7 +19,7 @@ final class UserTimezone
             return $tz;
         }
 
-        return 'UTC';
+        return config('obiora.default_timezone', 'Europe/Paris');
     }
 
     public static function now(?\App\Models\User $user = null): Carbon

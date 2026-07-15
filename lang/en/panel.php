@@ -24,6 +24,7 @@ return [
     ],
     'demo' => [
         'banner' => 'Demo account — expires :date',
+        'remaining' => '— :time left',
         'soon' => '(ending soon)',
     ],
     'auth' => [

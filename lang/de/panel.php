@@ -24,6 +24,7 @@ return [
     ],
     'demo' => [
         'banner' => 'Demo-Konto — läuft ab am :date',
+        'remaining' => '— noch :time',
         'soon' => '(bald abgelaufen)',
     ],
     'auth' => [

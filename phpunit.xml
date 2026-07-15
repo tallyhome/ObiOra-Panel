@@ -19,6 +19,8 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <env name="APP_TIMEZONE" value="UTC"/>
+        <env name="OBIORA_DEFAULT_TIMEZONE" value="Europe/Paris"/>
         <env name="APP_KEY" value="base64:2fl+Ktvk6VDLsQLO3gXnXwL0p5qG8mR9vT3yU6zA1bE="/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>

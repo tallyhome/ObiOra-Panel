@@ -35,7 +35,10 @@ final class DemoAccountTest extends TestCase
             ]);
 
         $response->assertCreated()
-            ->assertJsonPath('email', 'visitor@example.com');
+            ->assertJsonPath('email', 'visitor@example.com')
+            ->assertJsonStructure(['login_url']);
+
+        $this->assertStringContainsString('/demo/enter/', (string) $response->json('login_url'));
 
         $user = User::query()->findOrFail($response->json('user_id'));
         $this->assertTrue($user->is_demo);
