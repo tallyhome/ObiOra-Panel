@@ -31,6 +31,7 @@ final class MonitoringIndex extends Component
             'initialAlerts' => $fleet->unreadAlerts(),
             'witnessSummary' => $witness->fleetSummary(),
             'witnessAnomalies' => $witness->anomalyCount(),
+            'witnessStaleCount' => $witness->staleWitnessCount(),
         ]);
     }
 }

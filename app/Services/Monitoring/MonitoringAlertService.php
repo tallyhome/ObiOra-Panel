@@ -9,6 +9,7 @@ use App\Models\DiagnosticReport;
 use App\Models\MonitoringAlert;
 use App\Models\Server;
 use App\Models\User;
+use App\Support\CrashAnalyzerEventFingerprint;
 use App\Notifications\CriticalDiagnosticNotification;
 use App\Notifications\SslExpiryNotification;
 use Illuminate\Support\Facades\Notification;
@@ -57,6 +58,8 @@ final class MonitoringAlertService
     public function recordCrashEvent(Server $server, CrashAnalyzerEvent $event): void
     {
         $eventType = (string) $event->event_type;
+        $details = (string) ($event->details ?? '');
+        $fingerprint = CrashAnalyzerEventFingerprint::from($eventType, $details);
         $dedupeMinutes = max(5, (int) config('crash_analyzer.alert_dedupe_minutes', 60));
 
         $duplicate = MonitoringAlert::query()
@@ -65,8 +68,16 @@ final class MonitoringAlertService
             ->whereNull('read_at')
             ->where('created_at', '>=', now()->subMinutes($dedupeMinutes))
             ->get()
-            ->contains(function (MonitoringAlert $alert) use ($eventType): bool {
-                return (string) (($alert->payload ?? [])['event_type'] ?? '') === $eventType;
+            ->contains(function (MonitoringAlert $alert) use ($fingerprint, $eventType): bool {
+                $payload = $alert->payload ?? [];
+                $alertFingerprint = (string) ($payload['fingerprint'] ?? '');
+
+                if ($alertFingerprint !== '' && $alertFingerprint === $fingerprint) {
+                    return true;
+                }
+
+                return $alertFingerprint === ''
+                    && (string) ($payload['event_type'] ?? '') === $eventType;
             });
 
         if ($duplicate) {
@@ -78,10 +89,11 @@ final class MonitoringAlertService
             type: 'crash_analyzer',
             severity: $event->severity === 'critical' ? 'critical' : 'warning',
             title: $event->title,
-            message: $event->details ?? '',
+            message: $details,
             payload: [
                 'event_type' => $eventType,
                 'event_id' => $event->id,
+                'fingerprint' => $fingerprint,
             ],
         );
     }

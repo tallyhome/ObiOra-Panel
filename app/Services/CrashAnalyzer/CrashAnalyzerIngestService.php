@@ -11,6 +11,7 @@ use App\Models\CrashAnalyzerEvent;
 use App\Models\CrashAnalyzerMetric;
 use App\Models\CrashAnalyzerReport;
 use App\Models\Server;
+use App\Support\CrashAnalyzerEventFingerprint;
 use App\Services\Diagnostics\DiagnosticsAgentVersionService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -87,7 +88,7 @@ final class CrashAnalyzerIngestService
         $eventType = (string) ($event['event_type'] ?? 'unknown');
         $title = (string) ($event['title'] ?? 'Événement');
         $details = (string) ($event['details'] ?? '');
-        $fingerprint = $this->eventFingerprint($eventType, $details);
+        $fingerprint = CrashAnalyzerEventFingerprint::from($eventType, $details);
 
         $dedupeMinutes = max(5, (int) config('crash_analyzer.alert_dedupe_minutes', 60));
 
@@ -96,7 +97,7 @@ final class CrashAnalyzerIngestService
             ->where('event_type', $eventType)
             ->where('detected_at', '>=', $detectedAt->copy()->subMinutes($dedupeMinutes))
             ->get()
-            ->first(fn (CrashAnalyzerEvent $row) => $this->eventFingerprint($row->event_type, $row->details) === $fingerprint);
+            ->first(fn (CrashAnalyzerEvent $row) => CrashAnalyzerEventFingerprint::from($row->event_type, $row->details) === $fingerprint);
 
         if ($existing !== null) {
             return $existing;
@@ -194,15 +195,4 @@ final class CrashAnalyzerIngestService
         return CrashAnalyzerMetric::query()->where('server_id', $server->id)->exists();
     }
 
-    private function eventFingerprint(string $eventType, string $details): string
-    {
-        $normalized = preg_replace('/\[[^\]]+\]\s*/', '', trim($details)) ?? trim($details);
-        $normalized = preg_replace('/\s+/', ' ', $normalized) ?? $normalized;
-
-        if ($eventType === 'oom_killer' && preg_match('/Killed process\s+(\d+)\s+\(([^)]+)\)/i', $normalized, $matches)) {
-            return $eventType.':pid='.$matches[1].':proc='.strtolower($matches[2]);
-        }
-
-        return hash('sha256', $eventType.':'.$normalized);
-    }
 }

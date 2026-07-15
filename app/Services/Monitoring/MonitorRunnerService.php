@@ -113,7 +113,10 @@ final class MonitorRunnerService
             ->where('checked_at', '>=', $from)
             ->where('checked_at', '<=', $to)
             ->orderBy('checked_at')
+            ->limit(2000)
             ->get();
+
+        $checks = $this->downsampleChecks($checks, 400);
 
         $categories = [];
         $values = [];
@@ -152,7 +155,7 @@ final class MonitorRunnerService
             ->get();
 
         if ($checks->isEmpty()) {
-            return array_fill(0, $slots, $this->timelineSegment('nodata'));
+            return array_fill(0, $slots, $this->timelineSegment('nodata', $from, $from));
         }
 
         $fromTs = $from->timestamp;
@@ -185,24 +188,28 @@ final class MonitorRunnerService
 
         for ($i = 0; $i < $slots; $i++) {
             $bucket = $buckets[$i];
+            $segmentStart = $from->copy()->addSeconds((int) round($i * $bucketSeconds));
+            $segmentEnd = $from->copy()->addSeconds((int) round(($i + 1) * $bucketSeconds));
 
             if ($bucket === null) {
-                $segments[] = $this->timelineSegment('nodata');
+                $segments[] = $this->timelineSegment('nodata', $segmentStart, $segmentEnd);
             } elseif ($bucket['down'] > 0) {
                 $lastKnown = 'down';
                 $lastDataIndex = $i;
-                $segments[] = $this->timelineSegment('down');
+                $segments[] = $this->timelineSegment('down', $segmentStart, $segmentEnd);
             } else {
                 $lastKnown = 'up';
                 $lastDataIndex = $i;
-                $segments[] = $this->timelineSegment('up');
+                $segments[] = $this->timelineSegment('up', $segmentStart, $segmentEnd);
             }
         }
 
         if ($lastDataIndex !== null && $lastKnown !== 'nodata') {
             for ($i = $lastDataIndex + 1; $i < $slots; $i++) {
                 if (($buckets[$i] ?? null) === null) {
-                    $segments[$i] = $this->timelineSegment($lastKnown);
+                    $segmentStart = $from->copy()->addSeconds((int) round($i * $bucketSeconds));
+                    $segmentEnd = $from->copy()->addSeconds((int) round(($i + 1) * $bucketSeconds));
+                    $segments[$i] = $this->timelineSegment($lastKnown, $segmentStart, $segmentEnd);
                 }
             }
         }
@@ -211,14 +218,24 @@ final class MonitorRunnerService
     }
 
     /**
+     * @return list<array{label: string, percent: float}>
+     */
+    public function statusTimelineAxis(Carbon $from, Carbon $to, string $preset): array
+    {
+        return $this->periods->timelineAxisLabels($from, $to, $preset);
+    }
+
+    /**
      * @return array{status: string, color: string, title: string}
      */
-    private function timelineSegment(string $status): array
+    private function timelineSegment(string $status, Carbon $start, Carbon $end): array
     {
+        $range = UserTimezone::format($start, 'H:i').' – '.UserTimezone::format($end, 'H:i');
+
         return match ($status) {
-            'up' => ['status' => 'up', 'color' => '#22c55e', 'title' => 'Up'],
-            'down' => ['status' => 'down', 'color' => '#ef4444', 'title' => 'Down'],
-            default => ['status' => 'nodata', 'color' => '#6b7280', 'title' => 'Pas de données'],
+            'up' => ['status' => 'up', 'color' => '#22c55e', 'title' => "Up · {$range}"],
+            'down' => ['status' => 'down', 'color' => '#ef4444', 'title' => "Down · {$range}"],
+            default => ['status' => 'nodata', 'color' => '#6b7280', 'title' => "Pas de données · {$range}"],
         };
     }
 
@@ -272,5 +289,23 @@ final class MonitorRunnerService
             'avg_tcp_ms' => $tcpValues->isEmpty() ? null : (int) round($tcpValues->avg()),
             'avg_ttfb_ms' => $ttfbValues->isEmpty() ? null : (int) round($ttfbValues->avg()),
         ];
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, MonitorCheck>  $checks
+     * @return \Illuminate\Support\Collection<int, MonitorCheck>
+     */
+    private function downsampleChecks(\Illuminate\Support\Collection $checks, int $maxPoints): \Illuminate\Support\Collection
+    {
+        if ($checks->count() <= $maxPoints) {
+            return $checks;
+        }
+
+        $step = (int) ceil($checks->count() / $maxPoints);
+        $sampled = $checks->values()->filter(
+            fn (MonitorCheck $check, int $index) => $index % $step === 0 || $index === $checks->count() - 1,
+        );
+
+        return $sampled->values();
     }
 }

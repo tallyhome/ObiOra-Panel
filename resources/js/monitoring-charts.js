@@ -4,6 +4,7 @@
 import {
     obioraRenderAreaChart,
     obioraRenderLineChart,
+    obioraRenderLoadChart,
     obioraRenderResponseChart,
     obioraParseChartData,
 } from './obiora-charts';
@@ -51,6 +52,17 @@ function renderLine(el, categories, series, options = {}) {
     storeChart(el, chart);
 }
 
+function renderLoad(el, categories, series, options = {}) {
+    if (!el) {
+        return;
+    }
+
+    destroyChart(el);
+    const chart = obioraRenderLoadChart(el, categories, series, options);
+
+    storeChart(el, chart);
+}
+
 export function obioraInitMonitorCharts() {
     const el = document.getElementById('monitor-response-chart');
 
@@ -82,7 +94,7 @@ export function obioraInitServerMetricsCharts() {
     renderArea(document.getElementById('chart-cpu'), 'CPU', s.cpu?.categories || [], s.cpu?.values || [], '#3b82f6');
     renderArea(document.getElementById('chart-memory'), 'Memory', s.memory?.categories || [], s.memory?.values || [], '#22c55e');
     renderArea(document.getElementById('chart-disk'), 'Disk', s.disk?.categories || [], s.disk?.values || [], '#f59e0b');
-    renderLine(document.getElementById('chart-load'), s.load?.categories || [], s.load?.series || []);
+    renderLoad(document.getElementById('chart-load'), s.load?.categories || [], s.load?.series || []);
 
     renderArea(document.getElementById('chart-cpu-tab'), 'CPU', s.cpu?.categories || [], s.cpu?.values || [], '#3b82f6', { height: 280 });
     renderArea(document.getElementById('chart-steal-tab'), 'CPU Steal', s.cpu_steal?.categories || [], s.cpu_steal?.values || [], '#ef4444');

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Monitoring;
 
+use App\Support\UserTimezone;
 use Illuminate\Support\Carbon;
 
 /**
@@ -91,5 +92,43 @@ final class MonitoringPeriodResolver
             '7d' => 84,
             default => 72,
         };
+    }
+
+    /**
+     * Repères temporels sous la barre Up/Down (positions en %).
+     *
+     * @return list<array{label: string, percent: float}>
+     */
+    public function timelineAxisLabels(Carbon $from, Carbon $to, string $preset): array
+    {
+        $presetKey = strtolower($preset);
+        $ticks = match ($presetKey) {
+            '1h' => 7,
+            '6h' => 7,
+            '24h' => 8,
+            '3d' => 7,
+            '7d' => 7,
+            default => 6,
+        };
+
+        $duration = max(60, $to->timestamp - $from->timestamp);
+        $labels = [];
+
+        for ($i = 0; $i < $ticks; $i++) {
+            $ratio = $ticks === 1 ? 0.0 : $i / ($ticks - 1);
+            $at = $from->copy()->addSeconds((int) round($duration * $ratio));
+            $format = match (true) {
+                $duration <= 86400 => 'H:i',
+                $duration <= 604800 => 'd/m H:i',
+                default => 'd/m',
+            };
+
+            $labels[] = [
+                'label' => UserTimezone::format($at, $format),
+                'percent' => round($ratio * 100, 2),
+            ];
+        }
+
+        return $labels;
     }
 }

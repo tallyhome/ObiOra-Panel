@@ -518,11 +518,14 @@
                     @endif
                     @if(!empty($item['actions']))
                         <p class="small fw-medium mb-1">Que faire :</p>
-                        <ul class="small mb-0">
+                        <ul class="small mb-2">
                             @foreach($item['actions'] as $action)
                             <li>{{ $action }}</li>
                             @endforeach
                         </ul>
+                        @if(($item['kind'] ?? '') === 'freeze')
+                            <a href="#crash-hunter-black-box" class="btn btn-outline-warning btn-sm">Voir Black Box &amp; snapshots</a>
+                        @endif
                     @endif
                 </div>
                 @endforeach
@@ -707,7 +710,7 @@
     @php($hunterInsights = $overview['crash_hunter']['latest_report_insights'] ?? null)
     <div class="row g-4 mt-1">
         <div class="col-12">
-            <div class="card obiora-card border-warning border-opacity-50">
+            <div class="card obiora-card border-warning border-opacity-50" id="crash-hunter-black-box">
                 <div class="card-header">CrashHunter Enterprise — Black Box &amp; Witness</div>
                 <div class="card-body">
                     <div class="row g-3 mb-3">

@@ -14,6 +14,12 @@ final class PanelInfrastructure
 {
     private static ?bool $redisAvailable = null;
 
+    private static int $redisCheckedAt = 0;
+
+    private const REDIS_SUCCESS_TTL_SECONDS = 15;
+
+    private const REDIS_FAILURE_RETRY_SECONDS = 2;
+
     public static function isReady(bool $forceCheck = false): bool
     {
         return PanelDatabase::isAvailable($forceCheck) && self::isRedisAvailable($forceCheck);
@@ -49,7 +55,7 @@ final class PanelInfrastructure
             return true;
         }
 
-        if (! $forceCheck && self::$redisAvailable !== null) {
+        if (! $forceCheck && self::$redisAvailable !== null && self::redisCacheValid()) {
             return self::$redisAvailable;
         }
 
@@ -60,6 +66,8 @@ final class PanelInfrastructure
             self::$redisAvailable = false;
         }
 
+        self::$redisCheckedAt = time();
+
         return self::$redisAvailable;
     }
 
@@ -67,5 +75,17 @@ final class PanelInfrastructure
     {
         PanelDatabase::resetCache();
         self::$redisAvailable = null;
+        self::$redisCheckedAt = 0;
+    }
+
+    private static function redisCacheValid(): bool
+    {
+        if (self::$redisCheckedAt === 0) {
+            return false;
+        }
+
+        $ttl = self::$redisAvailable ? self::REDIS_SUCCESS_TTL_SECONDS : self::REDIS_FAILURE_RETRY_SECONDS;
+
+        return (time() - self::$redisCheckedAt) < $ttl;
     }
 }

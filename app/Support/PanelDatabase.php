@@ -13,9 +13,15 @@ final class PanelDatabase
 {
     private static ?bool $available = null;
 
+    private static int $checkedAt = 0;
+
+    private const SUCCESS_TTL_SECONDS = 15;
+
+    private const FAILURE_RETRY_SECONDS = 2;
+
     public static function isAvailable(bool $forceCheck = false): bool
     {
-        if (! $forceCheck && self::$available !== null) {
+        if (! $forceCheck && self::$available !== null && self::cacheValid()) {
             return self::$available;
         }
 
@@ -30,11 +36,25 @@ final class PanelDatabase
             self::$available = false;
         }
 
+        self::$checkedAt = time();
+
         return self::$available;
     }
 
     public static function resetCache(): void
     {
         self::$available = null;
+        self::$checkedAt = 0;
+    }
+
+    private static function cacheValid(): bool
+    {
+        if (self::$checkedAt === 0) {
+            return false;
+        }
+
+        $ttl = self::$available ? self::SUCCESS_TTL_SECONDS : self::FAILURE_RETRY_SECONDS;
+
+        return (time() - self::$checkedAt) < $ttl;
     }
 }

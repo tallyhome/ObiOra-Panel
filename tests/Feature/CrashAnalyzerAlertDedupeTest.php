@@ -104,4 +104,30 @@ final class CrashAnalyzerAlertDedupeTest extends TestCase
         $this->assertSame(1, CrashAnalyzerEvent::query()->where('server_id', $server->id)->count());
         Event::assertDispatchedTimes(CrashDetected::class, 1);
     }
+
+    public function test_ingest_event_dedupes_oom_same_process_different_pids(): void
+    {
+        Event::fake([CrashDetected::class]);
+
+        $server = Server::factory()->create(['agent_token' => str_repeat('z', 64)]);
+        $service = app(\App\Services\CrashAnalyzer\CrashAnalyzerIngestService::class);
+
+        $base = [
+            'event_type' => 'oom_killer',
+            'severity' => 'critical',
+            'title' => 'OOM Killer',
+            'detected_at' => now()->timestamp,
+            'payload' => [],
+        ];
+
+        $service->ingestEvent($server, array_merge($base, [
+            'details' => '[Wed Jul 15 17:00:43 2026] Memory cgroup out of memory: Killed process 581352 (crashhunter)',
+        ]));
+        $service->ingestEvent($server, array_merge($base, [
+            'details' => '[Wed Jul 15 17:00:44 2026] Memory cgroup out of memory: Killed process 605999 (crashhunter)',
+        ]));
+
+        $this->assertSame(1, CrashAnalyzerEvent::query()->where('server_id', $server->id)->count());
+        Event::assertDispatchedTimes(CrashDetected::class, 1);
+    }
 }

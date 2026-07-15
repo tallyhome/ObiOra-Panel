@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.3 - 2026-07-15
+
+### Correctifs & UX monitoring
+
+- **OOM / Crash Analyzer** : déduplication par processus (plus par PID) — une seule alerte au lieu de dizaines pour le même OOM `crashhunter`
+- **Statut Up/Down** : repères horaires sous la barre (1H, 6H, 24H…) + infobulle plage par segment
+- **Graphiques serveur & flotte** : axes temps lisibles (CPU/RAM/disk, load average en courbes lisses, ping/score datetime)
+- **Moniteur** : historique 200 checks chargé à la demande ; downsampling des séries temps de réponse
+- **Scan sécurité** : lancement asynchrone (queue) — le panel ne bloque plus 5 min sur « démarrage en cours »
+- **Witness dead** : aide install/réparation + lien Black Box (Doctor & Suite)
+- **MariaDB petits VPS** : `innodb_buffer_pool_size` auto (256M si ≤4 Go RAM) — install + script `agent/scripts/mariadb-tune-panel.sh`
+- **Page « démarrage en cours » bloquée** : cache santé DB/Redis avec retry 2 s (plus de worker PHP-FPM figé en 503) ; refresh 5 s + bouton Réessayer
+
 ## v4.0.2 - 2026-07-15
 
 ### Correctifs

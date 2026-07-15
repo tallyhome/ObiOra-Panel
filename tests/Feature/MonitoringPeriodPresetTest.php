@@ -41,9 +41,11 @@ final class MonitoringPeriodPresetTest extends TestCase
         $range = $runner->resolvePreset('1h');
         $stats = $runner->statsForPeriod($monitor, $range['from'], $range['to']);
         $timeline = $runner->statusTimelineForPeriod($monitor, $range['from'], $range['to'], '1h');
+        $axis = $runner->statusTimelineAxis($range['from'], $range['to'], '1h');
 
         $this->assertSame(1, $stats['checks_total']);
         $this->assertCount(60, $timeline, 'La timeline 1H doit avoir 60 segments.');
+        $this->assertGreaterThanOrEqual(5, count($axis), 'La timeline 1H doit exposer des repères temporels.');
         $this->assertNotEmpty(array_filter($timeline, fn (array $s) => $s['status'] === 'up'));
 
         $last = $timeline[array_key_last($timeline)];

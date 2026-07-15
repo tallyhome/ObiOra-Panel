@@ -48,19 +48,22 @@ final class MonitoringMonitorShow extends Component
         $visits->ensureTrackToken($this->monitor->refresh());
 
         $recentChecksLimit = max(1, (int) config('monitoring.recent_checks_display_limit', 200));
+        $recentChecks = collect();
 
-        $recentChecks = MonitorCheck::query()
-            ->where('monitor_id', $this->monitor->id)
-            ->orderByDesc('checked_at')
-            ->limit($recentChecksLimit)
-            ->get()
-            ->map(fn (MonitorCheck $check) => [
-                'status' => $check->status,
-                'response_ms' => $check->response_ms,
-                'checked_at' => UserTimezone::format($check->checked_at, 'd/m/Y H:i:s'),
-                'error' => $check->metrics['error'] ?? ($check->status === 'down' ? ($check->metrics['http_code'] ?? '—') : null),
-                'http_code' => $check->metrics['http_code'] ?? null,
-            ]);
+        if ($this->recentChecksOpen) {
+            $recentChecks = MonitorCheck::query()
+                ->where('monitor_id', $this->monitor->id)
+                ->orderByDesc('checked_at')
+                ->limit($recentChecksLimit)
+                ->get()
+                ->map(fn (MonitorCheck $check) => [
+                    'status' => $check->status,
+                    'response_ms' => $check->response_ms,
+                    'checked_at' => UserTimezone::format($check->checked_at, 'd/m/Y H:i:s'),
+                    'error' => $check->metrics['error'] ?? ($check->status === 'down' ? ($check->metrics['http_code'] ?? '—') : null),
+                    'http_code' => $check->metrics['http_code'] ?? null,
+                ]);
+        }
 
         return view('monitoring::livewire.monitoring-monitor-show', [
             'stats' => $stats,
@@ -69,6 +72,7 @@ final class MonitoringMonitorShow extends Component
             'embedSnippet' => $visits->embedSnippet($this->monitor),
             'chartSeries' => $runner->chartSeriesForPeriod($this->monitor, $range['from'], $range['to']),
             'statusTimeline' => $runner->statusTimelineForPeriod($this->monitor, $range['from'], $range['to'], $range['preset'] ?? $this->timePreset),
+            'statusTimelineAxis' => $runner->statusTimelineAxis($range['from'], $range['to'], $range['preset'] ?? $this->timePreset),
             'recentChecks' => $recentChecks,
             'recentChecksLimit' => $recentChecksLimit,
             'timePreset' => $this->timePreset,

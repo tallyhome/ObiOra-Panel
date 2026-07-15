@@ -29,6 +29,10 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        if (config('cache.default') === 'redis' && ! extension_loaded('redis')) {
+            config(['cache.default' => 'database']);
+        }
+
         $this->app->singleton(SystemExecutorInterface::class, LocalExecutor::class);
         $this->app->singleton(LicenseValidatorInterface::class, LicenseManager::class);
         $this->app->singleton(ServerManager::class);

@@ -343,6 +343,7 @@
 </template>
 
 <script setup>
+import { fleetAreaChartOptions, fleetLineChartOptions, isoPoints } from './chart-utils';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import ApexCharts from 'apexcharts';
 
@@ -740,26 +741,16 @@ async function dismissAlert(alertId) {
 function renderPingChart(samples) {
   if (!pingChart.value) return;
   if (pingChartInstance) pingChartInstance.destroy();
-  pingChartInstance = new ApexCharts(pingChart.value, {
-    chart: { type: 'area', height: 280, toolbar: { show: false } },
-    series: [{ name: 'ms', data: samples.map((s) => s.latency_ms ?? 0) }],
-    xaxis: { categories: samples.map((s) => s.at?.slice(11, 19) || '') },
-    stroke: { curve: 'smooth' },
-    colors: ['#0d6efd'],
-  });
+  const points = isoPoints(samples, 'latency_ms');
+  pingChartInstance = new ApexCharts(pingChart.value, fleetAreaChartOptions('Latence ms', points, '#0d6efd'));
   pingChartInstance.render();
 }
 
 function renderScoreChart(reports) {
   if (!scoreChart.value) return;
   if (scoreChartInstance) scoreChartInstance.destroy();
-  scoreChartInstance = new ApexCharts(scoreChart.value, {
-    chart: { type: 'line', height: 280, toolbar: { show: false } },
-    series: [{ name: 'Score %', data: reports.map((r) => r.score) }],
-    xaxis: { categories: reports.map((r) => r.at?.slice(0, 16) || '') },
-    yaxis: { min: 0, max: 100 },
-    colors: ['#198754'],
-  });
+  const points = isoPoints(reports, 'score');
+  scoreChartInstance = new ApexCharts(scoreChart.value, fleetLineChartOptions('Score %', points, '#198754', 100));
   scoreChartInstance.render();
 }
 

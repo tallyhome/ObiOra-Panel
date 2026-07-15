@@ -135,6 +135,13 @@
                     <div class="flex-fill rounded-1" style="background:{{ $segment['color'] }}; min-width:3px;" title="{{ $segment['title'] }}"></div>
                 @endforeach
             </div>
+            @if(!empty($statusTimelineAxis))
+            <div class="position-relative mt-2" style="height:1.25rem;">
+                @foreach($statusTimelineAxis as $tick)
+                    <span class="position-absolute small text-muted text-nowrap" style="left:{{ $tick['percent'] }}%; transform:translateX(-50%); font-size:0.7rem;">{{ $tick['label'] }}</span>
+                @endforeach
+            </div>
+            @endif
         </div>
     </div>
 

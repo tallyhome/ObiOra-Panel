@@ -24,7 +24,7 @@ export function obioraApexTooltip() {
         style: {
             fontSize: '12px',
         },
-        x: { show: true },
+        x: { show: true, format: 'dd/MM HH:mm' },
     };
 }
 
@@ -34,12 +34,57 @@ export function obioraApexGrid() {
     return {
         borderColor: dark ? 'rgba(148, 163, 184, 0.15)' : 'rgba(15, 23, 42, 0.08)',
         strokeDashArray: 3,
+        padding: { left: 8, right: 8 },
     };
 }
 
 export function obioraApexChartColors() {
     return {
         foreColor: obioraIsDarkTheme() ? '#94a3b8' : '#64748b',
+    };
+}
+
+/**
+ * Axe catégories avec repères espacés (évite le bloc blanc illisible).
+ */
+export function obioraCategoryAxisOptions(categories, options = {}) {
+    const list = categories || [];
+    const maxTicks = options.maxTicks ?? 7;
+    const len = list.length;
+    const step = len > 1 ? Math.max(1, Math.floor((len - 1) / Math.max(1, maxTicks - 1))) : 1;
+    const tickIndices = new Set();
+
+    for (let i = 0; i < len; i += step) {
+        tickIndices.add(i);
+    }
+
+    if (len > 0) {
+        tickIndices.add(len - 1);
+    }
+
+    return {
+        categories: list,
+        tickAmount: Math.min(maxTicks, len),
+        labels: {
+            show: options.show !== false,
+            rotate: options.rotate ?? (len > 18 ? -35 : 0),
+            hideOverlappingLabels: true,
+            trim: true,
+            maxHeight: 56,
+            style: { fontSize: '11px' },
+            formatter(value, _timestamp, opts) {
+                const idx = opts?.i ?? opts?.dataPointIndex;
+
+                if (typeof idx === 'number' && tickIndices.has(idx)) {
+                    return value;
+                }
+
+                return '';
+            },
+        },
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+        tooltip: { enabled: true },
     };
 }
 
@@ -63,11 +108,7 @@ export function obioraRenderResponseChart(el, categories, values, options = {}) 
         },
         theme: obioraApexTheme(),
         series: [{ name: options.seriesName || 'Response ms', data: values || [] }],
-        xaxis: {
-            categories: categories || [],
-            labels: { show: false },
-            axisBorder: { show: false },
-        },
+        xaxis: obioraCategoryAxisOptions(categories || [], { maxTicks: 8 }),
         yaxis: {
             labels: {
                 formatter: (v) => (options.ySuffix ? `${v} ${options.ySuffix}` : `${v} ms`),
@@ -116,18 +157,16 @@ export function obioraRenderAreaChart(el, title, categories, values, color, opti
         },
         theme: obioraApexTheme(),
         series: [{ name: title, data: values || [] }],
-        xaxis: { categories: categories || [], labels: { show: false } },
+        xaxis: obioraCategoryAxisOptions(categories || [], { maxTicks: options.maxTicks ?? 6 }),
         yaxis: {
             min: options.yMin ?? 0,
             max: options.yMax ?? 100,
-            labels: { formatter: (v) => `${v}%` },
+            labels: { formatter: (v) => `${Math.round(v * 10) / 10}%` },
         },
         stroke: { curve: 'smooth', width: 2 },
         markers: {
-            size: 3,
-            strokeWidth: 0,
-            colors: [color],
-            hover: { size: 5 },
+            size: 0,
+            hover: { size: 4 },
         },
         colors: [color],
         fill: {
@@ -145,8 +184,12 @@ export function obioraRenderAreaChart(el, title, categories, values, color, opti
 }
 
 export function obioraRenderLineChart(el, categories, series, options = {}) {
-    if (!el || typeof ApexCharts === 'undefined') return null;
+    if (!el || typeof ApexCharts === 'undefined') {
+        return null;
+    }
+
     el.innerHTML = '';
+
     const chart = new ApexCharts(el, {
         chart: {
             type: 'line',
@@ -157,19 +200,80 @@ export function obioraRenderLineChart(el, categories, series, options = {}) {
         },
         theme: obioraApexTheme(),
         series: series || [],
-        xaxis: { categories: categories || [], labels: { show: false } },
+        xaxis: obioraCategoryAxisOptions(categories || [], { maxTicks: options.maxTicks ?? 6 }),
+        yaxis: options.yaxis || {},
         stroke: { curve: 'smooth', width: 2 },
-        markers: { size: 3, hover: { size: 5 } },
+        markers: { size: 0, hover: { size: 4 } },
+        legend: options.legend || { show: false },
+        colors: options.colors || ['#3b82f6', '#22c55e', '#f59e0b'],
         dataLabels: { enabled: false },
         grid: obioraApexGrid(),
         tooltip: obioraApexTooltip(),
     });
+
     chart.render();
+
+    return chart;
+}
+
+/**
+ * Load average — trois courbes lisses avec légende.
+ */
+export function obioraRenderLoadChart(el, categories, series, options = {}) {
+    if (!el || typeof ApexCharts === 'undefined') {
+        return null;
+    }
+
+    el.innerHTML = '';
+
+    const numeric = (series || []).flatMap((row) => (row.data || []).filter((v) => v !== null && v !== undefined));
+    const maxVal = numeric.length ? Math.max(...numeric) : 1;
+
+    const chart = new ApexCharts(el, {
+        chart: {
+            type: 'line',
+            height: options.height || 220,
+            toolbar: { show: false },
+            animations: { enabled: false },
+            ...obioraApexChartColors(),
+        },
+        theme: obioraApexTheme(),
+        series: series || [],
+        xaxis: obioraCategoryAxisOptions(categories || [], { maxTicks: 6 }),
+        yaxis: {
+            min: 0,
+            max: Math.max(2, Math.ceil(maxVal * 1.25 * 10) / 10),
+            tickAmount: 4,
+            labels: { formatter: (v) => Number(v).toFixed(1) },
+        },
+        stroke: { curve: 'smooth', width: 2.5 },
+        markers: { size: 0, hover: { size: 4 } },
+        legend: {
+            show: true,
+            position: 'top',
+            horizontalAlign: 'right',
+            fontSize: '12px',
+            markers: { width: 10, height: 10, radius: 2 },
+        },
+        colors: ['#3b82f6', '#22c55e', '#f59e0b'],
+        dataLabels: { enabled: false },
+        grid: obioraApexGrid(),
+        tooltip: {
+            ...obioraApexTooltip(),
+            y: { formatter: (v) => Number(v).toFixed(2) },
+        },
+    });
+
+    chart.render();
+
     return chart;
 }
 
 export function obioraParseChartData(el) {
-    if (!el) return {};
+    if (!el) {
+        return {};
+    }
+
     try {
         return JSON.parse(el.getAttribute('data-chart') || '{}');
     } catch {

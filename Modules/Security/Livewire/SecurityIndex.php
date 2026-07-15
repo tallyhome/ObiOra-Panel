@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Modules\Security\Livewire;
 
+use App\Jobs\Security\TriggerSecurityScanJob;
 use App\Models\Server;
 use App\Services\Core\ServerManager;
 use App\Services\Security\SecurityAuditService;
 use App\Services\Security\SecurityRemediationService;
-use App\Services\Security\SecurityScanTriggerService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -68,7 +68,7 @@ final class SecurityIndex extends Component
         $this->audit = $server ? $auditService->serverAudit($server) : [];
     }
 
-    public function runScan(SecurityScanTriggerService $trigger, ServerManager $servers, SecurityAuditService $auditService): void
+    public function runScan(ServerManager $servers, SecurityAuditService $auditService): void
     {
         abort_unless(auth()->user()?->can('modules.manage'), 403);
 
@@ -80,13 +80,12 @@ final class SecurityIndex extends Component
         }
 
         $this->scanning = true;
-        $result = $trigger->trigger($server);
+        TriggerSecurityScanJob::dispatch($server->id);
         $this->scanning = false;
-        $this->actionOk = $result['success'];
-        $this->actionMessage = $result['message'];
+        $this->actionOk = true;
+        $this->actionMessage = 'Scan sécurité lancé en arrière-plan. Actualisez la page dans 1 à 2 minutes.';
 
-        $this->dispatch('notify', type: $result['success'] ? 'success' : 'danger', message: $result['message']);
-        $this->refreshAudit($auditService, $servers);
+        $this->dispatch('notify', type: 'success', message: $this->actionMessage);
     }
 
     public function applyHardening(string $action, SecurityRemediationService $remediation, ServerManager $servers, SecurityAuditService $auditService): void

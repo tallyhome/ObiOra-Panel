@@ -30,6 +30,19 @@ setup_database() {
 
     systemctl_enable_start mariadb 2>/dev/null || systemctl_enable_start mysqld
 
+    local mariadb_tuning_lib=""
+    if [[ -n "${SCRIPT_DIR:-}" && -f "${SCRIPT_DIR}/lib/mariadb-tuning.sh" ]]; then
+        mariadb_tuning_lib="${SCRIPT_DIR}/lib/mariadb-tuning.sh"
+    elif [[ -f "${OBIORA_INSTALL_DIR:-/opt/obiora-panel}/install/lib/mariadb-tuning.sh" ]]; then
+        mariadb_tuning_lib="${OBIORA_INSTALL_DIR:-/opt/obiora-panel}/install/lib/mariadb-tuning.sh"
+    fi
+
+    if [[ -n "${mariadb_tuning_lib}" ]]; then
+        # shellcheck source=mariadb-tuning.sh
+        source "${mariadb_tuning_lib}"
+        tune_mariadb_for_panel || warn "Tuning MariaDB ignoré (non bloquant)"
+    fi
+
     # ALTER USER force la synchro du mot de passe même si l'utilisateur existe
     # déjà. On couvre localhost ET 127.0.0.1 (connexion TCP depuis Laravel).
     mysql_exec <<SQL
