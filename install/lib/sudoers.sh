@@ -54,6 +54,8 @@ ${web_user} ALL=(root) NOPASSWD: /usr/bin/systemctl is-active obiora-queue
 ${web_user} ALL=(root) NOPASSWD: /bin/systemctl start obiora-queue
 ${web_user} ALL=(root) NOPASSWD: /bin/systemctl restart obiora-queue
 ${web_user} ALL=(root) NOPASSWD: /bin/systemctl is-active obiora-queue
+${web_user} ALL=(root) NOPASSWD: /usr/bin/systemctl start obiora-doctor-agent.service
+${web_user} ALL=(root) NOPASSWD: /bin/systemctl start obiora-doctor-agent.service
 SUDOERS
         fi
     done

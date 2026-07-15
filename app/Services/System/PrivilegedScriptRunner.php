@@ -25,9 +25,8 @@ final class PrivilegedScriptRunner
             $command .= ' '.implode(' ', array_map('escapeshellarg', $args));
         }
 
-        // Les variables avant « sudo » sont ignorées par sudo (reset env).
-        // On passe par « sudo env KEY=val … » pour les options d'installation marketplace.
-        if ($env !== []) {
+        // sudoers n'autorise que le chemin script (*.sh) — pas « sudo env KEY=val script ».
+        if ($env !== [] && ! $this->needsSudo()) {
             $envPrefix = implode(' ', array_map(
                 fn (string $key, string $value): string => $key.'='.escapeshellarg($value),
                 array_keys($env),
@@ -52,13 +51,20 @@ final class PrivilegedScriptRunner
     {
         $inner = trim($command);
 
-        if ($env !== []) {
+        if ($env !== [] && ! $this->needsSudo()) {
             $envPrefix = implode(' ', array_map(
                 fn (string $key, string $value): string => $key.'='.escapeshellarg($value),
                 array_keys($env),
                 array_values($env),
             ));
             $inner = $envPrefix.' '.$inner;
+        }
+
+        if ($this->needsSudo() && preg_match('#^systemctl\s+(start|restart|is-active)\s+([^\s;&|]+)$#', $inner, $matches)) {
+            $systemctl = is_executable('/usr/bin/systemctl') ? '/usr/bin/systemctl' : '/bin/systemctl';
+            $wrapped = 'sudo -n '.escapeshellarg($systemctl).' '.$matches[1].' '.escapeshellarg($matches[2]);
+
+            return $this->executor->run($wrapped, ['timeout' => $timeout]);
         }
 
         $shell = 'bash -c '.escapeshellarg($inner);

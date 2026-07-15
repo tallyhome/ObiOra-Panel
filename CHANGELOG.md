@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.9 - 2026-07-15
+
+### Sécurité
+
+- **Scan sécurité** : `sudo env … script.sh` n'est pas autorisé par sudoers — exécution directe `sudo script.sh` + lecture `agent.env` / `monitor-agent.env`
+- **PrivilegedScriptRunner** : pas de wrapper `env` sous sudo ; `systemctl` invoqué en chemin direct
+
 ## v4.0.8 - 2026-07-15
 
 ### Sécurité

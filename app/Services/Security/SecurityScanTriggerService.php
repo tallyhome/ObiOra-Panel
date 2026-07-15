@@ -55,15 +55,10 @@ final class SecurityScanTriggerService
             ];
         }
 
-        $env = [
-            'OBIORA_PANEL_URL' => rtrim((string) config('app.url'), '/'),
-            'OBIORA_SERVER_ID' => (string) $server->id,
-            'OBIORA_AGENT_TOKEN' => (string) ($server->agent_token ?? ''),
-        ];
-
         $this->progress->update($server->id, 35, 'Exécution du script run-security-scan.sh (modules SSH, firewall, rootkits…)');
 
-        $result = $this->scripts->run($scanScript, [], 300, $env);
+        // Variables lues depuis agent.env / monitor-agent.env (sudoers = chemin script seul).
+        $result = $this->scripts->run($scanScript, [], 300);
         $this->progress->update($server->id, 85, 'Analyse des résultats et envoi du rapport Doctor…');
         $output = trim($result->output.$result->errorOutput);
         $success = $result->successful && str_contains($output, 'OK:');

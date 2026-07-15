@@ -111,5 +111,45 @@ final class PrivilegedScriptRunnerTest extends TestCase
 
         $this->assertStringContainsString('run-security-scan.sh', $executor->lastCommand);
         $this->assertStringNotContainsString('bash -c', $executor->lastCommand);
+
+        if (PHP_OS_FAMILY === 'Linux' && function_exists('posix_geteuid') && posix_geteuid() !== 0) {
+            $this->assertStringNotContainsString('env OBIORA_', $executor->lastCommand);
+            $this->assertStringContainsString('sudo -n', $executor->lastCommand);
+        }
+    }
+
+    public function test_run_command_systemctl_uses_direct_sudo_path(): void
+    {
+        if (PHP_OS_FAMILY !== 'Linux' || ! function_exists('posix_geteuid') || posix_geteuid() === 0) {
+            $this->markTestSkipped('Test sudo systemctl uniquement sur Linux non-root.');
+        }
+        $executor = new class implements SystemExecutorInterface
+        {
+            public string $lastCommand = '';
+
+            public function run(string $command, array $options = []): ProcessResult
+            {
+                $this->lastCommand = $command;
+
+                return ProcessResult::success();
+            }
+
+            public function runScript(string $path, array $args = []): ProcessResult
+            {
+                return ProcessResult::success();
+            }
+
+            public function runAsUser(string $user, string $command, array $options = []): ProcessResult
+            {
+                return ProcessResult::success();
+            }
+        };
+
+        $runner = new PrivilegedScriptRunner($executor);
+        $runner->runCommand('systemctl start obiora-doctor-agent.service', 30);
+
+        $this->assertStringContainsString('systemctl', $executor->lastCommand);
+        $this->assertStringContainsString('obiora-doctor-agent.service', $executor->lastCommand);
+        $this->assertStringNotContainsString('bash -c', $executor->lastCommand);
     }
 }

@@ -5,10 +5,17 @@ set -euo pipefail
 ENV_FILE="${OBIORA_DOCTOR_ENV:-/opt/obiora-doctor-agent/agent.env}"
 DOCTOR_DIR="${OBIORA_DOCTOR_DIR:-/opt/obiora-doctor}"
 
-# shellcheck source=/dev/null
-[[ -f "${ENV_FILE}" ]] && source "${ENV_FILE}"
+for env_file in "${ENV_FILE}" /etc/obiora/monitor-agent.env; do
+    # shellcheck source=/dev/null
+    [[ -f "${env_file}" ]] && source "${env_file}"
+done
 
-PANEL_URL="${OBIORA_PANEL_URL:?OBIORA_PANEL_URL manquant}"
+if [[ -z "${OBIORA_PANEL_URL:-}" && -f /opt/obiora-panel/.env ]]; then
+    OBIORA_PANEL_URL="$(grep -E '^APP_URL=' /opt/obiora-panel/.env | head -1 | cut -d= -f2- | tr -d \"'\'')"
+    export OBIORA_PANEL_URL
+fi
+
+PANEL_URL="${OBIORA_PANEL_URL:?OBIORA_PANEL_URL manquant — installez l'agent Doctor ou vérifiez /opt/obiora-doctor-agent/agent.env}"
 SERVER_ID="${OBIORA_SERVER_ID:?OBIORA_SERVER_ID manquant}"
 AGENT_TOKEN="${OBIORA_AGENT_TOKEN:?OBIORA_AGENT_TOKEN manquant}"
 API="${PANEL_URL%/}/api/v1/servers/${SERVER_ID}"
