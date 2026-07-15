@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.10 - 2026-07-15
+
+- Installateur : sortie dnf/apt/composer/npm redirigée vers le journal (UI étapes visible dans PuTTY)
+- Install plus rapide : plus de `dnf upgrade` complet par défaut (évite grub/kernel lent) — option `--full-upgrade`
+
 ## v2.7.9 - 2026-07-15
 
 - Fix install « File not found » : permissions web avant PHP-FPM, redémarrage FPM, user pool dans groupe `obiora`

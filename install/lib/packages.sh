@@ -5,17 +5,22 @@ INSTALL_DOCKER="${INSTALL_DOCKER:-false}"
 INSTALL_FTP="${INSTALL_FTP:-false}"
 
 install_base_packages() {
-    info "Mise à jour du système..."
-    pkg_update
-    pkg_upgrade
+    run_quiet "Synchronisation des dépôts (apt/dnf update)" pkg_update
 
-    setup_php_repo
+    if [[ "${OBIORA_FULL_SYSTEM_UPGRADE}" == "true" ]]; then
+        warn "Mise à niveau système complète (--full-upgrade) : peut mettre à jour grub/kernel (lent)."
+        run_quiet "Mise à niveau système complet (grub, kernel…)" pkg_upgrade
+    else
+        info "Mise à niveau système ignorée (défaut). Seuls les paquets ObiOra seront installés."
+        info "Pour forcer un upgrade complet : relancer avec --full-upgrade"
+    fi
 
-    info "Installation des paquets de base..."
+    install_substep "Configuration du dépôt PHP 8.3…"
+    setup_php_repo >> "${OBIORA_LOG_FILE}" 2>&1
 
     case "$(get_pkg_manager)" in
         apt)
-            pkg_install \
+            run_quiet "Installation Nginx, PHP 8.3, MariaDB, Redis…" pkg_install \
                 nginx mariadb-server redis-server \
                 php8.3 php8.3-fpm php8.3-cli php8.3-mysql php8.3-mbstring \
                 php8.3-xml php8.3-curl php8.3-zip php8.3-bcmath php8.3-intl php8.3-redis \
@@ -23,14 +28,14 @@ install_base_packages() {
                 fail2ban ufw \
                 unzip curl wget git ca-certificates gnupg tar gzip openssh-client
 
-            # Node.js 20 LTS via NodeSource
             if ! command -v node &>/dev/null; then
-                curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-                pkg_install nodejs
+                install_substep "Node.js 20 LTS (NodeSource)…"
+                curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >> "${OBIORA_LOG_FILE}" 2>&1
+                run_quiet "Installation Node.js" pkg_install nodejs
             fi
             ;;
         dnf)
-            pkg_install \
+            run_quiet "Installation Nginx, PHP 8.3, MariaDB, Redis…" pkg_install \
                 nginx mariadb-server redis \
                 php php-fpm php-cli php-mysqlnd php-mbstring \
                 php-xml php-curl php-zip php-bcmath php-intl php-pecl-redis \
@@ -39,16 +44,17 @@ install_base_packages() {
                 unzip curl wget git ca-certificates tar gzip openssh-clients
 
             if ! command -v node &>/dev/null; then
-                curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
-                pkg_install nodejs
+                install_substep "Node.js 20 LTS (NodeSource)…"
+                curl -fsSL https://rpm.nodesource.com/setup_20.x | bash - >> "${OBIORA_LOG_FILE}" 2>&1
+                run_quiet "Installation Node.js" pkg_install nodejs
             fi
             ;;
     esac
 
-    # Composer
     if ! command -v composer &>/dev/null; then
-        info "Installation de Composer..."
-        curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+        install_substep "Composer (getcomposer.org)…"
+        curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
+            >> "${OBIORA_LOG_FILE}" 2>&1
     fi
 
     # Docker (optionnel)
@@ -64,6 +70,7 @@ install_base_packages() {
         esac
     fi
 
+    install_step_redisplay
     success "Paquets installés"
 }
 

@@ -117,6 +117,7 @@ Options:
   --ftp               Installer vsftpd
   --tag TAG           Version Git à installer (défaut: ${OBIORA_TAG})
   --dir PATH          Répertoire d'installation (défaut: ${OBIORA_INSTALL_DIR})
+  --full-upgrade      Mise à niveau système complet avant install (grub/kernel, lent)
   -h, --help          Afficher cette aide
 
 OS supportés:
@@ -133,6 +134,7 @@ parse_args() {
             --ftp)     INSTALL_FTP="true"; shift ;;
             --tag)     OBIORA_TAG="$2"; shift 2 ;;
             --dir)     OBIORA_INSTALL_DIR="$2"; shift 2 ;;
+            --full-upgrade) OBIORA_FULL_SYSTEM_UPGRADE="true"; shift ;;
             -h|--help) usage; exit 0 ;;
             *) die "Option inconnue: $1" ;;
         esac

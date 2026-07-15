@@ -34,11 +34,15 @@ die() {
 # --- Affichage progression install ---
 OBIORA_INSTALL_STEP=0
 OBIORA_INSTALL_STEPS_TOTAL=12
+OBIORA_INSTALL_STEP_LABEL=""
+# Par défaut : pas de « dnf upgrade » complet (grub/kernel = très lent sur VPS).
+OBIORA_FULL_SYSTEM_UPGRADE="${OBIORA_FULL_SYSTEM_UPGRADE:-false}"
 
 install_step() {
     local n="$1"
     local label="$2"
     OBIORA_INSTALL_STEP="${n}"
+    OBIORA_INSTALL_STEP_LABEL="${label}"
     local pct=$(( n * 100 / OBIORA_INSTALL_STEPS_TOTAL ))
     printf '\n\033[1;36m┌──────────────────────────────────────────────────────────────┐\033[0m\n'
     printf '\033[1;36m│\033[0m Étape %2d/%d — %s\n' "${n}" "${OBIORA_INSTALL_STEPS_TOTAL}" "${label}"
@@ -49,6 +53,29 @@ install_step() {
         if (( i < filled )); then printf '█'; else printf '░'; fi
     done
     printf '] %3d%%\n\n' "${pct}"
+}
+
+install_step_redisplay() {
+    if [[ "${OBIORA_INSTALL_STEP}" -gt 0 && -n "${OBIORA_INSTALL_STEP_LABEL}" ]]; then
+        install_step "${OBIORA_INSTALL_STEP}" "${OBIORA_INSTALL_STEP_LABEL}"
+    fi
+}
+
+install_substep() {
+    printf '  \033[0;36m→\033[0m %s\n' "$*"
+}
+
+# Exécute une commande bruyante (dnf, composer, npm…) dans le journal, pas dans le terminal.
+run_quiet() {
+    local label="$1"
+    shift
+    install_substep "${label}"
+    install_substep "Journal : ${OBIORA_LOG_FILE}"
+    if "$@" >> "${OBIORA_LOG_FILE}" 2>&1; then
+        return 0
+    fi
+    error "Échec : ${label} — voir ${OBIORA_LOG_FILE}"
+    return 1
 }
 
 require_root() {
@@ -81,8 +108,8 @@ get_pkg_manager() {
 
 pkg_update() {
     case "$(get_pkg_manager)" in
-        apt) apt-get update -qq ;;
-        dnf) dnf check-update -q || true ;;
+        apt) apt-get update -qq "$@" ;;
+        dnf) dnf check-update -q "$@" || true ;;
     esac
 }
 
@@ -95,8 +122,8 @@ pkg_install() {
 
 pkg_upgrade() {
     case "$(get_pkg_manager)" in
-        apt) DEBIAN_FRONTEND=noninteractive apt-get upgrade -y -qq ;;
-        dnf) dnf upgrade -y -q ;;
+        apt) DEBIAN_FRONTEND=noninteractive apt-get upgrade -y -qq "$@" ;;
+        dnf) dnf upgrade -y -q "$@" ;;
     esac
 }
 

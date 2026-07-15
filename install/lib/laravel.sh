@@ -6,31 +6,30 @@ OBIORA_BRANCH="${OBIORA_BRANCH:-main}"
 OBIORA_TAG="${OBIORA_TAG:-}"
 
 clone_panel() {
-    info "Téléchargement d'ObiOra Panel..."
+    install_substep "Clone GitHub ${OBIORA_REPO}…"
 
     if [[ -d "${OBIORA_INSTALL_DIR}/.git" ]]; then
-        info "Mise à jour du dépôt existant..."
+        install_substep "Mise à jour du dépôt existant…"
         cd "${OBIORA_INSTALL_DIR}"
-        # --unshallow si nécessaire pour disposer de toutes les refs
         git config --global --add safe.directory "${OBIORA_INSTALL_DIR}" 2>/dev/null || true
         if [[ -n "${OBIORA_TAG}" ]]; then
-            git fetch --depth 1 origin "tag" "${OBIORA_TAG}" 2>/dev/null || git fetch origin
-            git checkout -f "${OBIORA_TAG}"
+            run_quiet "Git fetch tag ${OBIORA_TAG}" git fetch --depth 1 origin "tag" "${OBIORA_TAG}"
+            git checkout -f "${OBIORA_TAG}" >> "${OBIORA_LOG_FILE}" 2>&1
         else
-            git fetch --depth 1 origin "${OBIORA_BRANCH}"
-            git checkout -B "${OBIORA_BRANCH}" "origin/${OBIORA_BRANCH}"
+            run_quiet "Git fetch ${OBIORA_BRANCH}" git fetch --depth 1 origin "${OBIORA_BRANCH}"
+            git checkout -B "${OBIORA_BRANCH}" "origin/${OBIORA_BRANCH}" >> "${OBIORA_LOG_FILE}" 2>&1
         fi
         chown -R "${OBIORA_USER}:${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}"
     else
-        # Clone en root : obiora ne peut pas créer de répertoire dans /opt
         rm -rf "${OBIORA_INSTALL_DIR}"
-        git clone --depth 1 \
+        run_quiet "Git clone" git clone --depth 1 \
             ${OBIORA_TAG:+--branch "${OBIORA_TAG}"} \
             "${OBIORA_REPO}" "${OBIORA_INSTALL_DIR}"
         chown -R "${OBIORA_USER}:${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}"
         chmod 750 "${OBIORA_INSTALL_DIR}"
     fi
 
+    install_step_redisplay
     success "Code source installé dans ${OBIORA_INSTALL_DIR}"
 }
 
@@ -76,21 +75,24 @@ setup_laravel() {
     # RHEL/AlmaLinux), d'où "composer: command not found". On préserve le PATH.
     local run_as="sudo -u ${OBIORA_USER} env PATH=/usr/local/bin:/usr/bin:/bin:${PATH}"
 
-    ${run_as} composer install --no-dev --optimize-autoloader --no-interaction
+    run_quiet "Composer install (dépendances PHP)" \
+        ${run_as} composer install --no-dev --optimize-autoloader --no-interaction
 
     if ! grep -qE '^APP_KEY=base64:.+' .env 2>/dev/null; then
-        ${run_as} php artisan key:generate --force
+        run_quiet "Génération APP_KEY" ${run_as} php artisan key:generate --force
     fi
 
     if [[ ! -d node_modules ]] || [[ ! -f public/build/manifest.json ]]; then
-        ${run_as} npm ci --ignore-scripts 2>/dev/null || ${run_as} npm install
-        ${run_as} npm run build
+        install_substep "NPM install (dépendances frontend)…"
+        if ! ${run_as} npm ci --ignore-scripts >> "${OBIORA_LOG_FILE}" 2>&1; then
+            run_quiet "NPM install (fallback)" ${run_as} npm install
+        fi
+        run_quiet "NPM build (assets Vite)" ${run_as} npm run build
     else
         info "Assets frontend déjà compilés, étape npm ignorée"
     fi
 
-    # Migrations, RBAC et cache permissions (zéro intervention client)
-    ${run_as} php artisan obiora:post-deploy
+    run_quiet "Migrations et post-deploy" ${run_as} php artisan obiora:post-deploy
 
     # Permissions storage (apache sur RHEL, www-data sur Debian)
     chmod -R 775 storage bootstrap/cache
@@ -102,12 +104,13 @@ setup_laravel() {
         chown -R "${OBIORA_USER}:nginx" storage bootstrap/cache
     fi
 
-    ${run_as} php artisan storage:link 2>/dev/null || true
-    ${run_as} php artisan optimize
+    ${run_as} php artisan storage:link >> "${OBIORA_LOG_FILE}" 2>&1 || true
+    run_quiet "Optimisation Laravel (cache config/routes)" ${run_as} php artisan optimize
 
     sync_master_server
     setup_agent_config
 
+    install_step_redisplay
     success "Laravel configuré"
 }
 
