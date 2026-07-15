@@ -25,6 +25,7 @@ setup_sudoers() {
     local sudoers_file="/etc/sudoers.d/obiora-agent"
     local update_script="${OBIORA_INSTALL_DIR}/install/update-panel.sh"
     local recover_script="${OBIORA_INSTALL_DIR}/install/lib/update-recover.sh"
+    local security_scan_script="${OBIORA_INSTALL_DIR}/agent/scripts/run-security-scan.sh"
     chmod +x "${update_script}" 2>/dev/null || true
     chmod +x "${recover_script}" 2>/dev/null || true
 
@@ -37,6 +38,7 @@ ${OBIORA_USER} ALL=(root) NOPASSWD: ${recover_script}
 ${OBIORA_USER} ALL=(root) NOPASSWD: /bin/bash ${recover_script}
 ${OBIORA_USER} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/packages/*/install.sh
 ${OBIORA_USER} ALL=(root) NOPASSWD: ${OBIORA_INSTALL_DIR}/packages/*/uninstall.sh
+${OBIORA_USER} ALL=(root) NOPASSWD: ${security_scan_script}
 SUDOERS
 
     # PHP-FPM peut exécuter les scripts agent et la mise à jour panel via sudo
@@ -56,6 +58,7 @@ ${web_user} ALL=(root) NOPASSWD: /bin/systemctl restart obiora-queue
 ${web_user} ALL=(root) NOPASSWD: /bin/systemctl is-active obiora-queue
 ${web_user} ALL=(root) NOPASSWD: /usr/bin/systemctl start obiora-doctor-agent.service
 ${web_user} ALL=(root) NOPASSWD: /bin/systemctl start obiora-doctor-agent.service
+${web_user} ALL=(root) NOPASSWD: ${security_scan_script}
 SUDOERS
         fi
     done

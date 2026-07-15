@@ -19,27 +19,35 @@ final class PrivilegedScriptRunner
      */
     public function run(string $script, array $args = [], int $timeout = 120, array $env = []): ProcessResult
     {
-        $command = escapeshellarg($script);
-
-        if ($args !== []) {
-            $command .= ' '.implode(' ', array_map('escapeshellarg', $args));
+        if (! is_file($script)) {
+            return ProcessResult::failure("Script introuvable: {$script}", 127);
         }
 
-        // sudoers n'autorise que le chemin script (*.sh) — pas « sudo env KEY=val script ».
-        if ($env !== [] && ! $this->needsSudo()) {
+        $scriptPath = realpath($script) ?: $script;
+
+        if ($this->needsSudo()) {
+            $argv = array_merge(['sudo', '-n', $scriptPath], $args);
+
+            return $this->executor->run('', ['timeout' => $timeout, 'argv' => $argv]);
+        }
+
+        if ($env !== []) {
             $envPrefix = implode(' ', array_map(
                 fn (string $key, string $value): string => $key.'='.escapeshellarg($value),
                 array_keys($env),
                 array_values($env),
             ));
-            $command = 'env '.$envPrefix.' '.$command;
+            $command = 'env '.$envPrefix.' '.escapeshellarg($scriptPath);
+            if ($args !== []) {
+                $command .= ' '.implode(' ', array_map('escapeshellarg', $args));
+            }
+
+            return $this->executor->run($command, ['timeout' => $timeout]);
         }
 
-        if ($this->needsSudo()) {
-            $command = 'sudo -n '.$command;
-        }
+        $argv = array_merge([$scriptPath], $args);
 
-        return $this->executor->run($command, ['timeout' => $timeout]);
+        return $this->executor->run('', ['timeout' => $timeout, 'argv' => $argv]);
     }
 
     /**
@@ -62,9 +70,9 @@ final class PrivilegedScriptRunner
 
         if ($this->needsSudo() && preg_match('#^systemctl\s+(start|restart|is-active)\s+([^\s;&|]+)$#', $inner, $matches)) {
             $systemctl = is_executable('/usr/bin/systemctl') ? '/usr/bin/systemctl' : '/bin/systemctl';
-            $wrapped = 'sudo -n '.escapeshellarg($systemctl).' '.$matches[1].' '.escapeshellarg($matches[2]);
+            $argv = ['sudo', '-n', $systemctl, $matches[1], $matches[2]];
 
-            return $this->executor->run($wrapped, ['timeout' => $timeout]);
+            return $this->executor->run('', ['timeout' => $timeout, 'argv' => $argv]);
         }
 
         $shell = 'bash -c '.escapeshellarg($inner);

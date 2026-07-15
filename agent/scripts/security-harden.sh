@@ -12,7 +12,8 @@ usage() {
 [[ -z "${ACTION}" ]] && usage
 
 if [[ "${EUID}" -ne 0 ]]; then
-    exec sudo -n "$0" "$@"
+    script_path="$(readlink -f "${BASH_SOURCE[0]}")"
+    exec sudo -n "${script_path}" "$@"
 fi
 
 BACKUP_DIR="/var/backups/obiora-security/$(date +%Y%m%d-%H%M%S)"

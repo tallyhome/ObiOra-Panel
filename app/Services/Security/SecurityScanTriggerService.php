@@ -55,10 +55,27 @@ final class SecurityScanTriggerService
             ];
         }
 
+        $panelUrl = rtrim((string) config('app.url'), '/');
+        $token = (string) ($server->agent_token ?? '');
+
+        if ($panelUrl === '' || $token === '') {
+            return [
+                'success' => false,
+                'message' => 'Configuration incomplète (APP_URL ou token agent manquant sur le serveur).',
+                'output' => 'Vérifiez Paramètres panel et la fiche serveur (token agent).',
+            ];
+        }
+
         $this->progress->update($server->id, 35, 'Exécution du script run-security-scan.sh (modules SSH, firewall, rootkits…)');
 
-        // Variables lues depuis agent.env / monitor-agent.env (sudoers = chemin script seul).
-        $result = $this->scripts->run($scanScript, [], 300);
+        $result = $this->scripts->run($scanScript, [
+            '__obiora_env',
+            '3',
+            'OBIORA_PANEL_URL='.base64_encode($panelUrl),
+            'OBIORA_SERVER_ID='.base64_encode((string) $server->id),
+            'OBIORA_AGENT_TOKEN='.base64_encode($token),
+        ], 300);
+
         $this->progress->update($server->id, 85, 'Analyse des résultats et envoi du rapport Doctor…');
         $output = trim($result->output.$result->errorOutput);
         $success = $result->successful && str_contains($output, 'OK:');

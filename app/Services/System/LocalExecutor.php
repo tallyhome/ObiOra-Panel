@@ -17,12 +17,20 @@ final class LocalExecutor implements SystemExecutorInterface
         $timeout = (int) ($options['timeout'] ?? 120);
         $start = microtime(true);
 
-        $result = Process::timeout($timeout)->run($command);
+        if (isset($options['argv']) && is_array($options['argv']) && $options['argv'] !== []) {
+            /** @var list<string> $argv */
+            $argv = array_values($options['argv']);
+            $result = Process::timeout($timeout)->run($argv);
+            $loggedCommand = implode(' ', array_map(static fn (string $part): string => escapeshellarg($part), $argv));
+        } else {
+            $result = Process::timeout($timeout)->run($command);
+            $loggedCommand = $command;
+        }
 
         $duration = microtime(true) - $start;
 
         Log::channel('provisioning')->info('Command executed', [
-            'command' => $command,
+            'command' => $loggedCommand,
             'exit_code' => $result->exitCode(),
             'duration' => $duration,
         ]);

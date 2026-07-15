@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.10 - 2026-07-15
+
+### Sécurité (correctif définitif scan)
+
+- **sudo argv** : exécution sans shell (`sudo -n /chemin/script.sh args`) — plus de quoting cassé
+- **Credentials** : passage `__obiora_env` (base64) comme Doctor/marketplace — plus de dépendance à `agent.env`
+- **sudoers** : entrée explicite pour `run-security-scan.sh`
+- **security-harden.sh** : re-exec sudo avec chemin absolu
+
 ## v4.0.9 - 2026-07-15
 
 ### Sécurité
