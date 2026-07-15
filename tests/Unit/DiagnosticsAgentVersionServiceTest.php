@@ -59,11 +59,28 @@ final class DiagnosticsAgentVersionServiceTest extends TestCase
             $this->markTestSkipped('Agent version files unavailable');
         }
 
-        $service->stampDeployedVersions($server, ['crash_hunter', 'crash_analyzer']);
+        $service->stampDeployedVersions($server, ['crash_hunter', 'crash_analyzer', 'doctor']);
 
         $server->refresh();
         $this->assertSame($bundled['crash_hunter'], $server->metadata['crash_hunter']['version'] ?? null);
         $this->assertSame($bundled['crash_analyzer'], $server->metadata['crash_analyzer']['version'] ?? null);
+        $this->assertSame($bundled['doctor'], $server->metadata['doctor']['version'] ?? null);
         $this->assertFalse($service->needsUpgrade($server));
+    }
+
+    public function test_compare_includes_doctor_agent(): void
+    {
+        $server = Server::factory()->make([
+            'metadata' => [
+                'doctor' => ['version' => 'bootstrap-1.0'],
+            ],
+        ]);
+
+        $service = app(DiagnosticsAgentVersionService::class);
+        $doctor = collect($service->compare($server))->firstWhere('component', 'doctor');
+
+        $this->assertNotNull($doctor);
+        $this->assertSame('ObiOra Doctor', $doctor['label']);
+        $this->assertSame('bootstrap-1.0', $doctor['remote']);
     }
 }

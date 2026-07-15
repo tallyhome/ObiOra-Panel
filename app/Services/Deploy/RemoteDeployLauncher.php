@@ -49,7 +49,8 @@ final class RemoteDeployLauncher
             'slave' => $installSlave,
         ]);
 
-        $workerOk = $this->queue->ensureWorkerRunning();
+        $workerOk = $this->queue->ensureFreshWorker();
+        $panelVersion = $this->queue->panelVersion();
 
         try {
             DoctorRemoteDeployJob::dispatch(
@@ -66,8 +67,8 @@ final class RemoteDeployLauncher
             $this->doctorProgress->appendLog(
                 $serverId,
                 $workerOk
-                    ? 'Tâche envoyée au worker obiora-queue.'
-                    : 'Tâche en file d\'attente — le worker obiora-queue a été relancé, patientez…',
+                    ? 'Tâche envoyée au worker obiora-queue'.($panelVersion !== '' ? " (panel v{$panelVersion})." : '.')
+                    : 'Tâche en file — worker obiora-queue indisponible, patientez ou vérifiez systemctl status obiora-queue.',
             );
 
             return;

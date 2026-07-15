@@ -9,7 +9,8 @@ use Illuminate\Console\Command;
 final class PostDeployCommand extends Command
 {
     protected $signature = 'obiora:post-deploy
-                            {--skip-migrate : Ne pas exécuter les migrations}';
+                            {--skip-migrate : Ne pas exécuter les migrations}
+                            {--restart-queue : Redémarrer obiora-queue pour charger le nouveau code}';
 
     protected $description = 'Tâches post-déploiement : migrations, RBAC, politiques d\'alerte, caches, scripts agent (exécuté automatiquement à l\'install et lors des MAJ)';
 
@@ -65,6 +66,15 @@ final class PostDeployCommand extends Command
                 return true;
             }
         );
+
+        if ($this->option('restart-queue')) {
+            $this->components->task(
+                'Worker obiora-queue',
+                function (): bool {
+                    return app(\App\Services\Core\ObioraQueueService::class)->ensureFreshWorker();
+                }
+            );
+        }
 
         $this->newLine();
         $this->info('Post-déploiement terminé.');

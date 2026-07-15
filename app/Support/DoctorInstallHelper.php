@@ -64,7 +64,15 @@ final class DoctorInstallHelper
 
     public function suiteInstallScriptPath(): string
     {
-        return base_path('agent/scripts/install-doctor-suite.sh');
+        return base_path('agent/scripts/doctor-suite-local.sh');
+    }
+
+    /**
+     * Script distant (curl | sudo bash) — ne pas utiliser pour le serveur local du panel.
+     */
+    public function suiteRemoteScriptUrl(): string
+    {
+        return url('/install/doctor-suite.sh');
     }
 
     /**

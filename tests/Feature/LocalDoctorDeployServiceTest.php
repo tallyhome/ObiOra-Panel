@@ -54,7 +54,7 @@ final class LocalDoctorDeployServiceTest extends TestCase
         $result = $service->deploySuite($server);
 
         $this->assertTrue($result['success']);
-        $this->assertStringContainsString('install-doctor-suite.sh', $executor->lastCommand);
+        $this->assertStringContainsString('doctor-suite-local.sh', $executor->lastCommand);
         if (PHP_OS_FAMILY === 'Linux') {
             $this->assertStringContainsString('sudo -n', $executor->lastCommand);
         }

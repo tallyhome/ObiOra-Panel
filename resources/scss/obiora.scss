@@ -532,9 +532,25 @@ body {
     z-index: 1060;
 }
 
-.obiora-update-progress-card {
-    position: relative;
-    z-index: 1;
+.obiora-update-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1065;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3vh 4vw;
+    background: rgba(15, 23, 42, 0.82);
+    backdrop-filter: blur(3px);
+}
+
+.obiora-update-overlay-panel {
+    width: min(34rem, 94vw);
+    padding: 1.75rem;
+    background: var(--obiora-bg-card);
+    border: 1px solid var(--obiora-border);
+    border-radius: 0.75rem;
+    box-shadow: 0 1.25rem 3rem rgba(0, 0, 0, 0.5);
 }
 
 // Service badge

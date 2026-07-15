@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.17 - 2026-07-15
+
+- Fix install Doctor & Suite après MAJ : rechargement auto de `obiora-queue` si VERSION panel ≠ worker (code PHP gardé en mémoire)
+- Script isolé `doctor-suite-local.sh` (sans curl) — chemin local séparé du déploiement distant
+- `obiora:post-deploy --restart-queue` pour forcer le reload manuel après git pull
+- MAJ panel : overlay plein écran au premier plan (plus de carte masquée derrière le contenu)
+- Doctor & Suite : ObiOra Doctor visible dans le tableau « Contrôle des agents distants »
+
 ## v2.7.16 - 2026-07-15
 
 - Fix install Doctor & Suite sur serveur local : exécution via `PrivilegedScriptRunner` (`sudo -n`) au lieu de `curl | sudo bash` (plus de mot de passe interactif depuis obiora-queue)

@@ -49,7 +49,9 @@ final class LocalDoctorDeployService
         $steps = [];
 
         if ($onProgress !== null) {
-            $onProgress(30, 'Installation locale (sans SSH)…', $steps);
+            $version = trim((string) @file_get_contents(base_path('VERSION')));
+            $onProgress(28, 'Installation locale (script sudo NOPASSWD'.($version !== '' ? ", panel v{$version}" : '').')…', $steps);
+            $onProgress(30, 'Exécution doctor-suite-local.sh…', $steps);
         }
 
         $result = $this->scripts->run(
@@ -63,6 +65,11 @@ final class LocalDoctorDeployService
             900,
         );
         $output = trim($result->output.$result->errorOutput);
+
+        if (! $result->successful && str_contains($output, 'curl:') && str_contains($output, 'sudo: a password')) {
+            $output .= "\n\nAVERTISSEMENT : le worker obiora-queue exécute encore l'ancien code (curl|sudo). "
+                .'Relancez : sudo systemctl restart obiora-queue puis réessayez.';
+        }
         $steps[] = [
             'component' => 'doctor_suite',
             'success' => $result->successful,

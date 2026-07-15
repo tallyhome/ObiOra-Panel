@@ -23,21 +23,21 @@
     @endif
 
     @if($updateRunning)
-        <div class="card obiora-card mb-4 border-info obiora-update-progress-card">
-            <div class="card-body">
+        <div class="obiora-update-overlay" role="dialog" aria-modal="true" aria-labelledby="update-overlay-title">
+            <div class="obiora-update-overlay-panel">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <strong class="small text-uppercase">Mise à jour en cours</strong>
+                    <strong id="update-overlay-title" class="small text-uppercase text-info">Mise à jour en cours</strong>
                     <span class="badge bg-info">{{ $updateProgress }}%</span>
                 </div>
-                <div class="obiora-progress info mb-2" style="height: 12px;">
+                <div class="obiora-progress info mb-3" style="height: 12px;">
                     <div class="bar" style="width: {{ max(2, $updateProgress) }}%"></div>
                 </div>
-                <p class="mb-0 small text-muted d-flex align-items-center gap-2">
+                <p class="mb-2 small text-muted d-flex align-items-center gap-2">
                     <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                     {{ $updateProgressMessage ?: ($updateMessage ?? 'Mise à jour en cours…') }}
                 </p>
-                <p class="mb-0 mt-2 small text-muted">
-                    Si une page d'erreur apparaît brièvement, c'est normal : le panel affiche une page de mise à jour puis se rétablit automatiquement.
+                <p class="mb-0 small text-muted">
+                    Ne fermez pas cette page — elle se rafraîchira automatiquement. Le panel peut afficher brièvement une page plein écran pendant l'installation.
                 </p>
             </div>
         </div>

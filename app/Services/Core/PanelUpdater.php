@@ -319,6 +319,7 @@ final class PanelUpdater
                 'sudo -n systemctl restart obiora-queue',
                 ['timeout' => 30],
             );
+            app(ObioraQueueService::class)->markWorkerVersionLoaded();
         } catch (Throwable $exception) {
             Log::info('Redémarrage obiora-queue après MAJ ignoré', [
                 'message' => $exception->getMessage(),

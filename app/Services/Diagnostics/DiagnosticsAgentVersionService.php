@@ -25,6 +25,7 @@ final class DiagnosticsAgentVersionService
 
         $this->bundledVersionsCache = [
             'panel' => (string) config('obiora.version'),
+            'doctor' => $this->readDoctorVersion(),
             'crash_hunter' => $this->readCrashHunterVersion(),
             'crash_analyzer' => $this->readCrashAnalyzerVersion(),
         ];
@@ -40,9 +41,10 @@ final class DiagnosticsAgentVersionService
         $meta = $server->metadata ?? [];
 
         return [
+            'doctor' => $this->normalizeVersion($meta['doctor']['version'] ?? null)
+                ?? $this->normalizeVersion($server->latestDiagnosticReport?->doctor_version),
             'crash_hunter' => $this->normalizeVersion($meta['crash_hunter']['version'] ?? null),
             'crash_analyzer' => $this->normalizeVersion($meta['crash_analyzer']['version'] ?? null),
-            'doctor' => $server->latestDiagnosticReport?->doctor_version,
         ];
     }
 
@@ -56,6 +58,7 @@ final class DiagnosticsAgentVersionService
 
         $rows = [];
         foreach ([
+            ['key' => 'doctor', 'label' => 'ObiOra Doctor'],
             ['key' => 'crash_hunter', 'label' => 'CrashHunter'],
             ['key' => 'crash_analyzer', 'label' => 'Crash Analyzer'],
         ] as $component) {
@@ -104,11 +107,13 @@ final class DiagnosticsAgentVersionService
         $changed = false;
 
         foreach ($components as $component) {
-            if (! in_array($component, ['crash_hunter', 'crash_analyzer'], true)) {
+            if (! in_array($component, ['crash_hunter', 'crash_analyzer', 'doctor'], true)) {
                 continue;
             }
 
-            $version = $bundled[$component] ?? null;
+            $version = $component === 'doctor'
+                ? ($bundled['doctor'] ?? $this->readDoctorVersion())
+                : ($bundled[$component] ?? null);
             if ($version === null || $version === '') {
                 continue;
             }
@@ -136,6 +141,21 @@ final class DiagnosticsAgentVersionService
         }
 
         return version_compare($remote, $bundled, '<');
+    }
+
+    private function readDoctorVersion(): ?string
+    {
+        $bootstrap = base_path('agent/scripts/bootstrap-doctor-agent.sh');
+        if (! is_readable($bootstrap)) {
+            return 'bootstrap-1.0';
+        }
+
+        $content = file_get_contents($bootstrap);
+        if ($content !== false && preg_match('/"version":\s*"([^"]+)"/', $content, $m)) {
+            return $m[1];
+        }
+
+        return 'bootstrap-1.0';
     }
 
     private function readCrashHunterVersion(): ?string
