@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.19 - 2026-07-15
+
+- Test pipeline MAJ panel (badge « test MAJ v2.7.19 » sur Licence & MAJ)
+
 ## v2.7.18 - 2026-07-15
 
 - Crash Analyzer : dédoublonnage OOM (journal + dmesg + panel), cooldown rapports, résolution auto alertes après 60 min sans récidive
