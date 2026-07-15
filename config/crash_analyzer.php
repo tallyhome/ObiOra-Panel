@@ -45,4 +45,10 @@ return [
         'systemd_failed',
     ],
 
+    /** Fenêtre de dédoublonnage des alertes panel (minutes). */
+    'alert_dedupe_minutes' => (int) env('OBIORA_CRASH_ALERT_DEDUPE_MINUTES', 60),
+
+    /** Résolution auto des alertes si aucun nouvel événement du même type (minutes). */
+    'alert_auto_resolve_minutes' => (int) env('OBIORA_CRASH_ALERT_AUTO_RESOLVE_MINUTES', 60),
+
 ];

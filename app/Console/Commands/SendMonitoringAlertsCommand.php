@@ -15,6 +15,11 @@ final class SendMonitoringAlertsCommand extends Command
 
     public function handle(MonitoringAlertService $alerts): int
     {
+        $resolved = $alerts->resolveStaleCrashAlerts();
+        if ($resolved > 0) {
+            $this->info("Alertes Crash Analyzer auto-résolues : {$resolved}");
+        }
+
         $sent = $alerts->dispatchPendingEmailAlerts();
         $this->info("Alertes envoyees : {$sent}");
 

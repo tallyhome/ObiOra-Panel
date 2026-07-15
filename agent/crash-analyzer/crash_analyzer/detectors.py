@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import time
@@ -18,6 +19,17 @@ EDAC_INIT_NOISE = re.compile(
     r"EDAC MC\d+:\s*(?:Giving|Registering|Allocated|created)",
     re.I,
 )
+
+_TS_PREFIX = re.compile(r"^\[[^\]]+\]\s*")
+_OOM_KILL = re.compile(r"Killed process\s+(\d+)\s+\(([^)]+)\)", re.I)
+
+# Cooldown entre deux alertes identiques (secondes)
+LOG_EVENT_COOLDOWN_SECONDS: dict[str, int] = {
+    "oom_killer": 3600,
+    "kernel_panic": 86400,
+    "unexpected_reboot": 86400,
+}
+DEFAULT_LOG_EVENT_COOLDOWN = 1800
 
 # Erreurs ECC/MCE réelles — compteurs CE/UE, pas sous-chaîne dans "device"
 ECC_ERROR_PATTERNS: list[re.Pattern[str]] = [
@@ -172,6 +184,9 @@ class EventDetector:
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
         self._state = self._load_state()
         self._seen_signatures: set[str] = set(self._state.get("seen_signatures", []))
+        self._log_event_cooldown: dict[str, float] = {
+            str(k): float(v) for k, v in (self._state.get("log_event_cooldown") or {}).items()
+        }
         self._metric_alert_cooldown: dict[str, float] = {}
 
     def _load_state(self) -> dict[str, Any]:
@@ -180,10 +195,14 @@ class EventDetector:
                 return json.loads(self.state_file.read_text(encoding="utf-8"))
             except json.JSONDecodeError:
                 pass
-        return {"last_boot_id": "", "last_uptime": 0, "graceful_shutdown": False, "seen_signatures": []}
+        return {"last_boot_id": "", "last_uptime": 0, "graceful_shutdown": False, "seen_signatures": [], "log_event_cooldown": {}}
 
     def save_state(self) -> None:
         self._state["seen_signatures"] = list(self._seen_signatures)[-500:]
+        cutoff = time.time() - 86400
+        self._state["log_event_cooldown"] = {
+            k: v for k, v in self._log_event_cooldown.items() if v >= cutoff
+        }
         self.state_file.write_text(json.dumps(self._state, indent=2), encoding="utf-8")
 
     def mark_graceful_shutdown(self) -> None:
@@ -211,6 +230,7 @@ class EventDetector:
     def scan_logs(self) -> list[DetectedEvent]:
         """Analyse journalctl et dmesg pour motifs critiques."""
         events: list[DetectedEvent] = []
+        seen_this_scan: set[str] = set()
         sources = [
             ("journalctl", run_cmd(["journalctl", "-k", "-n", "150", "--no-pager", "-o", "short-precise"], timeout=5)),
             ("journalctl_err", run_cmd(["journalctl", "-p", "err..emerg", "-n", "50", "--no-pager", "-o", "short-precise"], timeout=4)),
@@ -222,32 +242,38 @@ class EventDetector:
             for event_type, severity, pattern, title in self.CRITICAL_PATTERNS:
                 for match in pattern.finditer(content):
                     line = self._extract_line(content, match.start())
-                    signature = f"{event_type}:{hash(line)}"
-                    if signature in self._seen_signatures:
+                    signature = self._event_signature(event_type, line)
+                    if signature in seen_this_scan:
                         continue
-                    self._seen_signatures.add(signature)
+                    if not self._log_event_allowed(signature, event_type):
+                        continue
+                    seen_this_scan.add(signature)
                     events.append(DetectedEvent(
                         event_type=event_type,
                         severity=severity,
                         title=title,
                         details=line[:500],
-                        payload={"source": source, "matched": match.group(0)[:200]},
+                        payload={"source": source, "matched": match.group(0)[:200], "signature": signature},
                     ))
             for line in content.splitlines():
                 stripped = line.strip()
                 if not stripped or not matches_ecc_error(stripped):
                     continue
-                signature = f"ecc_error:{hash(stripped)}"
-                if signature in self._seen_signatures:
+                signature = self._event_signature("ecc_error", stripped)
+                if signature in seen_this_scan:
                     continue
-                self._seen_signatures.add(signature)
+                if not self._log_event_allowed(signature, "ecc_error"):
+                    continue
+                seen_this_scan.add(signature)
                 events.append(DetectedEvent(
                     event_type="ecc_error",
                     severity="critical",
                     title="Erreur ECC / Machine Check",
                     details=stripped[:500],
-                    payload={"source": source, "matched": "ecc_error_pattern"},
+                    payload={"source": source, "matched": "ecc_error_pattern", "signature": signature},
                 ))
+        if events:
+            self.save_state()
         return events
 
     def scan_metrics(self, metrics: dict[str, dict[str, Any]]) -> list[DetectedEvent]:
@@ -296,6 +322,31 @@ class EventDetector:
             return False
         self._metric_alert_cooldown[key] = now
         return True
+
+    def _log_event_allowed(self, signature: str, event_type: str) -> bool:
+        now = time.time()
+        cooldown = LOG_EVENT_COOLDOWN_SECONDS.get(event_type, DEFAULT_LOG_EVENT_COOLDOWN)
+        last = self._log_event_cooldown.get(signature, 0)
+        if now - last < cooldown:
+            return False
+        self._log_event_cooldown[signature] = now
+        self._seen_signatures.add(signature)
+        return True
+
+    @staticmethod
+    def _normalize_line_for_signature(line: str) -> str:
+        normalized = _TS_PREFIX.sub("", line.strip())
+        return re.sub(r"\s+", " ", normalized)
+
+    @classmethod
+    def _event_signature(cls, event_type: str, line: str) -> str:
+        normalized = cls._normalize_line_for_signature(line)
+        if event_type == "oom_killer":
+            match = _OOM_KILL.search(normalized)
+            if match:
+                return f"{event_type}:pid={match.group(1)}:proc={match.group(2).lower()}"
+        digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
+        return f"{event_type}:{digest}"
 
     @staticmethod
     def _extract_line(content: str, pos: int) -> str:

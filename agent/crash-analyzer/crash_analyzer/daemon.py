@@ -21,6 +21,9 @@ from crash_analyzer.storage import create_storage
 
 logger = logging.getLogger("crash_analyzer")
 
+# Cooldown entre deux rapports pushés pour le même type d'événement
+REPORT_PUSH_COOLDOWN_SECONDS = 900
+
 
 class CrashAnalyzerDaemon:
     """Boucle de surveillance toutes les N secondes."""
@@ -40,6 +43,7 @@ class CrashAnalyzerDaemon:
         self._last_push = 0.0
         self._cycle = 0
         self._hostname = socket.gethostname()
+        self._report_push_cooldown: dict[str, float] = {}
 
     def run(self) -> None:
         signal.signal(signal.SIGTERM, self._handle_signal)
@@ -109,18 +113,22 @@ class CrashAnalyzerDaemon:
         if all_events:
             self.detector.persist_events(self.storage, all_events)
             for event in all_events:
-                if event.severity == "critical":
-                    logger.warning("Événement critique: %s — %s", event.event_type, event.title)
-                    report = self.reporter.generate(
-                        self.storage,
-                        self._hostname,
-                        trigger_event={
-                            "event_type": event.event_type,
-                            "title": event.title,
-                            "details": event.details,
-                        },
-                    )
-                    self._push_crash_report(report)
+                if event.severity != "critical":
+                    continue
+                logger.warning("Événement critique: %s — %s", event.event_type, event.title)
+                if not self._should_push_report(event.event_type):
+                    logger.debug("Rapport %s ignoré (cooldown actif)", event.event_type)
+                    continue
+                report = self.reporter.generate(
+                    self.storage,
+                    self._hostname,
+                    trigger_event={
+                        "event_type": event.event_type,
+                        "title": event.title,
+                        "details": event.details,
+                    },
+                )
+                self._push_crash_report(report)
 
         if sampled_at - self._last_push >= self.config.push_interval_seconds:
             self._push_metrics_batch(batch, sampled_at)
@@ -181,3 +189,11 @@ class CrashAnalyzerDaemon:
     def _handle_signal(self, signum: int, _frame: Any) -> None:
         logger.info("Signal %s reçu", signum)
         self._running = False
+
+    def _should_push_report(self, event_type: str) -> bool:
+        now = time.monotonic()
+        last = self._report_push_cooldown.get(event_type, 0.0)
+        if now - last < REPORT_PUSH_COOLDOWN_SECONDS:
+            return False
+        self._report_push_cooldown[event_type] = now
+        return True

@@ -4,6 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v2.7.18 - 2026-07-15
+
+- Crash Analyzer : dédoublonnage OOM (journal + dmesg + panel), cooldown rapports, résolution auto alertes après 60 min sans récidive
+
 ## v2.7.17 - 2026-07-15
 
 - Fix install Doctor & Suite après MAJ : rechargement auto de `obiora-queue` si VERSION panel ≠ worker (code PHP gardé en mémoire)

@@ -78,6 +78,21 @@ class TestEventDetectorState(unittest.TestCase):
         self.detector._state["graceful_shutdown"] = True
         self.assertIsNone(self.detector.check_unexpected_reboot("boot-new", 60.0))
 
+    def test_oom_deduped_across_log_sources(self) -> None:
+        line = (
+            "[Wed Jul 15 07:54:04 2026] Memory cgroup out of memory: "
+            "Killed process 95843 (zstd) total-vm:409636kB"
+        )
+        alt = (
+            "Jul 15 07:54:04 Obiora kernel: Memory cgroup out of memory: "
+            "Killed process 95843 (zstd) total-vm:409636kB"
+        )
+        sig_a = self.detector._event_signature("oom_killer", line)
+        sig_b = self.detector._event_signature("oom_killer", alt)
+        self.assertEqual(sig_a, sig_b)
+        self.assertTrue(self.detector._log_event_allowed(sig_a, "oom_killer"))
+        self.assertFalse(self.detector._log_event_allowed(sig_b, "oom_killer"))
+
 
 if __name__ == "__main__":
     unittest.main()

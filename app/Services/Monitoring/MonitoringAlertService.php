@@ -53,6 +53,23 @@ final class MonitoringAlertService
 
     public function recordCrashEvent(Server $server, CrashAnalyzerEvent $event): void
     {
+        $eventType = (string) $event->event_type;
+        $dedupeMinutes = max(5, (int) config('crash_analyzer.alert_dedupe_minutes', 60));
+
+        $duplicate = MonitoringAlert::query()
+            ->where('server_id', $server->id)
+            ->where('type', 'crash_analyzer')
+            ->whereNull('read_at')
+            ->where('created_at', '>=', now()->subMinutes($dedupeMinutes))
+            ->get()
+            ->contains(function (MonitoringAlert $alert) use ($eventType): bool {
+                return (string) (($alert->payload ?? [])['event_type'] ?? '') === $eventType;
+            });
+
+        if ($duplicate) {
+            return;
+        }
+
         $this->createAlert(
             server: $server,
             type: 'crash_analyzer',
@@ -60,10 +77,47 @@ final class MonitoringAlertService
             title: $event->title,
             message: $event->details ?? '',
             payload: [
-                'event_type' => $event->event_type,
+                'event_type' => $eventType,
                 'event_id' => $event->id,
             ],
         );
+    }
+
+    /**
+     * Clôt les alertes Crash Analyzer sans récidive récente du même type.
+     */
+    public function resolveStaleCrashAlerts(): int
+    {
+        $windowMinutes = max(15, (int) config('crash_analyzer.alert_auto_resolve_minutes', 60));
+        $resolved = 0;
+
+        MonitoringAlert::query()
+            ->where('type', 'crash_analyzer')
+            ->whereNull('read_at')
+            ->orderBy('id')
+            ->lazy()
+            ->each(function (MonitoringAlert $alert) use ($windowMinutes, &$resolved): void {
+                $eventType = (string) (($alert->payload ?? [])['event_type'] ?? '');
+
+                $hasRecentEvent = CrashAnalyzerEvent::query()
+                    ->where('server_id', $alert->server_id)
+                    ->when($eventType !== '', fn ($query) => $query->where('event_type', $eventType))
+                    ->where('detected_at', '>=', now()->subMinutes($windowMinutes))
+                    ->exists();
+
+                if ($hasRecentEvent) {
+                    return;
+                }
+
+                if ($alert->created_at !== null && $alert->created_at->gt(now()->subMinutes(15))) {
+                    return;
+                }
+
+                $alert->forceFill(['read_at' => now()])->save();
+                $resolved++;
+            });
+
+        return $resolved;
     }
 
     public function recordInvalidSignature(Server $server): void
