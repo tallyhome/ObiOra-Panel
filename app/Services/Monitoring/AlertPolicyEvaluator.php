@@ -15,6 +15,7 @@ final class AlertPolicyEvaluator
     public function __construct(
         private readonly AlertMetricReader $metrics,
         private readonly AlertNotificationDispatcher $notifier,
+        private readonly MaintenanceWindowService $maintenance,
     ) {}
 
     /**
@@ -45,6 +46,10 @@ final class AlertPolicyEvaluator
      */
     public function evaluateTarget(AlertPolicy $policy, string $resourceType, int $resourceId): array
     {
+        if ($this->maintenance->isSilenced($resourceType, $resourceId)) {
+            return ['opened' => 0, 'resolved' => 0, 'notified' => 0];
+        }
+
         $read = $this->metrics->read($policy, $resourceType, $resourceId);
         $matches = $this->metrics->matches($policy, $read['value']);
 

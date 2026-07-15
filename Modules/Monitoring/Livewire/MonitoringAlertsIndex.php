@@ -7,6 +7,8 @@ namespace Modules\Monitoring\Livewire;
 use App\Enums\AlertPolicyOperator;
 use App\Models\AlertContact;
 use App\Models\AlertPolicy;
+use App\Models\NotificationLog;
+use App\Services\Monitoring\AlertNotificationDispatcher;
 use App\Support\UserTimezone;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -67,6 +69,10 @@ final class MonitoringAlertsIndex extends Component
 
         if (request()->routeIs('monitoring.alerts.contacts')) {
             $this->activeTab = 'contacts';
+        }
+
+        if (request()->routeIs('monitoring.alerts.notifications')) {
+            $this->activeTab = 'notifications';
         }
     }
 
@@ -235,6 +241,24 @@ final class MonitoringAlertsIndex extends Component
         $this->dispatch('notify', type: 'success', message: 'Contact supprimé.');
     }
 
+    public function testContact(int $contactId, AlertNotificationDispatcher $dispatcher): void
+    {
+        $this->authorizeManage();
+
+        $contact = AlertContact::query()->findOrFail($contactId);
+
+        if ($contact->availableChannels() === []) {
+            $this->dispatch('notify', type: 'error', message: 'Aucun canal configuré sur ce contact.');
+
+            return;
+        }
+
+        $sent = $dispatcher->sendTest($contact);
+        $this->dispatch('notify', type: $sent > 0 ? 'success' : 'error', message: $sent > 0
+            ? "Test envoyé sur {$sent} canal(aux)."
+            : 'Échec envoi test — voir les logs de notification.');
+    }
+
     public function render()
     {
         $policies = AlertPolicy::query()
@@ -269,6 +293,22 @@ final class MonitoringAlertsIndex extends Component
             'operatorChoices' => AlertPolicyOperator::cases(),
             'applyToChoices' => $this->applyToChoices(),
             'allContacts' => AlertContact::query()->orderBy('name')->get(['id', 'name']),
+            'notificationLogs' => NotificationLog::query()
+                ->with(['contact:id,name', 'incident:id,trigger,resource_name'])
+                ->orderByDesc('sent_at')
+                ->limit(100)
+                ->get()
+                ->map(fn (NotificationLog $log) => [
+                    'id' => $log->id,
+                    'contact' => $log->contact?->name ?? '—',
+                    'channel' => $log->channel,
+                    'status' => $log->status,
+                    'response' => \Illuminate\Support\Str::limit((string) $log->response, 80),
+                    'sent_at' => UserTimezone::format($log->sent_at, 'd/m/Y H:i:s'),
+                    'incident' => $log->incident
+                        ? $log->incident->trigger.' — '.$log->incident->resource_name
+                        : 'Test',
+                ]),
             'canManage' => auth()->user()?->can('monitoring.manage') ?? false,
             'timezoneFooter' => UserTimezone::label(),
             'nowLabel' => UserTimezone::now()->format('d/m/Y H:i:s'),

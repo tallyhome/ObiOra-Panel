@@ -70,13 +70,21 @@ Réduire bruit :
 
 ---
 
-## 6. Intégration Virtualizor / hosting
+## 6. Intégration profils hôte dédié (générique)
 
-Spécifique votre contexte (dédié Virtualizor) :
+Au-delà de Virtualizor, chaque serveur **dédié** peut avoir un profil hôte :
 
-- Métadonnée serveur `hypervisor: virtualizor`
-- Alerte CPU steal > 10 % (déjà politique Pinguzo)
-- Lien doc Virtualizor Doctor existant (`ObiOra-Doctor/docs/virtualizor.md`)
+| Profil | Usage |
+|--------|--------|
+| `bare_metal` | OVH, Hetzner, SoYouStart… |
+| `virtualizor` | Nœud KVM Virtualizor |
+| `proxmox` | Proxmox VE |
+| `solusvm` | SolusVM |
+| `custom` | Autre hyperviseur |
+
+Métadonnée serveur : `metadata.host_profile`. Install panel : `--host-profile` ou détection auto.
+
+Voir [ROADMAP-MONITOR-GRAFANA-DEDIE.md](./ROADMAP-MONITOR-GRAFANA-DEDIE.md) §2.
 
 ---
 

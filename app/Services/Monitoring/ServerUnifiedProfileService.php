@@ -9,6 +9,7 @@ use App\Models\CrashHunterIncident;
 use App\Models\DiagnosticReport;
 use App\Models\MonitoringIncident;
 use App\Models\Server;
+use App\Support\DedicatedHostProfileRegistry;
 use App\Support\UserTimezone;
 
 final class ServerUnifiedProfileService
@@ -60,6 +61,8 @@ final class ServerUnifiedProfileService
                 'name' => $server->name,
                 'status' => $server->status->value,
                 'ip' => $server->ip_address,
+                'type' => $server->type->value,
+                'host_profile' => DedicatedHostProfileRegistry::labelFor($server),
                 'os_label' => trim(($server->os_name ?? '').' '.($server->os_version ?? '')),
                 'last_seen' => UserTimezone::format($server->last_seen_at, 'd/m/Y H:i:s'),
                 'is_master' => $server->is_master,
@@ -90,12 +93,18 @@ final class ServerUnifiedProfileService
      */
     public function actionLinks(Server $server): array
     {
-        return [
+        $links = [
             ['label' => 'Métriques', 'route' => route('monitoring.servers.metrics', $server)],
             ['label' => 'Doctor', 'route' => route('doctor.index', ['server' => $server->id])],
             ['label' => 'Crash Analyzer', 'route' => route('crash-analyzer.index', ['server' => $server->id])],
             ['label' => 'Flotte avancée', 'route' => route('monitoring.fleet')],
         ];
+
+        foreach (DedicatedHostProfileRegistry::panelLinks($server) as $extra) {
+            $links[] = $extra;
+        }
+
+        return $links;
     }
 
     /**

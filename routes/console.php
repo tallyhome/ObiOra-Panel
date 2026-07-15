@@ -12,6 +12,7 @@ use App\Console\Commands\SendMonitoringAlertsCommand;
 use App\Jobs\CrashAnalyzer\PruneOldMetricsJob;
 use App\Jobs\CrashHunter\PruneOldCrashHunterDataJob;
 use App\Jobs\PruneOldMonitorChecksJob;
+use App\Jobs\PruneOldServerPingSamplesJob;
 use App\Jobs\PruneOldServerMetricSamplesJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -41,6 +42,7 @@ Schedule::command(EvaluateAlertPoliciesCommand::class)->everyMinute();
 
 Schedule::job(new PruneOldMonitorChecksJob)->dailyAt('04:00');
 Schedule::job(new PruneOldServerMetricSamplesJob)->dailyAt('04:15');
+Schedule::job(new PruneOldServerPingSamplesJob)->dailyAt('04:30');
 
 Schedule::job(new PruneOldMetricsJob)->dailyAt('03:30');
 Schedule::job(new PruneOldCrashHunterDataJob)->dailyAt('03:45');

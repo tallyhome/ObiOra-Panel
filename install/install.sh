@@ -118,6 +118,10 @@ source "${SCRIPT_DIR}/lib/reverb.sh"
 source "${SCRIPT_DIR}/lib/sudoers.sh"
 # shellcheck source=lib/firewall.sh
 source "${SCRIPT_DIR}/lib/firewall.sh"
+# shellcheck source=lib/virtualizor.sh
+source "${SCRIPT_DIR}/lib/virtualizor.sh"
+# shellcheck source=lib/dedicated-profiles.sh
+source "${SCRIPT_DIR}/lib/dedicated-profiles.sh"
 # shellcheck source=lib/rollback.sh
 source "${SCRIPT_DIR}/lib/rollback.sh"
 
@@ -137,6 +141,7 @@ Options:
   --mode MODE         standard | full — sans question interactive
   --full-upgrade      Équivalent à --mode full (rétrocompatibilité)
   --no-prompt         Pas de question : mode standard par défaut
+  --host-profile P    Profil dédié : auto | bare_metal | virtualizor | proxmox | solusvm | custom
   -h, --help          Afficher cette aide
 
 OS supportés:
@@ -164,6 +169,13 @@ parse_args() {
                 ;;
             --full-upgrade) OBIORA_FULL_SYSTEM_UPGRADE="true"; OBIORA_INSTALL_MODE_CHOSEN="true"; shift ;;
             --no-prompt) OBIORA_INSTALL_MODE_CHOSEN="true"; shift ;;
+            --host-profile)
+                case "${2:-}" in
+                    auto|bare_metal|virtualizor|proxmox|solusvm|custom) OBIORA_HOST_PROFILE="${2}" ;;
+                    *) die "Profil invalide: ${2} (auto | bare_metal | virtualizor | proxmox | solusvm | custom)" ;;
+                esac
+                shift 2
+                ;;
             -h|--help) usage; exit 0 ;;
             *) die "Option inconnue: $1" ;;
         esac
@@ -195,6 +207,7 @@ print_summary() {
     3. Licence & mises à jour : menu « Licence & MAJ » dans le panel
 
 EOF
+    dedicated_summary_extra
 }
 
 main() {
@@ -210,6 +223,7 @@ main() {
     install_step 1 "Vérification système"
     assert_supported_os
     check_prerequisites
+    setup_dedicated_precheck
 
     create_snapshot "pre-install"
 
@@ -241,11 +255,12 @@ main() {
     setup_reverb
     append_reverb_nginx
 
-    install_step 11 "Sudoers, helper MAJ et pare-feu"
+    install_step 11 "Sudoers, helper MAJ, profil dédié (SSH) et pare-feu"
     setup_sudoers
     # shellcheck source=lib/panel-update-helper.sh
     source "${SCRIPT_DIR}/lib/panel-update-helper.sh"
     setup_panel_update_helper
+    setup_dedicated_post_ssh
     setup_firewall
 
     install_step 12 "Vérification finale"
@@ -255,6 +270,7 @@ main() {
     trap - ERR
 
     print_summary
+    prompt_dedicated_reboot
 }
 
 main "$@"

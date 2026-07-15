@@ -9,7 +9,7 @@
         @if($canManage)
             @if($activeTab === 'policies')
             <button type="button" wire:click="openPolicyModal" class="btn btn-primary btn-sm">+ Nouvelle politique</button>
-            @else
+            @elseif($activeTab === 'contacts')
             <button type="button" wire:click="openContactModal" class="btn btn-primary btn-sm">+ Nouveau contact</button>
             @endif
         @endif
@@ -21,6 +21,9 @@
         </li>
         <li class="nav-item">
             <a href="{{ route('monitoring.alerts.contacts') }}" @class(['nav-link', 'active' => $activeTab === 'contacts'])>Contacts</a>
+        </li>
+        <li class="nav-item">
+            <a href="{{ route('monitoring.alerts.notifications') }}" @class(['nav-link', 'active' => $activeTab === 'notifications'])>Logs notifications</a>
         </li>
     </ul>
 
@@ -77,7 +80,7 @@
             </table>
         </div>
     </div>
-    @else
+    @elseif($activeTab === 'contacts')
     <div class="card obiora-card">
         <div class="table-responsive">
             <table class="table table-sm obiora-table align-middle mb-0">
@@ -106,6 +109,7 @@
                         </td>
                         @if($canManage)
                         <td class="text-nowrap">
+                            <button type="button" wire:click="testContact({{ $contact['id'] }})" class="btn btn-outline-primary btn-sm py-0">Test</button>
                             <button type="button" wire:click="openContactModal({{ $contact['id'] }})" class="btn btn-outline-secondary btn-sm py-0">Modifier</button>
                             @if(!$contact['is_default'])
                             <button type="button" wire:click="deleteContact({{ $contact['id'] }})" wire:confirm="Supprimer ce contact ?"
@@ -116,6 +120,43 @@
                     </tr>
                     @empty
                     <tr><td colspan="{{ $canManage ? 3 : 2 }}" class="text-muted small">Aucun contact.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @else
+    <div class="card obiora-card">
+        <div class="table-responsive">
+            <table class="table table-sm obiora-table align-middle mb-0">
+                <thead class="obiora-table-head">
+                    <tr>
+                        <th>Date</th>
+                        <th>Contact</th>
+                        <th>Canal</th>
+                        <th>Statut</th>
+                        <th>Incident</th>
+                        <th>Réponse</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($notificationLogs as $log)
+                    <tr>
+                        <td class="small">{{ $log['sent_at'] }}</td>
+                        <td>{{ $log['contact'] }}</td>
+                        <td><span class="badge text-bg-secondary">{{ $log['channel'] }}</span></td>
+                        <td>
+                            @if($log['status'] === 'sent')
+                                <span class="badge text-bg-success">OK</span>
+                            @else
+                                <span class="badge text-bg-danger">Échec</span>
+                            @endif
+                        </td>
+                        <td class="small">{{ $log['incident'] }}</td>
+                        <td class="small text-muted font-monospace">{{ $log['response'] ?: '—' }}</td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="6" class="text-muted small text-center py-4">Aucune notification enregistrée.</td></tr>
                     @endforelse
                 </tbody>
             </table>

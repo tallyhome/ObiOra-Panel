@@ -18,6 +18,37 @@ use Illuminate\Support\Facades\Mail;
 
 final class AlertNotificationDispatcher
 {
+    public function sendTest(AlertContact $contact): int
+    {
+        $sent = 0;
+        $subject = '[ObiOra] Test notification';
+        $body = 'Ceci est un message de test depuis ObiOra Monitor.';
+
+        foreach ($contact->availableChannels() as $channel) {
+            $result = $this->sendChannel($contact, $channel, new MonitoringIncident([
+                'trigger' => 'Test',
+                'resource_name' => 'ObiOra Panel',
+                'message' => $body,
+                'went_down_at' => now(),
+            ]));
+
+            NotificationLog::query()->create([
+                'monitoring_incident_id' => null,
+                'alert_contact_id' => $contact->id,
+                'channel' => $channel,
+                'status' => $result['success'] ? 'sent' : 'failed',
+                'response' => $result['response'],
+                'sent_at' => now(),
+            ]);
+
+            if ($result['success']) {
+                $sent++;
+            }
+        }
+
+        return $sent;
+    }
+
     public function notify(MonitoringIncident $incident, AlertPolicy $policy): int
     {
         $contactIds = $policy->notify_contact_ids ?? [];

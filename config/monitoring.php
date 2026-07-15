@@ -21,4 +21,9 @@ return [
         'rate_limit_per_minute' => (int) env('OBIORA_STATUS_PAGE_RATE_LIMIT', 120),
     ],
 
+    'prometheus' => [
+        'enabled' => (bool) env('OBIORA_PROMETHEUS_ENABLED', false),
+        'token' => env('OBIORA_PROMETHEUS_TOKEN'),
+    ],
+
 ];

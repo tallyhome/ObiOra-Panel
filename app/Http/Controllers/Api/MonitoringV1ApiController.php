@@ -6,9 +6,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AlertPolicy;
+use App\Models\MaintenanceWindow;
 use App\Models\Monitor;
 use App\Models\MonitoringIncident;
 use App\Models\Server;
+use App\Services\Monitoring\MaintenanceWindowService;
 use App\Services\Monitoring\MonitorImportExportService;
 use App\Services\Monitoring\MonitorRunnerService;
 use App\Services\Monitoring\ServerMetricsService;
@@ -147,6 +149,51 @@ final class MonitoringV1ApiController extends Controller
         $result = $importExport->importJson($payload);
 
         return response()->json($result);
+    }
+
+    public function maintenanceWindows(MaintenanceWindowService $service): JsonResponse
+    {
+        $rows = $service->upcomingAndActive()->map(fn (MaintenanceWindow $window) => [
+            'id' => $window->id,
+            'resource_type' => $window->resource_type,
+            'resource_ids' => $window->resource_ids ?? [],
+            'starts_at' => $window->starts_at?->toIso8601String(),
+            'ends_at' => $window->ends_at?->toIso8601String(),
+            'note' => $window->note,
+            'active' => $window->isActive(),
+        ]);
+
+        return response()->json(['data' => $rows]);
+    }
+
+    public function storeMaintenance(Request $request, MaintenanceWindowService $service): JsonResponse
+    {
+        $this->authorizeManage();
+
+        $data = $request->validate([
+            'resource_type' => ['required', 'in:all,server,monitor'],
+            'resource_ids' => ['nullable', 'array'],
+            'resource_ids.*' => ['integer'],
+            'starts_at' => ['required', 'date'],
+            'ends_at' => ['required', 'date', 'after:starts_at'],
+            'note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $window = $service->schedule(
+            resourceType: $data['resource_type'],
+            resourceIds: $data['resource_ids'] ?? null,
+            startsAt: \Illuminate\Support\Carbon::parse($data['starts_at']),
+            endsAt: \Illuminate\Support\Carbon::parse($data['ends_at']),
+            note: $data['note'] ?? null,
+            creator: auth()->user(),
+        );
+
+        return response()->json(['data' => [
+            'id' => $window->id,
+            'resource_type' => $window->resource_type,
+            'starts_at' => $window->starts_at?->toIso8601String(),
+            'ends_at' => $window->ends_at?->toIso8601String(),
+        ]], 201);
     }
 
     /**

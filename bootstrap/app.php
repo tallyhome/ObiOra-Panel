@@ -34,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'server' => SetCurrentServer::class,
             'locale' => \App\Http\Middleware\SetLocale::class,
             'agent.token' => \App\Http\Middleware\AuthenticateAgentToken::class,
+            'prometheus.token' => \App\Http\Middleware\AuthenticatePrometheusToken::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
@@ -54,6 +55,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->preventRequestsDuringMaintenance(except: [
             'api/*',
             'up',
+            'metrics',
             'install/*',
         ]);
     })

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Servers\Livewire;
 
+use App\Enums\DedicatedHostProfile;
 use App\Enums\ServerType;
 use App\Services\Core\ServerManager;
 use Livewire\Attributes\Layout;
@@ -22,6 +23,8 @@ final class ServerCreate extends Component
 
     public string $type = 'vps';
 
+    public string $host_profile = 'bare_metal';
+
     public string $agent_token = '';
 
     public int $agent_port = 9100;
@@ -33,6 +36,7 @@ final class ServerCreate extends Component
             'ip_address' => ['required', 'ip'],
             'hostname' => ['nullable', 'string', 'max:255'],
             'type' => ['required', 'in:vps,dedicated,cluster'],
+            'host_profile' => ['nullable', 'string', 'in:'.implode(',', array_column(DedicatedHostProfile::selectable(), 'value'))],
             'agent_token' => ['nullable', 'string', 'min:32', 'max:128'],
             'agent_port' => ['required', 'integer', 'min:1', 'max:65535'],
         ]);
@@ -43,6 +47,7 @@ final class ServerCreate extends Component
                 'ip_address' => $this->ip_address,
                 'hostname' => $this->hostname ?: $this->ip_address,
                 'type' => ServerType::from($this->type),
+                'host_profile' => $this->type === 'dedicated' ? $this->host_profile : null,
                 'agent_token' => trim($this->agent_token),
                 'agent_port' => $this->agent_port,
             ]);

@@ -14,12 +14,18 @@ use Livewire\Component;
 #[Title('Monitoring — Préférences')]
 final class MonitoringPreferencesIndex extends Component
 {
+    public string $activeTab = 'timezone';
+
     public string $timezone = 'UTC';
 
     public string $previewTime = '';
 
     public function mount(): void
     {
+        if (request()->routeIs('monitoring.settings.retention')) {
+            $this->activeTab = 'retention';
+        }
+
         $this->timezone = UserTimezone::resolve();
         $this->refreshPreview();
     }
@@ -47,6 +53,12 @@ final class MonitoringPreferencesIndex extends Component
             'timezoneChoices' => TimezoneCatalog::choices(),
             'timezoneFooter' => UserTimezone::label(),
             'nowLabel' => UserTimezone::now()->format('d/m/Y H:i:s'),
+            'retention' => [
+                'ping_days' => (int) config('monitoring.retention_days', 60),
+                'sample_days' => (int) config('monitoring.sample_retention_days', 60),
+                'check_days' => (int) config('monitoring.check_retention_days', 60),
+                'prometheus_enabled' => (bool) config('monitoring.prometheus.enabled', false),
+            ],
         ]);
     }
 

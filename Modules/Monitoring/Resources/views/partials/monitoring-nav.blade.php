@@ -5,6 +5,7 @@
         ['route' => 'monitoring.monitors', 'label' => 'Moniteurs', 'icon' => '◎'],
         ['route' => 'monitoring.incidents', 'label' => 'Incidents', 'icon' => '⚠'],
         ['route' => 'monitoring.alerts', 'label' => 'Alertes', 'icon' => '🔔'],
+        ['route' => 'monitoring.maintenance', 'label' => 'Maintenance', 'icon' => '🛠'],
         ['route' => 'monitoring.fleet', 'label' => 'Flotte avancée', 'icon' => '◉'],
         ['route' => 'monitoring.preferences', 'label' => 'Préférences', 'icon' => '⚙'],
         ['route' => 'monitoring.settings.status-page', 'label' => 'Status page', 'icon' => '🌐'],

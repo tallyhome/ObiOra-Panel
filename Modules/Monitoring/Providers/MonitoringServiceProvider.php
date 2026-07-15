@@ -7,6 +7,7 @@ namespace Modules\Monitoring\Providers;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use Modules\Monitoring\Livewire\DoctorSuiteIndex;
+use Modules\Monitoring\Livewire\MonitoringMaintenanceIndex;
 use Modules\Monitoring\Livewire\MonitoringAlertsIndex;
 use Modules\Monitoring\Livewire\MonitoringHubIndex;
 use Modules\Monitoring\Livewire\MonitoringIncidentsIndex;
@@ -39,6 +40,7 @@ class MonitoringServiceProvider extends ServiceProvider
         Livewire::component('monitoring.server-metrics-index', MonitoringServerMetricsIndex::class);
         Livewire::component('monitoring.incidents-index', MonitoringIncidentsIndex::class);
         Livewire::component('monitoring.alerts-index', MonitoringAlertsIndex::class);
+        Livewire::component('monitoring.maintenance-index', MonitoringMaintenanceIndex::class);
         Livewire::component('monitoring.preferences-index', MonitoringPreferencesIndex::class);
         Livewire::component('monitoring.status-page-settings', MonitoringStatusPageSettings::class);
         Livewire::component('monitoring.public-status-page', PublicStatusPage::class);

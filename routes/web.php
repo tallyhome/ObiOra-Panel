@@ -11,7 +11,7 @@ use App\Http\Controllers\Api\CrashHunterAgentController;
 use App\Http\Controllers\Api\MonitoringV1ApiController;
 use App\Http\Controllers\ApplicationIconController;
 use App\Http\Controllers\MarketplaceInstallSetupController;
-use App\Http\Controllers\MonitorVisitController;
+use App\Http\Controllers\PrometheusMetricsController;
 use App\Http\Controllers\CrashAnalyzerExportController;
 use App\Http\Controllers\DoctorSuiteExportController;
 use App\Support\AgentBundlePublisher;
@@ -93,6 +93,10 @@ Route::get('/install/obiora-metrics-uninstall.sh', function () {
 Route::get('/status', \Modules\Monitoring\Livewire\PublicStatusPage::class)
     ->middleware('throttle:'.config('monitoring.status_page.rate_limit_per_minute', 120))
     ->name('status.index');
+
+Route::get('/metrics', PrometheusMetricsController::class)
+    ->middleware('prometheus.token')
+    ->name('prometheus.metrics');
 
 Route::get('/track/{token}.gif', [MonitorVisitController::class, 'pixel'])
     ->middleware('throttle:240,1')
@@ -265,7 +269,10 @@ Route::middleware(['setup', 'auth', 'demo.active', 'server'])->group(function ()
         Route::get('/monitoring/incidents/logs', \Modules\Monitoring\Livewire\MonitoringIncidentsIndex::class)->name('monitoring.incidents.logs');
         Route::get('/monitoring/alerts', \Modules\Monitoring\Livewire\MonitoringAlertsIndex::class)->name('monitoring.alerts');
         Route::get('/monitoring/alerts/contacts', \Modules\Monitoring\Livewire\MonitoringAlertsIndex::class)->name('monitoring.alerts.contacts');
+        Route::get('/monitoring/alerts/notifications', \Modules\Monitoring\Livewire\MonitoringAlertsIndex::class)->name('monitoring.alerts.notifications');
+        Route::get('/monitoring/maintenance', \Modules\Monitoring\Livewire\MonitoringMaintenanceIndex::class)->name('monitoring.maintenance');
         Route::get('/monitoring/preferences', \Modules\Monitoring\Livewire\MonitoringPreferencesIndex::class)->name('monitoring.preferences');
+        Route::get('/monitoring/settings/retention', \Modules\Monitoring\Livewire\MonitoringPreferencesIndex::class)->name('monitoring.settings.retention');
         Route::get('/monitoring/settings/status-page', \Modules\Monitoring\Livewire\MonitoringStatusPageSettings::class)->name('monitoring.settings.status-page');
 
         Route::prefix('api/monitoring')->name('monitoring.api.')->group(function () {
@@ -292,6 +299,8 @@ Route::middleware(['setup', 'auth', 'demo.active', 'server'])->group(function ()
             Route::get('/alert-policies', [MonitoringV1ApiController::class, 'alertPolicies'])->name('alert-policies');
             Route::get('/monitors/export/json', [MonitoringV1ApiController::class, 'exportMonitors'])->middleware('permission:monitoring.manage')->name('monitors.export');
             Route::post('/monitors/import/json', [MonitoringV1ApiController::class, 'importMonitors'])->middleware('permission:monitoring.manage')->name('monitors.import');
+            Route::get('/maintenance', [MonitoringV1ApiController::class, 'maintenanceWindows'])->name('maintenance.index');
+            Route::post('/maintenance', [MonitoringV1ApiController::class, 'storeMaintenance'])->middleware('permission:monitoring.manage')->name('maintenance.store');
         });
 
         Route::prefix('api/crash-analyzer')->name('crash-analyzer.api.')->group(function () {

@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.0 - 2026-07-15
+
+### Monitor+ NOC (lots 1–4)
+
+- **Maintenance / silences** : fenêtres planifiées (`/monitoring/maintenance`), suppression alertes et résolution incidents, API REST
+- **Rétention** : purge `server_ping_samples` (job 04:30), CLI `obiora:prune --dry-run`, onglet Préférences → Rétention
+- **Contacts** : bouton test par contact, onglet logs notifications (`/monitoring/alerts/notifications`)
+- **Prometheus** : endpoint `/metrics` (Bearer token), doc `docs/monitoring/GRAFANA-PONT.md`
+- **Profils dédiés génériques** : bare metal, Virtualizor, Proxmox, SolusVM, custom (install + UI serveur)
+
 ## v3.0.0 - 2026-07-15
 
 - **Sécurité serveur** : page `/security` intégrée à Doctor (panel + slaves Obiora)

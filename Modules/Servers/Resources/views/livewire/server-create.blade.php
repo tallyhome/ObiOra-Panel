@@ -31,12 +31,23 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Type</label>
-                        <select wire:model="type" class="form-select">
+                        <select wire:model.live="type" class="form-select">
                             <option value="vps">VPS</option>
                             <option value="dedicated">Dédié</option>
                             <option value="cluster">Cluster</option>
                         </select>
                     </div>
+                    @if($type === 'dedicated')
+                    <div class="col-md-3">
+                        <label class="form-label">Profil hôte</label>
+                        <select wire:model="host_profile" class="form-select">
+                            @foreach(\App\Enums\DedicatedHostProfile::selectable() as $profile)
+                                <option value="{{ $profile->value }}">{{ $profile->label() }}</option>
+                            @endforeach
+                        </select>
+                        <p class="form-text small mb-0">Virtualizor, Proxmox, bare metal OVH… — adapte Doctor et l'install panel.</p>
+                    </div>
+                    @endif
                     <div class="col-md-3">
                         <label class="form-label">Port agent</label>
                         <input wire:model="agent_port" type="number" class="form-control obiora-input">

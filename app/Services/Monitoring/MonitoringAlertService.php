@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\Notification;
 
 final class MonitoringAlertService
 {
+    public function __construct(
+        private readonly MaintenanceWindowService $maintenance,
+    ) {}
     public function recordCriticalReport(Server $server, DiagnosticReport $report): void
     {
         foreach ($report->critical_findings ?? [] as $finding) {
@@ -194,7 +197,11 @@ final class MonitoringAlertService
         string $title,
         string $message,
         array $payload,
-    ): MonitoringAlert {
+    ): ?MonitoringAlert {
+        if ($this->maintenance->isServerSilenced($server->id)) {
+            return null;
+        }
+
         return MonitoringAlert::query()->create([
             'server_id' => $server->id,
             'type' => $type,

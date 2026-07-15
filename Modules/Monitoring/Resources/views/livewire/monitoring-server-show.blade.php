@@ -8,6 +8,9 @@
             <h1 class="h3 mb-1">{{ $s['name'] }}</h1>
             <p class="text-muted small mb-0">
                 {{ $s['os_label'] ?: 'OS inconnu' }} · {{ $s['ip'] ?: 'IP —' }}
+                @if(($s['type'] ?? '') === 'dedicated' && !empty($s['host_profile']))
+                    · <span class="text-body-secondary">{{ $s['host_profile'] }}</span>
+                @endif
                 @if($s['status'] === 'online')
                     <span class="badge text-bg-success ms-1">Online</span>
                 @elseif($s['status'] === 'degraded')

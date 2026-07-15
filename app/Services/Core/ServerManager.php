@@ -86,10 +86,13 @@ final class ServerManager
             'os_name' => $data['os_name'] ?? null,
             'agent_token' => $token,
             'tags' => is_array($data['tags'] ?? null) ? $data['tags'] : [],
-            'metadata' => [
+            'metadata' => array_filter([
                 'doctor_signing_key' => $this->generateSigningKey(),
                 'agent_port' => (int) ($data['agent_port'] ?? 9100),
-            ],
+                'host_profile' => isset($data['host_profile']) && is_string($data['host_profile']) && $data['host_profile'] !== ''
+                    ? $data['host_profile']
+                    : null,
+            ], fn ($value) => $value !== null),
         ]);
 
         ServerNode::query()->create([
