@@ -254,6 +254,9 @@ main() {
     install_step 10 "Temps réel Reverb + proxy WebSocket"
     setup_reverb
     append_reverb_nginx
+    # Reverb unit créée ci-dessus → réappliquer OOM + s’assurer du watchdog
+    ensure_panel_watchdog 2>/dev/null || true
+    ensure_mariadb_oom_protection 2>/dev/null || true
 
     install_step 11 "Sudoers, helper MAJ, profil dédié (SSH) et pare-feu"
     setup_sudoers

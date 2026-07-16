@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.18 - 2026-07-16
+
+### Install neuve sans action manuelle
+
+- Après `setup_reverb`, l’installateur réapplique watchdog + protection OOM (unit Reverb créée après)
+- `.env.example` : realtime off → `setup_reverb` ne force plus Reverb sur une install fraîche
+- Test de contrat : defaults anti-500 + watchdog dans `install.sh`
+
 ## v4.0.17 - 2026-07-16
 
 ### Anti-500 overnight (watchdog 24/7)

@@ -131,4 +131,22 @@ final class PanelUpdateIntegrityTest extends TestCase
             PanelUpdateIntegrity::CRITICAL_RELATIVE_PATHS,
         );
     }
+
+    public function test_fresh_install_defaults_disable_reverb_and_enable_watchdog(): void
+    {
+        $envExample = file_get_contents(base_path('.env.example'));
+        $this->assertNotFalse($envExample);
+        $this->assertMatchesRegularExpression('/^BROADCAST_CONNECTION=null/m', $envExample);
+        $this->assertMatchesRegularExpression('/^OBIORA_REALTIME_ENABLED=false/m', $envExample);
+
+        $install = file_get_contents(base_path('install/install.sh'));
+        $this->assertNotFalse($install);
+        $this->assertStringContainsString('setup_systemd', $install);
+        $this->assertStringContainsString('ensure_panel_watchdog', $install);
+        $this->assertStringContainsString('ensure_mariadb_oom_protection', $install);
+
+        $reverb = file_get_contents(base_path('install/lib/reverb.sh'));
+        $this->assertNotFalse($reverb);
+        $this->assertStringContainsString('OBIORA_REALTIME_ENABLED=false', $reverb);
+    }
 }
