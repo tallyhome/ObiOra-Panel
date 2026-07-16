@@ -71,52 +71,51 @@ return Application::configure(basePath: dirname(__DIR__))
                 && ! $request->is('install/*');
         };
 
-        $exceptions->render(function (QueryException $e, Request $request) use ($panelUnavailable) {
-            if ($panelUnavailable($request)) {
-                return response()->view('errors.panel-unavailable', [
-                    'diagnostics' => \App\Support\PanelInfrastructure::diagnostics(true),
-                ], 503);
+        $renderUnavailable = static function (Request $request) use ($panelUnavailable) {
+            if (! $panelUnavailable($request)) {
+                return null;
             }
 
-            return null;
+            \App\Support\PanelInfrastructure::fallbackCacheOffRedis();
+            if (! \App\Support\PanelInfrastructure::diskStatus()['ok']) {
+                \App\Support\PanelInfrastructure::reclaimDiskIfCritical();
+            }
+
+            return response()->view('errors.panel-unavailable', [
+                'diagnostics' => \App\Support\PanelInfrastructure::diagnostics(true),
+            ], 503);
+        };
+
+        $exceptions->render(function (QueryException $e, Request $request) use ($renderUnavailable) {
+            return $renderUnavailable($request);
         });
 
-        $exceptions->render(function (\PDOException $e, Request $request) use ($panelUnavailable) {
-            if ($panelUnavailable($request)) {
-                return response()->view('errors.panel-unavailable', [
-                    'diagnostics' => \App\Support\PanelInfrastructure::diagnostics(true),
-                ], 503);
-            }
-
-            return null;
+        $exceptions->render(function (\PDOException $e, Request $request) use ($renderUnavailable) {
+            return $renderUnavailable($request);
         });
 
         if (class_exists(\RedisException::class)) {
-            $exceptions->render(function (\RedisException $e, Request $request) use ($panelUnavailable) {
-                if ($panelUnavailable($request)) {
-                    return response()->view('errors.panel-unavailable', [
-                        'diagnostics' => \App\Support\PanelInfrastructure::diagnostics(true),
-                    ], 503);
-                }
-
-                return null;
+            $exceptions->render(function (\RedisException $e, Request $request) use ($renderUnavailable) {
+                return $renderUnavailable($request);
             });
         }
 
         $redisConnectionException = 'Illuminate\\Redis\\Connections\\ConnectionException';
         if (class_exists($redisConnectionException)) {
-            $exceptions->render(function ($e, Request $request) use ($panelUnavailable, $redisConnectionException) {
+            $exceptions->render(function ($e, Request $request) use ($renderUnavailable, $redisConnectionException) {
                 if (! $e instanceof $redisConnectionException) {
                     return null;
                 }
 
-                if ($panelUnavailable($request)) {
-                    return response()->view('errors.panel-unavailable', [
-                        'diagnostics' => \App\Support\PanelInfrastructure::diagnostics(true),
-                    ], 503);
-                }
-
-                return null;
+                return $renderUnavailable($request);
             });
         }
+
+        $exceptions->render(function (\Throwable $e, Request $request) use ($renderUnavailable) {
+            if (! \App\Support\PanelInfrastructure::isDiskSpaceException($e)) {
+                return null;
+            }
+
+            return $renderUnavailable($request);
+        });
     })->create();

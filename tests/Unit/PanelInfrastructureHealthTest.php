@@ -30,6 +30,21 @@ final class PanelInfrastructureHealthTest extends TestCase
         $this->assertArrayHasKey('ready', $diag);
         $this->assertArrayHasKey('database', $diag);
         $this->assertArrayHasKey('redis_required', $diag);
+        $this->assertArrayHasKey('disk_ok', $diag);
         $this->assertArrayHasKey('hints', $diag);
+    }
+
+    public function test_disk_status_structure(): void
+    {
+        $disk = PanelInfrastructure::diskStatus(base_path());
+
+        $this->assertArrayHasKey('ok', $disk);
+        $this->assertArrayHasKey('free_bytes', $disk);
+    }
+
+    public function test_is_disk_space_exception(): void
+    {
+        $this->assertTrue(PanelInfrastructure::isDiskSpaceException(new \RuntimeException('No space left on device')));
+        $this->assertFalse(PanelInfrastructure::isDiskSpaceException(new \RuntimeException('other')));
     }
 }

@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support;
 
-use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
-use PDOException;
 use Throwable;
 
 /**
@@ -33,13 +30,24 @@ final class PanelInfrastructure
     }
 
     /**
-     * @return array{ready: bool, database: bool, redis: ?bool, redis_required: bool, hints: list<string>}
+     * @return array{
+     *     ready: bool,
+     *     database: bool,
+     *     database_error: ?string,
+     *     redis: ?bool,
+     *     redis_required: bool,
+     *     disk_ok: bool,
+     *     disk_free_bytes: int,
+     *     disk_used_percent: ?float,
+     *     hints: list<string>
+     * }
      */
     public static function diagnostics(bool $forceCheck = true): array
     {
         $database = PanelDatabase::isAvailable($forceCheck);
         $redisRequired = self::isRedisRequired();
         $redis = $redisRequired ? self::isRedisAvailable($forceCheck) : null;
+        $disk = self::diskStatus();
         $hints = [];
 
         if (! $database) {
@@ -52,19 +60,25 @@ final class PanelInfrastructure
         }
 
         if ($redisRequired && $redis === false) {
-            $hints[] = 'Redis injoignable — sudo systemctl restart redis ; le panel peut démarrer sans Redis (cache BDD).';
+            $hints[] = 'Redis injoignable — bascule auto cache/session ; ou CACHE_STORE=database dans .env';
         }
 
-        if ($database && $redisRequired && $redis === false) {
-            $hints[] = 'Contournement : CACHE_STORE=database dans .env puis config:clear et restart php-fpm.';
+        if (! $disk['ok']) {
+            $hints[] = 'Disque critique ('.$disk['used_percent'].'% utilisé, '
+                .self::formatBytes($disk['free_bytes']).' libre) — purge CrashHunter : '
+                .'sudo bash /opt/obiora-panel/agent/scripts/crashhunter-disk-purge.sh keep 3';
+            $hints[] = 'Ou recover complet : sudo bash /opt/obiora-panel/agent/scripts/panel-recover-ssh.sh';
         }
 
         return [
-            'ready' => $database,
+            'ready' => $database && $disk['ok'],
             'database' => $database,
             'database_error' => PanelDatabase::lastError(),
             'redis' => $redis,
             'redis_required' => $redisRequired,
+            'disk_ok' => $disk['ok'],
+            'disk_free_bytes' => $disk['free_bytes'],
+            'disk_used_percent' => $disk['used_percent'],
             'hints' => $hints,
         ];
     }
@@ -122,17 +136,69 @@ final class PanelInfrastructure
         return self::$redisAvailable;
     }
 
+    /**
+     * Bascule cache (+ session) hors Redis et invalide les singletons Laravel
+     * pour que RateLimiter / Login n'utilisent plus une connexion morte.
+     */
     public static function fallbackCacheOffRedis(): void
     {
-        if ((string) config('cache.default') !== 'redis') {
-            return;
+        $redisDown = ! self::isRedisAvailable(true);
+
+        if ((string) config('cache.default') === 'redis' && $redisDown) {
+            config(['cache.default' => 'database']);
+            self::forgetCacheInstances();
         }
 
-        if (self::isRedisAvailable(true)) {
-            return;
+        if ((string) config('session.driver') === 'redis' && $redisDown) {
+            config(['session.driver' => 'file']);
+        }
+    }
+
+    /**
+     * @return array{ok: bool, free_bytes: int, used_percent: ?float, path: string}
+     */
+    public static function diskStatus(?string $path = null): array
+    {
+        $path = $path ?? (function_exists('base_path') ? base_path() : '/opt/obiora-panel');
+        $free = @disk_free_space($path);
+        $total = @disk_total_space($path);
+
+        if ($free === false || $total === false || $total <= 0) {
+            return ['ok' => true, 'free_bytes' => 0, 'used_percent' => null, 'path' => $path];
         }
 
-        config(['cache.default' => 'database']);
+        $freeBytes = (int) $free;
+        $usedPercent = round((1 - ($freeBytes / (float) $total)) * 100, 1);
+        // Critique : < 400 Mo libres OU > 96 % utilisés
+        $ok = $freeBytes >= 400 * 1024 * 1024 && $usedPercent < 96.0;
+
+        return [
+            'ok' => $ok,
+            'free_bytes' => $freeBytes,
+            'used_percent' => $usedPercent,
+            'path' => $path,
+        ];
+    }
+
+    /**
+     * Tente une purge CrashHunter si le disque est critique (best-effort, non bloquant longtemps).
+     */
+    public static function reclaimDiskIfCritical(): bool
+    {
+        $disk = self::diskStatus();
+        if ($disk['ok']) {
+            return false;
+        }
+
+        $script = base_path('agent/scripts/crashhunter-disk-purge.sh');
+        if (! is_file($script) || PHP_OS_FAMILY !== 'Linux') {
+            return false;
+        }
+
+        $cmd = 'sudo -n '.escapeshellarg($script).' keep 2 2>/dev/null';
+        @exec($cmd, $output, $code);
+
+        return $code === 0;
     }
 
     public static function resetCache(): void
@@ -140,6 +206,42 @@ final class PanelInfrastructure
         PanelDatabase::resetCache();
         self::$redisAvailable = null;
         self::$redisCheckedAt = 0;
+    }
+
+    public static function isDiskSpaceException(Throwable $e): bool
+    {
+        $message = strtolower($e->getMessage());
+
+        return str_contains($message, 'no space left')
+            || str_contains($message, 'enospc')
+            || str_contains($message, 'disk quota exceeded')
+            || (str_contains($message, 'failed to open stream') && str_contains($message, 'no space'));
+    }
+
+    private static function forgetCacheInstances(): void
+    {
+        try {
+            if (function_exists('app') && app()->bound('cache')) {
+                app()->forgetInstance('cache');
+            }
+            if (function_exists('app') && app()->bound('cache.store')) {
+                app()->forgetInstance('cache.store');
+            }
+        } catch (Throwable) {
+            // ignore
+        }
+    }
+
+    private static function formatBytes(int $bytes): string
+    {
+        if ($bytes >= 1073741824) {
+            return number_format($bytes / 1073741824, 1).' Go';
+        }
+        if ($bytes >= 1048576) {
+            return number_format($bytes / 1048576, 0).' Mo';
+        }
+
+        return number_format(max(0, $bytes) / 1024, 0).' Ko';
     }
 
     private static function canReachRedisPort(): bool

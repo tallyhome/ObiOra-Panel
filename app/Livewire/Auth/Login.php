@@ -30,14 +30,24 @@ final class Login extends Component
 
         $key = 'login.'.$this->email;
 
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            throw ValidationException::withMessages([
-                'email' => __('panel.auth.too_many', ['seconds' => RateLimiter::availableIn($key)]),
-            ]);
+        try {
+            if (RateLimiter::tooManyAttempts($key, 5)) {
+                throw ValidationException::withMessages([
+                    'email' => __('panel.auth.too_many', ['seconds' => RateLimiter::availableIn($key)]),
+                ]);
+            }
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Throwable) {
+            // Cache/Redis KO : ne pas bloquer le login derrière un 500 opaque.
         }
 
         if (! Auth::attempt(['email' => $this->email, 'password' => $this->password, 'is_active' => true], $this->remember)) {
-            RateLimiter::hit($key, 60);
+            try {
+                RateLimiter::hit($key, 60);
+            } catch (\Throwable) {
+                // ignore
+            }
             throw ValidationException::withMessages([
                 'email' => __('panel.auth.invalid_credentials'),
             ]);
@@ -51,7 +61,11 @@ final class Login extends Component
             ]);
         }
 
-        RateLimiter::clear($key);
+        try {
+            RateLimiter::clear($key);
+        } catch (\Throwable) {
+            // ignore
+        }
         session()->regenerate();
 
         $this->redirectIntended(default: route('dashboard'));

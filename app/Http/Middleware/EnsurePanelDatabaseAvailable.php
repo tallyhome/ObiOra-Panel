@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Runs before session middleware — avoids 500 when MariaDB/Redis are still starting after reboot.
+ * Avant la session — évite 500 opaque (MariaDB/Redis/disque) après reboot ou nuit.
  */
 final class EnsurePanelDatabaseAvailable
 {
@@ -22,7 +22,13 @@ final class EnsurePanelDatabaseAvailable
 
         PanelInfrastructure::fallbackCacheOffRedis();
 
-        if (! PanelInfrastructure::isReady()) {
+        $disk = PanelInfrastructure::diskStatus();
+        if (! $disk['ok']) {
+            PanelInfrastructure::reclaimDiskIfCritical();
+            $disk = PanelInfrastructure::diskStatus();
+        }
+
+        if (! PanelInfrastructure::isReady() || ! $disk['ok']) {
             return response()->view('errors.panel-unavailable', [
                 'diagnostics' => PanelInfrastructure::diagnostics(true),
             ], Response::HTTP_SERVICE_UNAVAILABLE);

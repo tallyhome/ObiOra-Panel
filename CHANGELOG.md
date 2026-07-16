@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.14 - 2026-07-16
+
+### Résilience login 500 (overnight)
+
+- **Cause typique** : disque plein (CrashHunter) ou Redis KO au submit login (RateLimiter/session)
+- **Fallback Redis** : invalide les singletons cache + bascule session `file` si Redis mort
+- **Disque critique** : détection + purge auto CrashHunter + page 503 explicite (plus de 500 opaque)
+- **Login** : RateLimiter ne casse plus la connexion si le cache est KO
+- **Recover SSH** : purge disque en étape 1 + `CACHE_STORE=database` / `SESSION_DRIVER=file` sur VPS ≤4 Go
+
 ## v4.0.13 - 2026-07-15
 
 ### CrashHunter disque (léger)

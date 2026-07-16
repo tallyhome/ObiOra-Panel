@@ -22,7 +22,21 @@ fi
 
 cd "${OBIORA_INSTALL_DIR}"
 
-log "1/8 — Démarrage MariaDB, Redis, PHP-FPM, Nginx, queue…"
+log "1/9 — Espace disque (souvent cause du 500 login overnight)…"
+df -h / /opt 2>/dev/null || df -h /
+avail_kb="$(df -Pk /opt 2>/dev/null | awk 'NR==2 {print $4}' || df -Pk / | awk 'NR==2 {print $4}')"
+if [[ -n "${avail_kb}" ]] && (( avail_kb < 800000 )); then
+    warn "Disque faible (${avail_kb} Ko libres) — purge CrashHunter bundles…"
+    if [[ -x "${OBIORA_INSTALL_DIR}/agent/scripts/crashhunter-disk-purge.sh" ]]; then
+        bash "${OBIORA_INSTALL_DIR}/agent/scripts/crashhunter-disk-purge.sh" keep 2 || true
+    else
+        rm -rf /opt/crashhunter/bundles/* /opt/crashhunter/reports/* 2>/dev/null || true
+    fi
+    journalctl --vacuum-size=100M 2>/dev/null || true
+    df -h / /opt 2>/dev/null || true
+fi
+
+log "2/9 — Démarrage MariaDB, Redis, PHP-FPM, Nginx, queue…"
 systemctl start mariadb 2>/dev/null || systemctl start mysqld 2>/dev/null || true
 systemctl start redis 2>/dev/null || systemctl start redis-server 2>/dev/null || true
 systemctl start php-fpm 2>/dev/null || true
@@ -35,12 +49,12 @@ if ! systemctl is-active mariadb &>/dev/null && ! systemctl is-active mysqld &>/
     exit 1
 fi
 
-log "2/8 — Tuning MariaDB (petits VPS)…"
+log "3/9 — Tuning MariaDB (petits VPS)…"
 if [[ -f "${OBIORA_INSTALL_DIR}/agent/scripts/mariadb-tune-panel.sh" ]]; then
     bash "${OBIORA_INSTALL_DIR}/agent/scripts/mariadb-tune-panel.sh" || warn "tuning MariaDB ignoré"
 fi
 
-log "3/8 — Synchronisation mot de passe BDD → .env…"
+log "4/9 — Synchronisation mot de passe BDD → .env…"
 if [[ -f /root/.obiora_db_credentials ]]; then
     # shellcheck source=/dev/null
     source /root/.obiora_db_credentials
@@ -68,7 +82,7 @@ if grep -q '^CACHE_STORE=redis' .env 2>/dev/null; then
     fi
 fi
 
-log "4/8 — Test connexion MySQL…"
+log "5/9 — Test connexion MySQL…"
 mysql_ok=0
 if [[ -f /root/.obiora_db_credentials ]]; then
     # shellcheck source=/dev/null
@@ -101,7 +115,7 @@ SQL
     fi
 fi
 
-log "5/8 — Mise à jour code (git pull)…"
+log "6/9 — Mise à jour code (git pull)…"
 if [[ -d .git ]]; then
     git config --global --add safe.directory "${OBIORA_INSTALL_DIR}" 2>/dev/null || true
     sudo -u "${OBIORA_USER}" git fetch origin main 2>/dev/null || git fetch origin main
@@ -109,19 +123,32 @@ if [[ -d .git ]]; then
     chown -R "${OBIORA_USER}:${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}"
 fi
 
-log "6/8 — Caches Laravel + migrations…"
+log "7/9 — Caches Laravel + migrations…"
+# Forcer session/cache hors Redis sur petits VPS (évite 500 au submit login)
+if grep -qE '^(CACHE_STORE|SESSION_DRIVER)=redis' .env 2>/dev/null; then
+    ram_mb="$(awk '/MemTotal:/ {print int($2/1024)}' /proc/meminfo 2>/dev/null || echo 8192)"
+    if (( ram_mb <= 4096 )); then
+        sed -i 's|^CACHE_STORE=.*|CACHE_STORE=database|' .env 2>/dev/null || true
+        if ! grep -q '^CACHE_STORE=' .env; then echo 'CACHE_STORE=database' >> .env; fi
+        sed -i 's|^SESSION_DRIVER=.*|SESSION_DRIVER=file|' .env 2>/dev/null || true
+        if ! grep -q '^SESSION_DRIVER=' .env; then echo 'SESSION_DRIVER=file' >> .env; fi
+        log "CACHE_STORE=database + SESSION_DRIVER=file (RAM ${ram_mb} MiB)"
+    fi
+fi
 sudo -u "${OBIORA_USER}" php artisan optimize:clear 2>/dev/null || true
 sudo -u "${OBIORA_USER}" php artisan config:clear
+sudo -u "${OBIORA_USER}" php artisan route:clear 2>/dev/null || true
+sudo -u "${OBIORA_USER}" php artisan view:clear 2>/dev/null || true
 sudo -u "${OBIORA_USER}" php artisan migrate --force 2>/dev/null || true
 sudo -u "${OBIORA_USER}" php artisan obiora:post-deploy --skip-migrate 2>/dev/null || true
 
-log "7/8 — Redémarrage services…"
+log "8/9 — Redémarrage services…"
 systemctl restart mariadb 2>/dev/null || systemctl restart mysqld 2>/dev/null || true
 systemctl restart php-fpm 2>/dev/null || true
 systemctl restart nginx 2>/dev/null || true
 systemctl restart obiora-queue 2>/dev/null || true
 
-log "8/8 — Vérification…"
+log "9/9 — Vérification…"
 sleep 2
 if sudo -u "${OBIORA_USER}" php artisan db:show 2>/dev/null | head -5; then
     log "Connexion Laravel OK"
@@ -133,4 +160,7 @@ http_code="$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1/panel-heal
 log "panel-health HTTP ${http_code}"
 curl -sS http://127.0.0.1/panel-health 2>/dev/null || true
 echo ""
-log "Terminé — ouvrez le panel dans le navigateur (Ctrl+F5)"
+login_code="$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1/login 2>/dev/null || echo '000')"
+log "login HTTP ${login_code}"
+df -h / /opt 2>/dev/null || true
+log "Terminé — ouvrez le panel (Ctrl+F5). Si 500 : tail -n 80 storage/logs/laravel.log"

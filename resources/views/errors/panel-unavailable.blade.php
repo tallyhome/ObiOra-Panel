@@ -31,6 +31,12 @@
             @if($diagnostics['redis_required'] ?? false)
             <div>Redis : <strong class="{{ ($diagnostics['redis'] ?? false) ? 'ok' : 'ko' }}">{{ ($diagnostics['redis'] ?? false) ? 'OK' : 'KO (cache)' }}</strong></div>
             @endif
+            <div>Disque : <strong class="{{ ($diagnostics['disk_ok'] ?? true) ? 'ok' : 'ko' }}">
+                {{ ($diagnostics['disk_ok'] ?? true) ? 'OK' : 'CRITIQUE' }}
+                @if(isset($diagnostics['disk_used_percent']))
+                    ({{ $diagnostics['disk_used_percent'] }}%)
+                @endif
+            </strong></div>
             @if(!empty($diagnostics['database_error']))
             <div class="small text-muted mt-1" style="word-break:break-word;">{{ $diagnostics['database_error'] }}</div>
             @endif
@@ -49,6 +55,8 @@
         <p class="retry">Diagnostic JSON : <code>/panel-health</code></p>
         <p class="retry">Récupération SSH (root) :</p>
         <p class="retry"><code>sudo bash /opt/obiora-panel/agent/scripts/panel-recover-ssh.sh</code></p>
+        <p class="retry">Si disque plein (CrashHunter) :</p>
+        <p class="retry"><code>sudo bash /opt/obiora-panel/agent/scripts/crashhunter-disk-purge.sh keep 2</code></p>
     </div>
 </body>
 </html>
