@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.17 - 2026-07-16
+
+### Anti-500 overnight (watchdog 24/7)
+
+- **Watchdog** : `agent/scripts/panel-watchdog.sh` + timer systemd `obiora-panel-watchdog.timer` (toutes les 2 min)
+- Si `/panel-health` ou `/login` KO → démarre MariaDB/php-fpm/nginx/queue, coupe Reverb mort, perms storage, puis recover sans git
+- **OOM** : MariaDB `OOMScoreAdjust=-800`, Reverb `+300` (préférer tuer Reverb plutôt que la BDD)
+- **Defaults** : `.env.example` → `BROADCAST_CONNECTION=null` / realtime off (opt-in)
+- Installé automatiquement via recover SSH et `update-panel.sh`
+
 ## v4.0.16 - 2026-07-16
 
 ### Résilience overnight / recover SSH

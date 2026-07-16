@@ -355,6 +355,8 @@ if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/systemd.sh" ]]; then
     # shellcheck source=/dev/null
     source "${OBIORA_INSTALL_DIR}/install/lib/systemd.sh"
     ensure_boot_service_order || true
+    ensure_panel_watchdog || true
+    ensure_mariadb_oom_protection || true
 fi
 
 finalize_panel_http

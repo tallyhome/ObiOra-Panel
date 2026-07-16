@@ -171,7 +171,9 @@ SQL
 fi
 
 log "6/9 — Mise à jour code (git reset --hard, ignore les edits locales)…"
-if [[ -d .git ]]; then
+if [[ "${SKIP_GIT:-0}" == "1" ]]; then
+    log "SKIP_GIT=1 — pas de git sync (appel watchdog)"
+elif [[ -d .git ]]; then
     git config --global --add safe.directory "${OBIORA_INSTALL_DIR}" 2>/dev/null || true
     if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
         warn "modifications locales détectées — alignement forcé sur origin/main"
@@ -199,6 +201,16 @@ if [[ -d .git ]]; then
 fi
 
 fix_storage_permissions
+
+# Installer / rafraîchir le timer watchdog overnight
+if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/common.sh" ]] && [[ -f "${OBIORA_INSTALL_DIR}/install/lib/systemd.sh" ]]; then
+    # shellcheck source=/dev/null
+    source "${OBIORA_INSTALL_DIR}/install/lib/common.sh"
+    # shellcheck source=/dev/null
+    source "${OBIORA_INSTALL_DIR}/install/lib/systemd.sh"
+    ensure_panel_watchdog 2>/dev/null || true
+    ensure_mariadb_oom_protection 2>/dev/null || true
+fi
 
 log "7/9 — Caches Laravel + migrations…"
 # Forcer session/cache hors Redis sur petits VPS (évite 500 au submit login)

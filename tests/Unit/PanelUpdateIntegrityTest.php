@@ -96,6 +96,8 @@ final class PanelUpdateIntegrityTest extends TestCase
         $this->assertStringContainsString('wait_for_mysql', $script);
         $this->assertStringContainsString('fix_storage_permissions', $script);
         $this->assertStringContainsString('disable_broadcast_if_reverb_down', $script);
+        $this->assertStringContainsString('SKIP_GIT', $script);
+        $this->assertStringContainsString('ensure_panel_watchdog', $script);
         // Ne pas restart MariaDB en fin de recover (Connection refused / 500).
         $this->assertDoesNotMatchRegularExpression(
             '/log "8\/9"[^\n]*\n(?:.*\n){0,6}.*systemctl restart mariadb/',
@@ -103,6 +105,29 @@ final class PanelUpdateIntegrityTest extends TestCase
         );
         $this->assertContains(
             'agent/scripts/panel-recover-ssh.sh',
+            PanelUpdateIntegrity::CRITICAL_RELATIVE_PATHS,
+        );
+    }
+
+    public function test_panel_watchdog_auto_heals_health_and_login(): void
+    {
+        $script = file_get_contents(base_path('agent/scripts/panel-watchdog.sh'));
+        $this->assertNotFalse($script);
+
+        $this->assertStringContainsString('panel-health', $script);
+        $this->assertStringContainsString('/login', $script);
+        $this->assertStringContainsString('heal_light', $script);
+        $this->assertStringContainsString('SKIP_GIT=1', $script);
+        $this->assertStringContainsString('flock', $script);
+
+        $systemd = file_get_contents(base_path('install/lib/systemd.sh'));
+        $this->assertNotFalse($systemd);
+        $this->assertStringContainsString('ensure_panel_watchdog', $systemd);
+        $this->assertStringContainsString('obiora-panel-watchdog.timer', $systemd);
+        $this->assertStringContainsString('OOMScoreAdjust=-800', $systemd);
+
+        $this->assertContains(
+            'agent/scripts/panel-watchdog.sh',
             PanelUpdateIntegrity::CRITICAL_RELATIVE_PATHS,
         );
     }

@@ -29,6 +29,7 @@ final class PanelUpdateIntegrity
         'app/Console/Commands/RecoverPanelHttpCommand.php',
         'app/Console/Commands/PostDeployCommand.php',
         'agent/scripts/panel-recover-ssh.sh',
+        'agent/scripts/panel-watchdog.sh',
         'VERSION',
     ];
 
@@ -40,6 +41,7 @@ final class PanelUpdateIntegrity
         'agent/scripts/monitor-agent-install.sh',
         'agent/scripts/obiora-monitor-uninstall.sh',
         'agent/scripts/panel-recover-ssh.sh',
+        'agent/scripts/panel-watchdog.sh',
     ];
 
     /**
