@@ -9,6 +9,8 @@ use App\Services\Monitoring\MonitoringAlertService;
 use App\Services\Monitoring\ServerPingService;
 use App\Services\Realtime\RealtimeBroadcaster;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 final class MonitorServersPingCommand extends Command
 {
@@ -18,24 +20,30 @@ final class MonitorServersPingCommand extends Command
 
     public function handle(ServerPingService $pinger, MonitoringAlertService $alerts, RealtimeBroadcaster $realtime): int
     {
-        $query = Server::query()->orderBy('id');
-        if ($this->option('server')) {
-            $query->whereKey((int) $this->option('server'));
-        }
-
-        $servers = $query->get();
-        foreach ($servers as $server) {
-            $sample = $pinger->probe($server);
-            $status = $sample->success ? 'OK' : 'FAIL';
-            $latency = $sample->latency_ms ?? '—';
-            $this->line("{$server->name}: {$status} ({$latency} ms, {$sample->method})");
-
-            if (! $sample->success) {
-                $alerts->recordServerOffline($server);
+        try {
+            $query = Server::query()->orderBy('id');
+            if ($this->option('server')) {
+                $query->whereKey((int) $this->option('server'));
             }
-        }
 
-        $realtime->monitoringFleet();
+            $servers = $query->get();
+            foreach ($servers as $server) {
+                $sample = $pinger->probe($server);
+                $status = $sample->success ? 'OK' : 'FAIL';
+                $latency = $sample->latency_ms ?? '—';
+                $this->line("{$server->name}: {$status} ({$latency} ms, {$sample->method})");
+
+                if (! $sample->success) {
+                    $alerts->recordServerOffline($server);
+                }
+            }
+
+            $realtime->monitoringFleet();
+        } catch (Throwable $e) {
+            Log::warning('obiora:monitor-ping skipped', ['message' => $e->getMessage()]);
+
+            return self::SUCCESS;
+        }
 
         return self::SUCCESS;
     }

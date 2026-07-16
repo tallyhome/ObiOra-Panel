@@ -10,6 +10,49 @@ OBIORA_GROUP="${OBIORA_GROUP:-obiora}"
 log() { echo "[panel-recover] $*"; }
 warn() { echo "[panel-recover] WARN: $*" >&2; }
 
+wait_for_mysql() {
+    local tries="${1:-30}"
+    local i
+    for ((i = 1; i <= tries; i++)); do
+        if mysqladmin ping -h 127.0.0.1 --silent 2>/dev/null \
+            || mysqladmin ping --silent 2>/dev/null; then
+            return 0
+        fi
+        sleep 1
+    done
+    return 1
+}
+
+disable_broadcast_if_reverb_down() {
+    if ! systemctl list-unit-files 2>/dev/null | grep -q '^obiora-reverb\.service'; then
+        return 0
+    fi
+    if systemctl is-active --quiet obiora-reverb; then
+        return 0
+    fi
+
+    warn "obiora-reverb inactif — BROADCAST_CONNECTION=null (polling UI)"
+    if grep -q '^BROADCAST_CONNECTION=' .env 2>/dev/null; then
+        sed -i 's|^BROADCAST_CONNECTION=.*|BROADCAST_CONNECTION=null|' .env
+    else
+        echo 'BROADCAST_CONNECTION=null' >> .env
+    fi
+    if grep -q '^OBIORA_REALTIME_ENABLED=' .env 2>/dev/null; then
+        sed -i 's|^OBIORA_REALTIME_ENABLED=.*|OBIORA_REALTIME_ENABLED=false|' .env
+    else
+        echo 'OBIORA_REALTIME_ENABLED=false' >> .env
+    fi
+}
+
+fix_storage_permissions() {
+    mkdir -p storage/logs storage/framework/{cache,sessions,views} bootstrap/cache
+    chown -R "${OBIORA_USER}:${OBIORA_GROUP}" storage bootstrap/cache
+    chmod -R ug+rwX storage bootstrap/cache
+    # Logs créés en root (cron/sudo) doivent rester écrivables par php-fpm
+    find storage/logs -type f -name '*.log' -exec chown "${OBIORA_USER}:${OBIORA_GROUP}" {} \; 2>/dev/null || true
+    find storage/logs -type f -name '*.log' -exec chmod ug+rw {} \; 2>/dev/null || true
+}
+
 if [[ "${EUID}" -ne 0 ]]; then
     echo "ERREUR: exécuter en root — sudo bash $0" >&2
     exit 1
@@ -42,24 +85,9 @@ systemctl start redis 2>/dev/null || systemctl start redis-server 2>/dev/null ||
 systemctl start php-fpm 2>/dev/null || true
 systemctl start nginx 2>/dev/null || true
 systemctl start obiora-queue 2>/dev/null || true
-systemctl start obiora-reverb 2>/dev/null || true
+systemctl enable --now obiora-reverb 2>/dev/null || systemctl start obiora-reverb 2>/dev/null || true
 
-# Si Reverb reste down : désactiver le broadcast pour éviter les 500 login/dashboard
-if systemctl list-unit-files 2>/dev/null | grep -q '^obiora-reverb\.service'; then
-    if ! systemctl is-active --quiet obiora-reverb; then
-        warn "obiora-reverb inactif — BROADCAST_CONNECTION=null (polling UI)"
-        if grep -q '^BROADCAST_CONNECTION=' .env 2>/dev/null; then
-            sed -i 's|^BROADCAST_CONNECTION=.*|BROADCAST_CONNECTION=null|' .env
-        else
-            echo 'BROADCAST_CONNECTION=null' >> .env
-        fi
-        if grep -q '^OBIORA_REALTIME_ENABLED=' .env 2>/dev/null; then
-            sed -i 's|^OBIORA_REALTIME_ENABLED=.*|OBIORA_REALTIME_ENABLED=false|' .env
-        else
-            echo 'OBIORA_REALTIME_ENABLED=false' >> .env
-        fi
-    fi
-fi
+disable_broadcast_if_reverb_down
 
 if ! systemctl is-active mariadb &>/dev/null && ! systemctl is-active mysqld &>/dev/null; then
     warn "MariaDB ne démarre pas — journal :"
@@ -67,9 +95,18 @@ if ! systemctl is-active mariadb &>/dev/null && ! systemctl is-active mysqld &>/
     exit 1
 fi
 
+if ! wait_for_mysql 45; then
+    warn "MariaDB actif mais pas encore prêt (ping) — on continue"
+fi
+
 log "3/9 — Tuning MariaDB (petits VPS)…"
 if [[ -f "${OBIORA_INSTALL_DIR}/agent/scripts/mariadb-tune-panel.sh" ]]; then
     bash "${OBIORA_INSTALL_DIR}/agent/scripts/mariadb-tune-panel.sh" || warn "tuning MariaDB ignoré"
+    # Le tuning peut redémarrer mysqld — attendre avant les tests SQL
+    if ! wait_for_mysql 60; then
+        warn "MariaDB lent après tuning — journal :"
+        journalctl -u mariadb -n 15 --no-pager 2>/dev/null || true
+    fi
 fi
 
 log "4/9 — Synchronisation mot de passe BDD → .env…"
@@ -133,13 +170,35 @@ SQL
     fi
 fi
 
-log "6/9 — Mise à jour code (git pull)…"
+log "6/9 — Mise à jour code (git reset --hard, ignore les edits locales)…"
 if [[ -d .git ]]; then
     git config --global --add safe.directory "${OBIORA_INSTALL_DIR}" 2>/dev/null || true
-    sudo -u "${OBIORA_USER}" git fetch origin main 2>/dev/null || git fetch origin main
-    sudo -u "${OBIORA_USER}" git checkout -B main origin/main 2>/dev/null || git checkout -B main origin/main
+    if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
+        warn "modifications locales détectées — alignement forcé sur origin/main"
+        git status --porcelain | head -20 || true
+    fi
+    # Comme update-panel.sh : ne jamais bloquer le recover sur un fichier dirty
+    # (ex. panel-recover-ssh.sh édité à la main sur le VPS).
+    if ! git fetch origin main --tags 2>/dev/null; then
+        git fetch origin main --tags || warn "git fetch échoué"
+    fi
+    if git rev-parse --verify origin/main >/dev/null 2>&1; then
+        git checkout -B main origin/main 2>/dev/null || true
+        git reset --hard origin/main
+        log "Code aligné : $(git log -1 --oneline 2>/dev/null || echo '?')"
+    else
+        warn "origin/main introuvable — skip git sync"
+    fi
+    if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/common.sh" ]]; then
+        # shellcheck source=/dev/null
+        source "${OBIORA_INSTALL_DIR}/install/lib/common.sh"
+        ensure_agent_executables 2>/dev/null || true
+    fi
+    chmod +x agent/scripts/*.sh 2>/dev/null || true
     chown -R "${OBIORA_USER}:${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}"
 fi
+
+fix_storage_permissions
 
 log "7/9 — Caches Laravel + migrations…"
 # Forcer session/cache hors Redis sur petits VPS (évite 500 au submit login)
@@ -153,6 +212,11 @@ if grep -qE '^(CACHE_STORE|SESSION_DRIVER)=redis' .env 2>/dev/null; then
         log "CACHE_STORE=database + SESSION_DRIVER=file (RAM ${ram_mb} MiB)"
     fi
 fi
+
+if ! wait_for_mysql 30; then
+    warn "MySQL pas prêt avant artisan — les commandes peuvent échouer"
+fi
+
 sudo -u "${OBIORA_USER}" php artisan optimize:clear 2>/dev/null || true
 sudo -u "${OBIORA_USER}" php artisan config:clear
 sudo -u "${OBIORA_USER}" php artisan route:clear 2>/dev/null || true
@@ -160,12 +224,14 @@ sudo -u "${OBIORA_USER}" php artisan view:clear 2>/dev/null || true
 sudo -u "${OBIORA_USER}" php artisan migrate --force 2>/dev/null || true
 sudo -u "${OBIORA_USER}" php artisan obiora:post-deploy --skip-migrate 2>/dev/null || true
 
-log "8/9 — Redémarrage services…"
-systemctl restart mariadb 2>/dev/null || systemctl restart mysqld 2>/dev/null || true
-systemctl restart php-fpm 2>/dev/null || true
-systemctl restart nginx 2>/dev/null || true
+log "8/9 — Redémarrage services (sans restart MariaDB : évite Connection refused)…"
+# Ne PAS restart mariadb ici : ça provoque des 500 pendant 5–30s (logs SQLSTATE 2002).
+systemctl reload php-fpm 2>/dev/null || systemctl restart php-fpm 2>/dev/null || true
+systemctl reload nginx 2>/dev/null || systemctl restart nginx 2>/dev/null || true
 systemctl restart obiora-queue 2>/dev/null || true
-systemctl restart obiora-reverb 2>/dev/null || true
+systemctl enable --now obiora-reverb 2>/dev/null || systemctl restart obiora-reverb 2>/dev/null || true
+disable_broadcast_if_reverb_down
+fix_storage_permissions
 
 log "9/9 — Vérification…"
 sleep 2

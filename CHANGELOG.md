@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.16 - 2026-07-16
+
+### Résilience overnight / recover SSH
+
+- **Cause récidive** : `panel-recover-ssh.sh` modifié localement sur le VPS → `git pull`/`checkout` bloqué → panel restait en ancienne version
+- **Recover** : `git reset --hard origin/main` (comme `update-panel.sh`), plus de blocage sur fichiers dirty
+- **Recover** : `wait_for_mysql` après start/tuning ; **plus de restart MariaDB** en fin (évite `Connection refused` / 500)
+- **Recover** : permissions `storage/logs` (fin des Permission denied provisioning-*.log)
+- **Scheduler** : `obiora:broadcast-metrics` / `obiora:monitor-ping` soft-fail si BDD/Reverb KO (plus de flood ERROR)
+
 ## v4.0.15 - 2026-07-16
 
 ### 500 login / Reverb down

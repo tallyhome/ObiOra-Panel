@@ -86,4 +86,24 @@ final class PanelUpdateIntegrityTest extends TestCase
             PanelUpdateIntegrity::EXECUTABLE_SCRIPTS,
         );
     }
+
+    public function test_panel_recover_ssh_forces_git_sync_and_waits_for_mysql(): void
+    {
+        $script = file_get_contents(base_path('agent/scripts/panel-recover-ssh.sh'));
+        $this->assertNotFalse($script);
+
+        $this->assertStringContainsString('git reset --hard origin/main', $script);
+        $this->assertStringContainsString('wait_for_mysql', $script);
+        $this->assertStringContainsString('fix_storage_permissions', $script);
+        $this->assertStringContainsString('disable_broadcast_if_reverb_down', $script);
+        // Ne pas restart MariaDB en fin de recover (Connection refused / 500).
+        $this->assertDoesNotMatchRegularExpression(
+            '/log "8\/9"[^\n]*\n(?:.*\n){0,6}.*systemctl restart mariadb/',
+            $script,
+        );
+        $this->assertContains(
+            'agent/scripts/panel-recover-ssh.sh',
+            PanelUpdateIntegrity::CRITICAL_RELATIVE_PATHS,
+        );
+    }
 }
