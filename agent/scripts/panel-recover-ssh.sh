@@ -36,12 +36,30 @@ if [[ -n "${avail_kb}" ]] && (( avail_kb < 800000 )); then
     df -h / /opt 2>/dev/null || true
 fi
 
-log "2/9 — Démarrage MariaDB, Redis, PHP-FPM, Nginx, queue…"
+log "2/9 — Démarrage MariaDB, Redis, PHP-FPM, Nginx, queue, Reverb…"
 systemctl start mariadb 2>/dev/null || systemctl start mysqld 2>/dev/null || true
 systemctl start redis 2>/dev/null || systemctl start redis-server 2>/dev/null || true
 systemctl start php-fpm 2>/dev/null || true
 systemctl start nginx 2>/dev/null || true
 systemctl start obiora-queue 2>/dev/null || true
+systemctl start obiora-reverb 2>/dev/null || true
+
+# Si Reverb reste down : désactiver le broadcast pour éviter les 500 login/dashboard
+if systemctl list-unit-files 2>/dev/null | grep -q '^obiora-reverb\.service'; then
+    if ! systemctl is-active --quiet obiora-reverb; then
+        warn "obiora-reverb inactif — BROADCAST_CONNECTION=null (polling UI)"
+        if grep -q '^BROADCAST_CONNECTION=' .env 2>/dev/null; then
+            sed -i 's|^BROADCAST_CONNECTION=.*|BROADCAST_CONNECTION=null|' .env
+        else
+            echo 'BROADCAST_CONNECTION=null' >> .env
+        fi
+        if grep -q '^OBIORA_REALTIME_ENABLED=' .env 2>/dev/null; then
+            sed -i 's|^OBIORA_REALTIME_ENABLED=.*|OBIORA_REALTIME_ENABLED=false|' .env
+        else
+            echo 'OBIORA_REALTIME_ENABLED=false' >> .env
+        fi
+    fi
+fi
 
 if ! systemctl is-active mariadb &>/dev/null && ! systemctl is-active mysqld &>/dev/null; then
     warn "MariaDB ne démarre pas — journal :"
@@ -147,6 +165,7 @@ systemctl restart mariadb 2>/dev/null || systemctl restart mysqld 2>/dev/null ||
 systemctl restart php-fpm 2>/dev/null || true
 systemctl restart nginx 2>/dev/null || true
 systemctl restart obiora-queue 2>/dev/null || true
+systemctl restart obiora-reverb 2>/dev/null || true
 
 log "9/9 — Vérification…"
 sleep 2

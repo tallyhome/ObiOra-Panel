@@ -118,4 +118,22 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return $renderUnavailable($request);
         });
+
+        $exceptions->render(function (\Illuminate\Broadcasting\BroadcastException $e, Request $request) {
+            \Illuminate\Support\Facades\Log::warning('BroadcastException swallowed', [
+                'message' => $e->getMessage(),
+                'path' => $request->path(),
+            ]);
+            \App\Support\Realtime::resetReachableCache();
+
+            if ($request->expectsJson() || $request->is('livewire/*') || $request->is('api/*')) {
+                return response()->json(['ok' => true, 'realtime' => false], 200);
+            }
+
+            if (auth()->check()) {
+                return redirect()->route('dashboard');
+            }
+
+            return redirect()->route('login');
+        });
     })->create();

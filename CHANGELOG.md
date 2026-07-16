@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.15 - 2026-07-16
+
+### 500 login / Reverb down
+
+- **Cause** : `BROADCAST_CONNECTION=reverb` alors que `obiora-reverb` (port 8080) est arrêté → `BroadcastException` (cURL 7)
+- **Realtime** : ne diffuse plus si le port Reverb est injoignable
+- **Broadcaster** : catch des erreurs (plus de 500 opaque)
+- **Recover SSH** : démarre `obiora-reverb` ou bascule `BROADCAST_CONNECTION=null`
+
 ## v4.0.14 - 2026-07-16
 
 ### Résilience login 500 (overnight)

@@ -13,6 +13,8 @@ use App\Services\Monitoring\MonitoringFleetService;
 use App\Services\System\MetricsCollector;
 use App\Services\System\ServiceManager;
 use App\Support\Realtime;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 final class RealtimeBroadcaster
 {
@@ -33,10 +35,14 @@ final class RealtimeBroadcaster
             return;
         }
 
-        $metrics = $this->metrics->collect($server);
-        $serviceList = $this->services->list($server);
+        try {
+            $metrics = $this->metrics->collect($server);
+            $serviceList = $this->services->list($server);
 
-        event(new DashboardMetricsUpdated($server->id, $metrics, $serviceList));
+            event(new DashboardMetricsUpdated($server->id, $metrics, $serviceList));
+        } catch (Throwable $e) {
+            $this->logFailure('dashboard', $e);
+        }
     }
 
     public function serviceState(
@@ -50,7 +56,11 @@ final class RealtimeBroadcaster
             return;
         }
 
-        event(new ServiceStateChanged($server->id, $service, $action, $success, $output));
+        try {
+            event(new ServiceStateChanged($server->id, $service, $action, $success, $output));
+        } catch (Throwable $e) {
+            $this->logFailure('serviceState', $e);
+        }
     }
 
     /**
@@ -62,7 +72,11 @@ final class RealtimeBroadcaster
             return;
         }
 
-        event(new ProgressUpdated($serverId, $scope, $key, $payload));
+        try {
+            event(new ProgressUpdated($serverId, $scope, $key, $payload));
+        } catch (Throwable $e) {
+            $this->logFailure('progress', $e);
+        }
     }
 
     public function monitoringFleet(): void
@@ -71,9 +85,22 @@ final class RealtimeBroadcaster
             return;
         }
 
-        event(new MonitoringFleetUpdated(
-            $this->fleet->fleetSnapshot(),
-            $this->fleet->unreadAlerts(10),
-        ));
+        try {
+            event(new MonitoringFleetUpdated(
+                $this->fleet->fleetSnapshot(),
+                $this->fleet->unreadAlerts(10),
+            ));
+        } catch (Throwable $e) {
+            $this->logFailure('monitoringFleet', $e);
+        }
+    }
+
+    private function logFailure(string $scope, Throwable $e): void
+    {
+        Realtime::resetReachableCache();
+        Log::warning('Realtime broadcast skipped', [
+            'scope' => $scope,
+            'message' => $e->getMessage(),
+        ]);
     }
 }
