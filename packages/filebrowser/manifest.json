@@ -41,6 +41,6 @@
         "container": "obiora-filebrowser",
         "port": 8082,
         "url": "http://{host}:8082",
-        "usage": "Interface web sur le port 8082. Identifiants définis à l'installation."
+        "usage": "Gestionnaire de fichiers web."
     }
 }

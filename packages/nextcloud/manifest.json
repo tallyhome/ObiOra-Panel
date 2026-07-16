@@ -52,6 +52,6 @@
         "container": "obiora-nextcloud",
         "port": 8443,
         "url": "https://{host}:8443",
-        "usage": "Nextcloud sur le port 8443 (HTTPS). Compte admin et base MySQL configurés automatiquement à l'installation."
+        "usage": "Suite bureautique et cloud privé."
     }
 }

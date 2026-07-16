@@ -45,10 +45,28 @@ $internalPorts = [
     'calibre' => 8080,
     'filebrowser' => 80,
     'nextcloud' => 443,
+    // Host remappé ≠ port d'écoute de l'image (sinon UI morte après « OK »)
+    'jellyfin' => 8096,
+    'organizr' => 80,
+    'rutorrent' => 80,
+    'librespeed' => 80,
+    'headphones' => 8181,
+    'sickchill' => 8081,
+    'sickgear' => 8081,
+    'subsonic' => 4040,
+    'calibrecs' => 8080,
+    'sonarrold' => 8989,
+    'plexpy' => 8181,
+    'rapidleech' => 80,
+    'rtorrent' => 80,
 ];
 
 /** @var list<string> */
-$nonInstallable = ['letsencrypt', 'netronome', 'nginx', 'rtorrent', 'plexpy'];
+$nonInstallable = [
+    'letsencrypt', 'netronome', 'nginx', 'rtorrent', 'plexpy', 'csf',
+    // Legacy / mineurs / images mortes ou trompeuses
+    'xmrig', 'xmr-stak', 'xmr-stak-cpu', 'couchpotato', 'headphones',
+];
 
 /** @var array<string, array{user: string, min_pass: int, mode: string}> */
 $authApps = [
@@ -187,6 +205,10 @@ function installNotice(string $slug): string
         'nginx' => 'Nginx est géré par le module Sites ObiOra — ne pas installer en double.',
         'rtorrent' => 'Utilisez ruTorrent pour rTorrent avec interface web.',
         'plexpy' => 'Doublon de Tautulli — installez Tautulli à la place.',
+        'csf' => 'CSF n\'est pas supporté (interactif / conflits firewall). Utilisez le module Firewall.',
+        'xmrig', 'xmr-stak', 'xmr-stak-cpu' => 'Mineurs crypto désactivés (hors scope panel / risque).',
+        'couchpotato' => 'Projet abandonné — utilisez Radarr.',
+        'headphones' => 'Projet abandonné — utilisez Lidarr.',
         default => 'Non installable depuis le marketplace.',
     };
 }

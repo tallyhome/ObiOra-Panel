@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.19 - 2026-07-16
+
+### Marketplace — ports Docker + healthcheck
+
+- **Ports host↔interne** corrigés : Jellyfin (`8097:8096`), Organizr, ruTorrent, LibreSpeed, SickChill/Gear, Subsonic, CalibreCS, SonarrOld, RapidLeech…
+- **Healthcheck** post-install : probe TCP du port UI (warning si injoignable)
+- **Catalogue** : mineurs crypto + CouchPotato/Headphones désactivés (`installable: false`)
+- **Uninstall** : purge data optionnelle via `OBIORA_PURGE_DATA=1`
+- Tests de contrat `MarketplaceDockerPortsTest`
+
 ## v4.0.18 - 2026-07-16
 
 ### Install neuve sans action manuelle

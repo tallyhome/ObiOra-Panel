@@ -15,5 +15,7 @@
         "port": 8094,
         "url": "http://{host}:8094",
         "usage": "Mineur multi-algo (legacy) — usage à vos risques."
-    }
+    },
+    "installable": false,
+    "install_notice": "Mineurs crypto désactivés (hors scope panel / risque)."
 }

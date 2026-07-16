@@ -305,6 +305,25 @@ final class ApplicationManager
             $finishMessage = "« {$package->name()} » installé — statut runtime : {$runtimeStatus}.";
         }
 
+        $health = $this->probeApplicationPort($server, $package);
+        if (! ($health['ok'] ?? true)) {
+            $record->refresh();
+            $record->update([
+                'metadata' => array_merge($record->metadata ?? [], [
+                    'health_warning' => $health['message'] ?? 'Port applicatif injoignable après install.',
+                    'health_ok' => false,
+                ]),
+            ]);
+            $finishMessage = "« {$package->name()} » installé — attention : ".($health['message'] ?? 'port injoignable');
+        } elseif (($health['ok'] ?? false) && ! ($health['skipped'] ?? false)) {
+            $record->refresh();
+            $record->update([
+                'metadata' => array_merge($record->metadata ?? [], [
+                    'health_ok' => true,
+                ]),
+            ]);
+        }
+
         $this->finishProgress($serverId, $slug, true, $finishMessage);
     }
 
@@ -835,6 +854,48 @@ final class ApplicationManager
         $application->update([
             'metadata' => array_merge($metadata, $resolved),
         ]);
+    }
+
+    /**
+     * Vérifie qu'un port HTTP applicatif répond après install Docker (évite les « OK » trompeurs).
+     *
+     * @return array{ok: bool, skipped?: bool, message?: string}
+     */
+    private function probeApplicationPort(Server $server, ApplicationPackage $package): array
+    {
+        if ($package->effectiveRuntimeType() !== 'docker') {
+            return ['ok' => true, 'skipped' => true];
+        }
+
+        $port = $package->port();
+        if ($port === null || $port < 1) {
+            return ['ok' => true, 'skipped' => true];
+        }
+
+        $host = $this->isLocal($server)
+            ? '127.0.0.1'
+            : (string) ($this->accessHost->resolve($server) ?: $server->ip_address);
+
+        if ($host === '') {
+            return ['ok' => true, 'skipped' => true];
+        }
+
+        $attempts = 20;
+        for ($i = 0; $i < $attempts; $i++) {
+            $socket = @fsockopen($host, $port, $errno, $errstr, 1.0);
+            if (is_resource($socket)) {
+                fclose($socket);
+
+                return ['ok' => true];
+            }
+
+            usleep(500_000);
+        }
+
+        return [
+            'ok' => false,
+            'message' => "Le port {$port} ne répond pas sur {$host} (vérifiez le mapping Docker host↔interne).",
+        ];
     }
 
     private function isLocal(Server $server): bool

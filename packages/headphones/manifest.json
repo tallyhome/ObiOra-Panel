@@ -15,5 +15,7 @@
         "port": 8183,
         "url": "http://{host}:8183",
         "usage": "Gestionnaire de musique automatique (legacy)."
-    }
+    },
+    "installable": false,
+    "install_notice": "Projet abandonné — utilisez Lidarr."
 }

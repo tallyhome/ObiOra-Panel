@@ -15,5 +15,7 @@
         "port": 8090,
         "url": "http://{host}:8090",
         "usage": "Mineur Monero (CPU/GPU) — usage à vos risques."
-    }
+    },
+    "installable": false,
+    "install_notice": "Mineurs crypto désactivés (hors scope panel / risque)."
 }

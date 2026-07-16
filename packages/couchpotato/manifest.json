@@ -15,5 +15,7 @@
         "port": 5050,
         "url": "http://{host}:5050",
         "usage": "Gestionnaire de films (legacy)."
-    }
+    },
+    "installable": false,
+    "install_notice": "Projet abandonné — utilisez Radarr."
 }

@@ -13,7 +13,7 @@ return [
     ['slug' => 'airsonic', 'name' => 'Airsonic', 'category' => 'media', 'description' => 'Serveur de streaming musical (fork Subsonic).', 'type' => 'docker', 'image' => 'airsonicadvanced/airsonic-advanced', 'port' => 4040],
     ['slug' => 'bazarr', 'name' => 'Bazarr', 'category' => 'media', 'description' => 'Gestion des sous-titres pour Sonarr/Radarr.', 'type' => 'docker', 'image' => 'lscr.io/linuxserver/bazarr:latest', 'port' => 6767],
     ['slug' => 'emby', 'name' => 'Emby', 'category' => 'media', 'description' => 'Serveur média avec transcodage.', 'type' => 'docker', 'image' => 'lscr.io/linuxserver/emby:latest', 'port' => 8096],
-    ['slug' => 'jellyfin', 'name' => 'Jellyfin', 'category' => 'media', 'description' => 'Serveur média open source.', 'type' => 'native'],
+    ['slug' => 'jellyfin', 'name' => 'Jellyfin', 'category' => 'media', 'description' => 'Serveur média open source.', 'type' => 'docker', 'image' => 'lscr.io/linuxserver/jellyfin:latest', 'port' => 8097],
     ['slug' => 'jfago', 'name' => 'Jfa-Go', 'category' => 'media', 'description' => 'Gestion des utilisateurs Jellyfin.', 'type' => 'docker', 'image' => 'hrfee/jfa-go', 'port' => 8056],
     ['slug' => 'lidarr', 'name' => 'Lidarr', 'category' => 'media', 'description' => 'Gestion et téléchargement de musique.', 'type' => 'docker', 'image' => 'lscr.io/linuxserver/lidarr:latest', 'port' => 8686],
     ['slug' => 'lounge', 'name' => 'Subsonic Lounge', 'category' => 'media', 'description' => 'Interface web pour Subsonic/Airsonic.', 'type' => 'docker', 'image' => 'opensubsonic/subsonic-api-proxy', 'port' => 4041],

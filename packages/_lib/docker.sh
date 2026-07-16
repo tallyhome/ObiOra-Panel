@@ -75,7 +75,12 @@ obiora_docker_uninstall() {
     obiora_require_root
     docker stop "${name}" 2>/dev/null || true
     docker rm "${name}" 2>/dev/null || true
-    echo "OK:${slug} removed"
+    if [[ "${OBIORA_PURGE_DATA:-0}" == "1" ]]; then
+        rm -rf "/var/lib/obiora/${slug}"
+        echo "OK:${slug} removed (data purged)"
+    else
+        echo "OK:${slug} removed"
+    fi
 }
 
 obiora_seed_deluge_auth() {

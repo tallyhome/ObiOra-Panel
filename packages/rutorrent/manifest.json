@@ -13,6 +13,6 @@
         "container": "obiora-rutorrent",
         "port": 8084,
         "url": "http://{host}:8084",
-        "usage": "Interface web ruTorrent sur le port 8084 (évite conflit avec le port 80)."
+        "usage": "Interface web pour rTorrent."
     }
 }

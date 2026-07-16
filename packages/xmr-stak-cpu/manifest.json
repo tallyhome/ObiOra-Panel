@@ -15,5 +15,7 @@
         "port": 8082,
         "url": "http://{host}:8082",
         "usage": "Mineur CPU (legacy) — usage à vos risques."
-    }
+    },
+    "installable": false,
+    "install_notice": "Mineurs crypto désactivés (hors scope panel / risque)."
 }

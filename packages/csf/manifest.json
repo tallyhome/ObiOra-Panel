@@ -6,7 +6,7 @@
     "category": "system",
     "source": "swizzin-catalog",
     "installable": false,
-    "install_notice": "CSF nécessite une installation interactive et peut entrer en conflit avec firewalld/ufw. Installez-le manuellement sur le serveur si nécessaire.",
+    "install_notice": "CSF n'est pas supporté (interactif / conflits firewall). Utilisez le module Firewall.",
     "scripts": {
         "install": "install.sh",
         "uninstall": "uninstall.sh"
