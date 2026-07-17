@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.20 - 2026-07-17
+
+### Anti-500 après MAJ panel
+
+- **Build Vite atomique** : compile dans `public/build-next` puis swap — plus de `rm public/build` avant succès
+- **EXIT/timeout** : recover HTTP systématique si MAJ tuée (trap EXIT + `ApplyPanelUpdateJob::failed`)
+- **Timeout recover** : 120s → 1000s (aligné npm rebuild)
+- **update-recover** : Reverb down → broadcast null, composer install si VERSION change, smoke login
+- **Watchdog** : si `manifest.json` absent → `update-recover.sh` (guérit 500 Vite overnight)
+- **Handler** : exception Vite → page 503 (plus de 500 opaque)
+- **Reverb** : ne force plus Reverb à la MAJ si `BROADCAST_CONNECTION=null`
+
 ## v4.0.19 - 2026-07-16
 
 ### Marketplace — ports Docker + healthcheck

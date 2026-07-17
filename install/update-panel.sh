@@ -8,6 +8,8 @@ OBIORA_GROUP="${OBIORA_GROUP:-obiora}"
 OBIORA_UPDATE_HISTORY_ID="${OBIORA_UPDATE_HISTORY_ID:-}"
 UPDATE_LOCK="${OBIORA_INSTALL_DIR}/storage/framework/obiora-update.lock"
 LAST_PROGRESS=8
+UPDATE_COMPLETED=0
+UPDATE_RECOVERING=0
 
 release_update_lock() {
     rm -f "${UPDATE_LOCK}"
@@ -47,6 +49,7 @@ on_update_error() {
 }
 
 finalize_panel_http() {
+    UPDATE_RECOVERING=1
     if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/update-recover.sh" ]]; then
         bash "${OBIORA_INSTALL_DIR}/install/lib/update-recover.sh" || true
     else
@@ -54,6 +57,17 @@ finalize_panel_http() {
         clear_panel_caches
     fi
     release_update_lock
+}
+
+# SIGTERM/timeout/kill : toujours tenter le recover (évite 500 login durable).
+on_update_exit() {
+    if [[ "${UPDATE_COMPLETED}" -eq 1 ]] || [[ "${UPDATE_RECOVERING}" -eq 1 ]]; then
+        release_update_lock
+        return 0
+    fi
+    echo "WARN: MAJ interrompue (EXIT) — récupération HTTP du panel…" >&2
+    mark_update_complete failed "MAJ interrompue — récupération HTTP" || true
+    finalize_panel_http || true
 }
 
 mark_update_complete() {
@@ -83,7 +97,7 @@ fi
 cd "${OBIORA_INSTALL_DIR}"
 
 acquire_update_lock
-trap 'release_update_lock' EXIT
+trap 'on_update_exit' EXIT
 
 verify_update_integrity() {
     local rel missing=0
@@ -198,67 +212,52 @@ sudo -u "${OBIORA_USER}" php artisan migrate --force
 
 echo "[4/8] assets frontend..."
 if command -v npm &>/dev/null && [[ -f package.json ]]; then
-    prepare_frontend_build_dir() {
-        local build_dir="${OBIORA_INSTALL_DIR}/public/build"
-        rm -rf "${build_dir}"
-        mkdir -p "${build_dir}"
-        chown "${OBIORA_USER}:${OBIORA_GROUP}" "${build_dir}"
-        chmod 775 "${build_dir}"
-    }
+    # Build atomique : public/build reste servi jusqu'au swap (évite 500 Vite mid-MAJ).
+    BUILD_NEXT_DIR="${OBIORA_INSTALL_DIR}/public/build-next"
+    BUILD_LIVE_DIR="${OBIORA_INSTALL_DIR}/public/build"
+    BUILD_PREV_DIR="${OBIORA_INSTALL_DIR}/public/build-prev"
 
-    restore_frontend_build_backup() {
-        local build_dir="${OBIORA_INSTALL_DIR}/public/build"
-        local backup_dir="$1"
-
-        if [[ -z "${backup_dir}" ]] || [[ ! -d "${backup_dir}" ]]; then
-            return 1
-        fi
-
-        rm -rf "${build_dir}"
-        mkdir -p "${build_dir}"
-        cp -a "${backup_dir}/." "${build_dir}/"
-        chown -R "${OBIORA_USER}:${OBIORA_GROUP}" "${build_dir}"
-        chmod -R 775 "${build_dir}"
-        echo "WARN: assets frontend restaurés depuis la sauvegarde (npm build en échec)"
-    }
-
-    BUILD_BACKUP_DIR=""
-    if [[ -f "${OBIORA_INSTALL_DIR}/public/build/manifest.json" ]]; then
-        BUILD_BACKUP_DIR="$(mktemp -d)"
-        cp -a "${OBIORA_INSTALL_DIR}/public/build/." "${BUILD_BACKUP_DIR}/"
-    fi
-
-    prepare_frontend_build_dir
+    rm -rf "${BUILD_NEXT_DIR}" "${BUILD_PREV_DIR}"
+    mkdir -p "${BUILD_NEXT_DIR}"
+    chown -R "${OBIORA_USER}:${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}/public"
+    chmod 775 "${BUILD_NEXT_DIR}"
 
     progress 52 "Installation des dépendances npm…"
     if ! sudo -u "${OBIORA_USER}" env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" \
         npm ci --ignore-scripts 2>/dev/null \
         && ! sudo -u "${OBIORA_USER}" env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" npm install --ignore-scripts; then
-        restore_frontend_build_backup "${BUILD_BACKUP_DIR}" || true
-        rm -rf "${BUILD_BACKUP_DIR}"
+        rm -rf "${BUILD_NEXT_DIR}"
         echo "ERREUR: installation npm échouée" >&2
         exit 1
     fi
 
-    progress 58 "Compilation des assets frontend…"
+    progress 58 "Compilation des assets frontend (build atomique)…"
     NPM_BUILD_OK=0
     if command -v timeout &>/dev/null; then
         if sudo -u "${OBIORA_USER}" env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" \
-            timeout 900 npm run build; then
+            timeout 900 npx vite build --outDir "${BUILD_NEXT_DIR}"; then
             NPM_BUILD_OK=1
         fi
-    elif sudo -u "${OBIORA_USER}" env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" npm run build; then
+    elif sudo -u "${OBIORA_USER}" env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" \
+        npx vite build --outDir "${BUILD_NEXT_DIR}"; then
         NPM_BUILD_OK=1
     fi
 
-    if [[ "${NPM_BUILD_OK}" -ne 1 ]]; then
-        restore_frontend_build_backup "${BUILD_BACKUP_DIR}" || true
-        rm -rf "${BUILD_BACKUP_DIR}"
-        echo "ERREUR: compilation frontend échouée" >&2
+    if [[ "${NPM_BUILD_OK}" -ne 1 ]] || [[ ! -f "${BUILD_NEXT_DIR}/manifest.json" ]]; then
+        rm -rf "${BUILD_NEXT_DIR}"
+        echo "ERREUR: compilation frontend échouée (ancien public/build conservé)" >&2
         exit 1
     fi
 
-    rm -rf "${BUILD_BACKUP_DIR}"
+    # Swap atomique : l'ancien build reste disponible jusqu'à ce point.
+    if [[ -d "${BUILD_LIVE_DIR}" ]]; then
+        mv "${BUILD_LIVE_DIR}" "${BUILD_PREV_DIR}"
+    fi
+    mv "${BUILD_NEXT_DIR}" "${BUILD_LIVE_DIR}"
+    rm -rf "${BUILD_PREV_DIR}"
+    chown -R "${OBIORA_USER}:${OBIORA_GROUP}" "${BUILD_LIVE_DIR}"
+    chmod -R 775 "${BUILD_LIVE_DIR}"
+
     if [[ -f "${OBIORA_INSTALL_DIR}/VERSION" ]]; then
         install -d -m 775 -o "${OBIORA_USER}" -g "${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}/storage/app"
         cp "${OBIORA_INSTALL_DIR}/VERSION" "${OBIORA_INSTALL_DIR}/storage/app/.frontend-build-version"
@@ -361,7 +360,27 @@ fi
 
 finalize_panel_http
 
+# Smoke test : login doit répondre (évite de marquer completed avec panel 500).
+login_code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 http://127.0.0.1/login 2>/dev/null || echo '000')"
+if [[ ! "${login_code}" =~ ^(200|301|302)$ ]]; then
+    echo "WARN: login HTTP ${login_code} après MAJ — recover renforcé…" >&2
+    UPDATE_RECOVERING=0
+    UPDATE_COMPLETED=0
+    bash "${OBIORA_INSTALL_DIR}/install/lib/update-recover.sh" || true
+    login_code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 http://127.0.0.1/login 2>/dev/null || echo '000')"
+fi
+
+UPDATE_COMPLETED=1
 trap - ERR
-progress 100 "Mise à jour terminée avec succès"
-mark_update_complete completed "Mise à jour terminée avec succès"
-echo "OK: panel mis a jour."
+trap - EXIT
+release_update_lock
+
+if [[ "${login_code}" =~ ^(200|301|302)$ ]]; then
+    progress 100 "Mise à jour terminée avec succès"
+    mark_update_complete completed "Mise à jour terminée avec succès"
+    echo "OK: panel mis a jour."
+else
+    progress 100 "MAJ terminée mais login HTTP ${login_code} — vérifiez update-recover"
+    mark_update_complete completed "MAJ terminée — login HTTP ${login_code} (vérifier recover)"
+    echo "WARN: panel mis a jour mais login HTTP ${login_code}" >&2
+fi

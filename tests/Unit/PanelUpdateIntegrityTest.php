@@ -61,6 +61,24 @@ final class PanelUpdateIntegrityTest extends TestCase
         $this->assertGreaterThan($composerPos, $migratePos, 'Les migrations doivent s\'exécuter après composer install');
     }
 
+    public function test_update_panel_uses_atomic_vite_build_and_exit_recover(): void
+    {
+        $script = file_get_contents(base_path('install/update-panel.sh'));
+        $this->assertNotFalse($script);
+
+        $this->assertStringContainsString('build-next', $script);
+        $this->assertStringContainsString('vite build --outDir', $script);
+        $this->assertStringContainsString('on_update_exit', $script);
+        $this->assertStringContainsString('UPDATE_COMPLETED', $script);
+        // Ne plus supprimer public/build avant le succès du build.
+        $this->assertStringNotContainsString('prepare_frontend_build_dir', $script);
+
+        $recover = file_get_contents(base_path('install/lib/update-recover.sh'));
+        $this->assertNotFalse($recover);
+        $this->assertStringContainsString('disable_broadcast_if_reverb_down', $recover);
+        $this->assertStringContainsString('vite build --outDir', $recover);
+    }
+
     public function test_update_recover_script_applies_pending_migrations(): void
     {
         $script = file_get_contents(base_path('install/lib/update-recover.sh'));

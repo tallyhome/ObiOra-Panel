@@ -329,8 +329,9 @@ final class PanelUpdater
 
     /**
      * Rétablit le panel HTTP après MAJ (évite 502 Bad Gateway / mode maintenance bloqué).
+     * Public : aussi appelé depuis ApplyPanelUpdateJob::failed() (timeout / worker tué).
      */
-    private function finalizePanelHttp(): void
+    public function finalizePanelHttp(): void
     {
         try {
             Artisan::call('up');
@@ -345,9 +346,10 @@ final class PanelUpdater
 
             if (is_file($script)) {
                 try {
+                    // npm rebuild peut prendre jusqu'à 15 min — aligné sur update-panel.sh
                     $this->executor->run(
                         'sudo -n /bin/bash '.escapeshellarg($script).' 2>&1',
-                        ['timeout' => 120],
+                        ['timeout' => 1000],
                     );
                 } catch (Throwable $exception) {
                     Log::warning('Récupération HTTP post-MAJ (systemd) ignorée', [

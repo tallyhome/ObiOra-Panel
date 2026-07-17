@@ -42,9 +42,16 @@ final class ApplyPanelUpdateJob implements ShouldQueue
             ->update([
                 'status' => 'failed',
                 'progress' => 100,
-                'progress_message' => 'Échec de la mise à jour',
+                'progress_message' => 'Échec de la mise à jour — récupération HTTP…',
                 'output' => $message,
                 'completed_at' => now(),
             ]);
+
+        // Timeout / worker tué : le shell EXIT peut ne pas tourner — forcer update-recover.
+        try {
+            app(PanelUpdater::class)->finalizePanelHttp();
+        } catch (Throwable $recoverException) {
+            report($recoverException);
+        }
     }
 }

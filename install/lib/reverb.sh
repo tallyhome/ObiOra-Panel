@@ -7,6 +7,10 @@ reverb_is_enabled() {
     if [[ -f "${env_file}" ]] && grep -q '^OBIORA_REALTIME_ENABLED=false' "${env_file}"; then
         return 1
     fi
+    # Opt-out via broadcast null (anti-500 overnight / post-MAJ)
+    if [[ -f "${env_file}" ]] && grep -qE '^BROADCAST_CONNECTION=(null|log)$' "${env_file}"; then
+        return 1
+    fi
 
     return 0
 }

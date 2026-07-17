@@ -24,11 +24,35 @@ run_as_obiora() {
     fi
 }
 
+disable_broadcast_if_reverb_down() {
+    if ! systemctl list-unit-files 2>/dev/null | grep -q '^obiora-reverb\.service'; then
+        return 0
+    fi
+    if systemctl is-active --quiet obiora-reverb 2>/dev/null; then
+        return 0
+    fi
+
+    echo "[recover] obiora-reverb inactif — BROADCAST_CONNECTION=null"
+    if grep -q '^BROADCAST_CONNECTION=' .env 2>/dev/null; then
+        sed -i 's|^BROADCAST_CONNECTION=.*|BROADCAST_CONNECTION=null|' .env
+    else
+        echo 'BROADCAST_CONNECTION=null' >> .env
+    fi
+    if grep -q '^OBIORA_REALTIME_ENABLED=' .env 2>/dev/null; then
+        sed -i 's|^OBIORA_REALTIME_ENABLED=.*|OBIORA_REALTIME_ENABLED=false|' .env
+    else
+        echo 'OBIORA_REALTIME_ENABLED=false' >> .env
+    fi
+}
+
 ensure_frontend_manifest() {
     local manifest="${OBIORA_INSTALL_DIR}/public/build/manifest.json"
     local version_file="${OBIORA_INSTALL_DIR}/VERSION"
     local stamp="${OBIORA_INSTALL_DIR}/storage/app/.frontend-build-version"
     local need_build=0
+    local build_next="${OBIORA_INSTALL_DIR}/public/build-next"
+    local build_live="${OBIORA_INSTALL_DIR}/public/build"
+    local build_prev="${OBIORA_INSTALL_DIR}/public/build-prev"
 
     if [[ ! -f "${manifest}" ]]; then
         need_build=1
@@ -42,27 +66,45 @@ ensure_frontend_manifest() {
         return 0
     fi
 
-    echo "[recover] Assets frontend absents ou version panel changée — recompilation…"
+    echo "[recover] Assets frontend absents ou version panel changée — recompilation atomique…"
 
     if ! command -v npm &>/dev/null || [[ ! -f package.json ]]; then
         echo "[recover] WARN: npm indisponible — impossible de recompiler les assets"
         return 1
     fi
 
-    mkdir -p "${OBIORA_INSTALL_DIR}/public/build"
-    chown "${OBIORA_USER}:${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}/public/build" 2>/dev/null || true
-    chmod 775 "${OBIORA_INSTALL_DIR}/public/build" 2>/dev/null || true
+    rm -rf "${build_next}"
+    mkdir -p "${build_next}"
+    chown -R "${OBIORA_USER}:${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}/public" 2>/dev/null || true
+    chmod 775 "${build_next}" 2>/dev/null || true
 
     run_as_obiora npm ci --ignore-scripts \
         || run_as_obiora env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" npm install --ignore-scripts
 
+    local build_ok=0
     if command -v timeout &>/dev/null; then
-        run_as_obiora env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" timeout 900 npm run build
-    else
-        run_as_obiora env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" npm run build
+        if run_as_obiora env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" \
+            timeout 900 npx vite build --outDir "${build_next}"; then
+            build_ok=1
+        fi
+    elif run_as_obiora env NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" \
+        npx vite build --outDir "${build_next}"; then
+        build_ok=1
     fi
 
-    [[ -f "${manifest}" ]] || return 1
+    if [[ "${build_ok}" -ne 1 ]] || [[ ! -f "${build_next}/manifest.json" ]]; then
+        rm -rf "${build_next}"
+        echo "[recover] WARN: rebuild frontend échoué (ancien build conservé si présent)"
+        return 1
+    fi
+
+    rm -rf "${build_prev}"
+    if [[ -d "${build_live}" ]]; then
+        mv "${build_live}" "${build_prev}"
+    fi
+    mv "${build_next}" "${build_live}"
+    rm -rf "${build_prev}"
+    chown -R "${OBIORA_USER}:${OBIORA_GROUP}" "${build_live}" 2>/dev/null || true
 
     if [[ -f "${version_file}" ]]; then
         install -d -m 775 -o "${OBIORA_USER}" -g "${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}/storage/app" 2>/dev/null || true
@@ -71,9 +113,27 @@ ensure_frontend_manifest() {
 }
 
 ensure_composer_autoload() {
+    local need_install=0
+
     if [[ ! -f vendor/autoload.php ]]; then
-        echo "[recover] vendor/ absent — composer install…"
+        need_install=1
+    elif [[ -f composer.lock ]] && [[ -f VERSION ]]; then
+        # Après checkout, vendor peut être présent mais incomplet — réinstaller si stamp VERSION change
+        local stamp="${OBIORA_INSTALL_DIR}/storage/app/.composer-install-version"
+        local ver
+        ver="$(tr -d '\r\n' < VERSION)"
+        if [[ ! -f "${stamp}" ]] || [[ "$(tr -d '\r\n' < "${stamp}" 2>/dev/null || true)" != "${ver}" ]]; then
+            need_install=1
+        fi
+    fi
+
+    if [[ "${need_install}" -eq 1 ]]; then
+        echo "[recover] composer install (vendor manquant ou VERSION changée)…"
         run_as_obiora composer install --no-dev --optimize-autoloader --no-interaction
+        if [[ -f VERSION ]]; then
+            install -d -m 775 -o "${OBIORA_USER}" -g "${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}/storage/app" 2>/dev/null || true
+            cp VERSION "${OBIORA_INSTALL_DIR}/storage/app/.composer-install-version" 2>/dev/null || true
+        fi
         return
     fi
 
@@ -127,6 +187,7 @@ fi
 echo "[recover] Dépendances PHP et assets frontend…"
 ensure_composer_autoload
 ensure_frontend_manifest || true
+disable_broadcast_if_reverb_down
 
 echo "[recover] Migrations, RBAC, permissions et caches Laravel…"
 run_artisan up
@@ -164,4 +225,6 @@ if [[ "${EUID}" -eq 0 ]]; then
     fi
 fi
 
+login_code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 8 http://127.0.0.1/login 2>/dev/null || echo '000')"
+echo "[recover] login HTTP ${login_code}"
 echo "[recover] OK — panel HTTP rétabli"

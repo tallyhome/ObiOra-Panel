@@ -37,5 +37,6 @@ final class ApplyPanelUpdateJobTest extends TestCase
 
         $this->assertSame('failed', $queued->fresh()->status);
         $this->assertSame('completed', $completed->fresh()->status);
+        $this->assertStringContainsString('récupération HTTP', (string) $queued->fresh()->progress_message);
     }
 }

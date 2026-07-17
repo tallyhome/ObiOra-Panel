@@ -110,6 +110,15 @@ heal_light() {
 
 heal_heavy() {
     log "Heal lourd (recover sans git)…"
+    # 500 post-MAJ = souvent assets Vite manquants — update-recover avant recover SSH
+    if [[ ! -f "${OBIORA_INSTALL_DIR}/public/build/manifest.json" ]] \
+        && [[ -f "${OBIORA_INSTALL_DIR}/install/lib/update-recover.sh" ]]; then
+        log "manifest Vite absent — update-recover.sh…"
+        bash "${OBIORA_INSTALL_DIR}/install/lib/update-recover.sh" || true
+        if panel_ok; then
+            return 0
+        fi
+    fi
     if [[ -x "${OBIORA_INSTALL_DIR}/agent/scripts/panel-recover-ssh.sh" ]]; then
         SKIP_GIT=1 bash "${OBIORA_INSTALL_DIR}/agent/scripts/panel-recover-ssh.sh" || true
     else

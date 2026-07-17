@@ -136,4 +136,19 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return redirect()->route('login');
         });
+
+        // Manifest Vite manquant après MAJ interrompue → 503 explicite (pas 500 opaque).
+        $exceptions->render(function (\Throwable $e, Request $request) use ($renderUnavailable) {
+            $class = $e::class;
+            if (
+                $class === 'Illuminate\\Foundation\\ViteException'
+                || $class === 'Illuminate\\Foundation\\ViteManifestNotFoundException'
+                || str_contains($e->getMessage(), 'Vite manifest')
+                || str_contains($e->getMessage(), 'Unable to locate file in Vite')
+            ) {
+                return $renderUnavailable($request);
+            }
+
+            return null;
+        });
     })->create();
