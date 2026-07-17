@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.21 - 2026-07-17
+
+### Test pipeline MAJ
+
+- Release de vérification : valide commit → tag → push → mise à jour panel (anti-500 v4.0.20)
+
 ## v4.0.20 - 2026-07-17
 
 ### Anti-500 après MAJ panel
