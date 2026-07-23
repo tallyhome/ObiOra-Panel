@@ -38,12 +38,12 @@ final class MonitoringPeriodResolver
             ],
             '3d' => [
                 'from' => $to->copy()->subDays(3),
-                'resolution' => '5m',
+                'resolution' => '15m',
                 'label' => '3 jours',
             ],
             '7d' => [
                 'from' => $to->copy()->subDays(7),
-                'resolution' => '5m',
+                'resolution' => '30m',
                 'label' => '7 jours',
             ],
             '30d', '1m' => [
@@ -53,17 +53,17 @@ final class MonitoringPeriodResolver
             ],
             '3m' => [
                 'from' => $to->copy()->subMonths(3),
-                'resolution' => '1h',
+                'resolution' => '6h',
                 'label' => '3 mois',
             ],
             '6m' => [
                 'from' => $to->copy()->subMonths(6),
-                'resolution' => '1h',
+                'resolution' => '6h',
                 'label' => '6 mois',
             ],
             '1y' => [
                 'from' => $to->copy()->subYear(),
-                'resolution' => '1h',
+                'resolution' => '1d',
                 'label' => '1 an',
             ],
             default => [

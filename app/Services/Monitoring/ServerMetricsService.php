@@ -9,9 +9,13 @@ use App\Models\ServerMetricSample;
 use App\Support\UserTimezone;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 final class ServerMetricsService
 {
+    /** Plafond de points graphiques (réactivité Livewire / ApexCharts). */
+    private const MAX_CHART_POINTS = 360;
+
     public function __construct(
         private readonly MonitoringPeriodResolver $periods,
     ) {}
@@ -37,26 +41,30 @@ final class ServerMetricsService
     public function dashboard(Server $server, Carbon $from, Carbon $to, ?string $resolution = null): array
     {
         $resolution = $resolution ?? $this->autoResolution($from, $to);
-        $samples = $this->loadSamples($server, $from, $to);
-        $series = $this->buildSeries($samples, $resolution);
+        $bucketSeconds = $this->bucketSeconds($resolution);
 
-        $latest = $samples->last();
+        // Séries sans payload JSON (cause #1 de lenteur sur 3d/7d).
+        $seriesRows = $this->loadAggregatedSeries($server, $from, $to, $bucketSeconds);
+        $series = $this->seriesFromAggregatedRows($seriesRows);
+
+        $latest = $this->loadLatestSample($server);
+        $networkSeries = $this->buildNetworkSeriesSparse($server, $from, $to, $bucketSeconds);
 
         return [
             'server' => $this->serializeServerHeader($server, $latest),
-            'sample_count' => $samples->count(),
-            'has_samples' => $samples->isNotEmpty(),
+            'sample_count' => $seriesRows->count(),
+            'has_samples' => $seriesRows->isNotEmpty() || $latest !== null,
             'range' => [
                 'from' => UserTimezone::format($from, 'd/m/Y H:i'),
                 'to' => UserTimezone::format($to, 'd/m/Y H:i'),
                 'resolution' => $resolution,
             ],
             'series' => $series,
-            'stats' => $this->computeStats($samples),
+            'stats' => $this->computeStatsFromLatest($latest, $seriesRows->count()),
             'partitions' => $this->extractPartitions($latest),
             'processes' => $this->extractProcesses($latest),
             'network' => $this->extractNetwork($latest),
-            'network_series' => $this->buildNetworkSeries($samples, $resolution),
+            'network_series' => $networkSeries,
             'ip_addresses' => $this->extractIpAddresses($latest),
         ];
     }
@@ -66,34 +74,150 @@ final class ServerMetricsService
         $hours = $from->diffInHours($to);
 
         return match (true) {
-            $hours <= 24 => '1m',
-            $hours <= 168 => '5m',
+            $hours <= 6 => '1m',
+            $hours <= 24 => '5m',
+            $hours <= 72 => '15m',
+            $hours <= 168 => '30m',
             default => '1h',
         };
     }
 
-    /**
-     * @return Collection<int, ServerMetricSample>
-     */
-    private function loadSamples(Server $server, Carbon $from, Carbon $to): Collection
+    private function bucketSeconds(string $resolution): int
     {
-        return ServerMetricSample::query()
-            ->where('server_id', $server->id)
-            ->where('sampled_at', '>=', $from)
-            ->where('sampled_at', '<=', $to)
-            ->orderBy('sampled_at')
-            ->limit(5000)
-            ->get();
+        return match ($resolution) {
+            '5m' => 300,
+            '15m' => 900,
+            '30m' => 1800,
+            '1h' => 3600,
+            '6h' => 21600,
+            '1d' => 86400,
+            default => 60,
+        };
+    }
+
+    /**
+     * Agrégation SQL : ~quelques centaines de lignes, colonnes numériques uniquement.
+     *
+     * @return Collection<int, object>
+     */
+    private function loadAggregatedSeries(Server $server, Carbon $from, Carbon $to, int $bucketSeconds): Collection
+    {
+        $bucketSeconds = max(60, $bucketSeconds);
+        $driver = DB::connection()->getDriverName();
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $rows = DB::table('server_metric_samples')
+                ->selectRaw('FLOOR(UNIX_TIMESTAMP(sampled_at) / ?) * ? as bucket_ts', [$bucketSeconds, $bucketSeconds])
+                ->selectRaw('AVG(cpu_percent) as cpu_percent')
+                ->selectRaw('AVG(cpu_steal_percent) as cpu_steal_percent')
+                ->selectRaw('AVG(memory_percent) as memory_percent')
+                ->selectRaw('AVG(swap_percent) as swap_percent')
+                ->selectRaw('AVG(disk_percent) as disk_percent')
+                ->selectRaw('AVG(load_1) as load_1')
+                ->selectRaw('AVG(load_5) as load_5')
+                ->selectRaw('AVG(load_15) as load_15')
+                ->where('server_id', $server->id)
+                ->where('sampled_at', '>=', $from)
+                ->where('sampled_at', '<=', $to)
+                ->groupBy('bucket_ts')
+                ->orderBy('bucket_ts')
+                ->limit(self::MAX_CHART_POINTS)
+                ->get();
+
+            return $rows->map(function (object $row) {
+                $row->bucket_at = Carbon::createFromTimestamp((int) $row->bucket_ts)->toDateTimeString();
+
+                return $row;
+            });
+        }
+
+        // SQLite / tests : fallback PHP sans payload.
+        return $this->aggregateInPhp(
+            ServerMetricSample::query()
+                ->where('server_id', $server->id)
+                ->where('sampled_at', '>=', $from)
+                ->where('sampled_at', '<=', $to)
+                ->orderBy('sampled_at')
+                ->limit(5000)
+                ->get([
+                    'sampled_at',
+                    'cpu_percent',
+                    'cpu_steal_percent',
+                    'memory_percent',
+                    'swap_percent',
+                    'disk_percent',
+                    'load_1',
+                    'load_5',
+                    'load_15',
+                ]),
+            $bucketSeconds
+        );
     }
 
     /**
      * @param  Collection<int, ServerMetricSample>  $samples
-     * @return array<string, array{categories: list<string>, values: list<float|null>, avg: ?float, min: ?float, max: ?float}>
+     * @return Collection<int, object>
      */
-    private function buildSeries(Collection $samples, string $resolution): array
+    private function aggregateInPhp(Collection $samples, int $bucketSeconds): Collection
     {
-        $buckets = $this->bucketSamples($samples, $resolution);
+        $buckets = [];
 
+        foreach ($samples as $sample) {
+            $ts = $sample->sampled_at?->timestamp ?? 0;
+            $key = (int) floor($ts / $bucketSeconds);
+
+            if (! isset($buckets[$key])) {
+                $buckets[$key] = [
+                    'at' => $ts,
+                    'n' => 0,
+                    'cpu_percent' => 0.0,
+                    'cpu_steal_percent' => 0.0,
+                    'memory_percent' => 0.0,
+                    'swap_percent' => 0.0,
+                    'disk_percent' => 0.0,
+                    'load_1' => 0.0,
+                    'load_5' => 0.0,
+                    'load_15' => 0.0,
+                ];
+            }
+
+            $buckets[$key]['n']++;
+            $buckets[$key]['cpu_percent'] += (float) ($sample->cpu_percent ?? 0);
+            $buckets[$key]['cpu_steal_percent'] += (float) ($sample->cpu_steal_percent ?? 0);
+            $buckets[$key]['memory_percent'] += (float) ($sample->memory_percent ?? 0);
+            $buckets[$key]['swap_percent'] += (float) ($sample->swap_percent ?? 0);
+            $buckets[$key]['disk_percent'] += (float) ($sample->disk_percent ?? 0);
+            $buckets[$key]['load_1'] += (float) ($sample->load_1 ?? 0);
+            $buckets[$key]['load_5'] += (float) ($sample->load_5 ?? 0);
+            $buckets[$key]['load_15'] += (float) ($sample->load_15 ?? 0);
+        }
+
+        ksort($buckets);
+        $buckets = array_slice($buckets, 0, self::MAX_CHART_POINTS, true);
+
+        return collect($buckets)->map(function (array $b) {
+            $n = max(1, $b['n']);
+
+            return (object) [
+                'bucket_at' => Carbon::createFromTimestamp($b['at'])->toDateTimeString(),
+                'cpu_percent' => $b['cpu_percent'] / $n,
+                'cpu_steal_percent' => $b['cpu_steal_percent'] / $n,
+                'memory_percent' => $b['memory_percent'] / $n,
+                'swap_percent' => $b['swap_percent'] / $n,
+                'disk_percent' => $b['disk_percent'] / $n,
+                'load_1' => $b['load_1'] / $n,
+                'load_5' => $b['load_5'] / $n,
+                'load_15' => $b['load_15'] / $n,
+            ];
+        })->values();
+    }
+
+    /**
+     * @param  Collection<int, object>  $rows
+     * @return array<string, mixed>
+     */
+    private function seriesFromAggregatedRows(Collection $rows): array
+    {
         $categories = [];
         $cpu = [];
         $steal = [];
@@ -104,16 +228,17 @@ final class ServerMetricsService
         $load5 = [];
         $load15 = [];
 
-        foreach ($buckets as $bucket) {
-            $categories[] = UserTimezone::format($bucket['at'], 'd/m H:i');
-            $cpu[] = $bucket['cpu_percent'];
-            $steal[] = $bucket['cpu_steal_percent'];
-            $memory[] = $bucket['memory_percent'];
-            $swap[] = $bucket['swap_percent'];
-            $disk[] = $bucket['disk_percent'];
-            $load1[] = $bucket['load_1'];
-            $load5[] = $bucket['load_5'];
-            $load15[] = $bucket['load_15'];
+        foreach ($rows as $row) {
+            $at = Carbon::parse((string) $row->bucket_at);
+            $categories[] = UserTimezone::format($at, 'd/m H:i');
+            $cpu[] = $this->nullableRound($row->cpu_percent ?? null);
+            $steal[] = $this->nullableRound($row->cpu_steal_percent ?? null);
+            $memory[] = $this->nullableRound($row->memory_percent ?? null);
+            $swap[] = $this->nullableRound($row->swap_percent ?? null);
+            $disk[] = $this->nullableRound($row->disk_percent ?? null);
+            $load1[] = $this->nullableRound($row->load_1 ?? null, 3);
+            $load5[] = $this->nullableRound($row->load_5 ?? null, 3);
+            $load15[] = $this->nullableRound($row->load_15 ?? null, 3);
         }
 
         return [
@@ -133,46 +258,135 @@ final class ServerMetricsService
         ];
     }
 
-    /**
-     * @param  Collection<int, ServerMetricSample>  $samples
-     * @return list<array<string, mixed>>
-     */
-    private function bucketSamples(Collection $samples, string $resolution): array
+    private function nullableRound(mixed $value, int $precision = 2): ?float
     {
-        if ($samples->isEmpty()) {
-            return [];
+        if ($value === null) {
+            return null;
         }
 
-        $seconds = match ($resolution) {
-            '5m' => 300,
-            '1h' => 3600,
-            default => 60,
-        };
+        return round((float) $value, $precision);
+    }
 
-        $buckets = [];
+    private function loadLatestSample(Server $server): ?ServerMetricSample
+    {
+        return ServerMetricSample::query()
+            ->where('server_id', $server->id)
+            ->orderByDesc('sampled_at')
+            ->limit(1)
+            ->first();
+    }
+
+    /**
+     * Réseau : sous-échantillon espacé (évite de parser 5000 payloads processus).
+     *
+     * @return array<string, mixed>
+     */
+    private function buildNetworkSeriesSparse(Server $server, Carbon $from, Carbon $to, int $bucketSeconds): array
+    {
+        $empty = [
+            'categories' => [],
+            'rx_kbps' => [],
+            'tx_kbps' => [],
+            'tcp_connections' => [],
+            'avg_rx' => null,
+            'avg_tx' => null,
+        ];
+
+        $bucketSeconds = max(60, $bucketSeconds);
+        $driver = DB::connection()->getDriverName();
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $ids = DB::table('server_metric_samples')
+                ->selectRaw('MIN(id) as id')
+                ->where('server_id', $server->id)
+                ->where('sampled_at', '>=', $from)
+                ->where('sampled_at', '<=', $to)
+                ->groupByRaw('FLOOR(UNIX_TIMESTAMP(sampled_at) / ?)', [$bucketSeconds])
+                ->orderBy('id')
+                ->limit(self::MAX_CHART_POINTS)
+                ->pluck('id');
+
+            if ($ids->count() < 2) {
+                return $empty;
+            }
+
+            $samples = ServerMetricSample::query()
+                ->whereIn('id', $ids)
+                ->orderBy('sampled_at')
+                ->get(['sampled_at', 'payload']);
+        } else {
+            $samples = ServerMetricSample::query()
+                ->where('server_id', $server->id)
+                ->where('sampled_at', '>=', $from)
+                ->where('sampled_at', '<=', $to)
+                ->orderBy('sampled_at')
+                ->limit(self::MAX_CHART_POINTS)
+                ->get(['sampled_at', 'payload']);
+        }
+
+        if ($samples->count() < 2) {
+            return $empty;
+        }
+
+        $categories = [];
+        $rxRates = [];
+        $txRates = [];
+        $tcpSeries = [];
+        $prev = null;
 
         foreach ($samples as $sample) {
-            $ts = $sample->sampled_at?->timestamp ?? 0;
-            $key = (int) floor($ts / $seconds);
+            $sampledAt = $sample->sampled_at instanceof Carbon
+                ? $sample->sampled_at
+                : Carbon::parse((string) $sample->sampled_at);
 
-            if (! isset($buckets[$key])) {
-                $buckets[$key] = [
-                    'at' => $sample->sampled_at,
-                    'cpu_percent' => $sample->cpu_percent,
-                    'cpu_steal_percent' => $sample->cpu_steal_percent,
-                    'memory_percent' => $sample->memory_percent,
-                    'swap_percent' => $sample->swap_percent,
-                    'disk_percent' => $sample->disk_percent,
-                    'load_1' => $sample->load_1,
-                    'load_5' => $sample->load_5,
-                    'load_15' => $sample->load_15,
-                ];
+            $payload = $sample->payload ?? null;
+            if (is_string($payload)) {
+                $payload = json_decode($payload, true) ?: [];
             }
+            if (! is_array($payload)) {
+                $payload = [];
+            }
+
+            $network = $payload['network'] ?? [];
+            $rx = 0;
+            $tx = 0;
+
+            if (is_array($network)) {
+                foreach ($network as $iface) {
+                    if (! is_array($iface)) {
+                        continue;
+                    }
+                    $rx += (int) ($iface['rx'] ?? 0);
+                    $tx += (int) ($iface['tx'] ?? 0);
+                }
+            }
+
+            $tcp = (int) ($payload['tcp_connections'] ?? 0);
+
+            if ($prev !== null) {
+                $elapsed = max(1, $sampledAt->diffInSeconds($prev['at']));
+                if ($elapsed <= $bucketSeconds * 3) {
+                    $categories[] = UserTimezone::format($sampledAt, 'd/m H:i');
+                    $rxRates[] = round(max(0, ($rx - $prev['rx']) * 8 / $elapsed / 1000), 2);
+                    $txRates[] = round(max(0, ($tx - $prev['tx']) * 8 / $elapsed / 1000), 2);
+                    $tcpSeries[] = $tcp > 0 ? $tcp : null;
+                }
+            }
+
+            $prev = ['at' => $sampledAt, 'rx' => $rx, 'tx' => $tx];
         }
 
-        ksort($buckets);
+        $numericRx = array_values(array_filter($rxRates, fn ($v) => $v !== null));
+        $numericTx = array_values(array_filter($txRates, fn ($v) => $v !== null));
 
-        return array_values($buckets);
+        return [
+            'categories' => $categories,
+            'rx_kbps' => $rxRates,
+            'tx_kbps' => $txRates,
+            'tcp_connections' => $tcpSeries,
+            'avg_rx' => $numericRx === [] ? null : round(array_sum($numericRx) / count($numericRx), 2),
+            'avg_tx' => $numericTx === [] ? null : round(array_sum($numericTx) / count($numericTx), 2),
+        ];
     }
 
     /**
@@ -194,21 +408,18 @@ final class ServerMetricsService
     }
 
     /**
-     * @param  Collection<int, ServerMetricSample>  $samples
-     * @return array<string, float|null>
+     * @return array<string, float|int|null>
      */
-    private function computeStats(Collection $samples): array
+    private function computeStatsFromLatest(?ServerMetricSample $latest, int $sampleCount): array
     {
-        if ($samples->isEmpty()) {
-            return ['uptime_seconds' => null];
+        if ($latest === null) {
+            return ['uptime_seconds' => null, 'samples' => $sampleCount, 'tcp_connections' => 0];
         }
 
-        $last = $samples->last();
-
         return [
-            'uptime_seconds' => $last?->uptime_seconds !== null ? (float) $last->uptime_seconds : null,
-            'samples' => $samples->count(),
-            'tcp_connections' => (int) (($last?->payload ?? [])['tcp_connections'] ?? 0),
+            'uptime_seconds' => $latest->uptime_seconds !== null ? (float) $latest->uptime_seconds : null,
+            'samples' => $sampleCount,
+            'tcp_connections' => (int) (($latest->payload ?? [])['tcp_connections'] ?? 0),
         ];
     }
 
@@ -255,78 +466,6 @@ final class ServerMetricsService
         $processes = ($latest->payload ?? [])['processes'] ?? [];
 
         return is_array($processes) ? array_slice($processes, 0, 20) : [];
-    }
-
-    /**
-     * @param  Collection<int, ServerMetricSample>  $samples
-     * @return array<string, mixed>
-     */
-    private function buildNetworkSeries(Collection $samples, string $resolution): array
-    {
-        if ($samples->count() < 2) {
-            return [
-                'categories' => [],
-                'rx_kbps' => [],
-                'tx_kbps' => [],
-                'tcp_connections' => [],
-                'avg_rx' => null,
-                'avg_tx' => null,
-            ];
-        }
-
-        $seconds = match ($resolution) {
-            '5m' => 300,
-            '1h' => 3600,
-            default => 60,
-        };
-
-        $categories = [];
-        $rxRates = [];
-        $txRates = [];
-        $tcpSeries = [];
-        $prev = null;
-
-        foreach ($samples as $sample) {
-            $network = ($sample->payload ?? [])['network'] ?? [];
-            $rx = 0;
-            $tx = 0;
-
-            if (is_array($network)) {
-                foreach ($network as $iface) {
-                    if (! is_array($iface)) {
-                        continue;
-                    }
-                    $rx += (int) ($iface['rx'] ?? 0);
-                    $tx += (int) ($iface['tx'] ?? 0);
-                }
-            }
-
-            $tcp = (int) (($sample->payload ?? [])['tcp_connections'] ?? 0);
-
-            if ($prev !== null && $sample->sampled_at && $prev['at']) {
-                $elapsed = max(1, $sample->sampled_at->diffInSeconds($prev['at']));
-                if ($elapsed <= $seconds * 2) {
-                    $categories[] = UserTimezone::format($sample->sampled_at, 'd/m H:i');
-                    $rxRates[] = round(max(0, ($rx - $prev['rx']) * 8 / $elapsed / 1000), 2);
-                    $txRates[] = round(max(0, ($tx - $prev['tx']) * 8 / $elapsed / 1000), 2);
-                    $tcpSeries[] = $tcp > 0 ? $tcp : null;
-                }
-            }
-
-            $prev = ['at' => $sample->sampled_at, 'rx' => $rx, 'tx' => $tx];
-        }
-
-        $numericRx = array_values(array_filter($rxRates, fn ($v) => $v !== null));
-        $numericTx = array_values(array_filter($txRates, fn ($v) => $v !== null));
-
-        return [
-            'categories' => $categories,
-            'rx_kbps' => $rxRates,
-            'tx_kbps' => $txRates,
-            'tcp_connections' => $tcpSeries,
-            'avg_rx' => $numericRx === [] ? null : round(array_sum($numericRx) / count($numericRx), 2),
-            'avg_tx' => $numericTx === [] ? null : round(array_sum($numericTx) / count($numericTx), 2),
-        ];
     }
 
     /**

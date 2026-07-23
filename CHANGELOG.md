@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.22 - 2026-07-23
+
+### Perf métriques serveur (preset 3D / 7D)
+
+- **Cause** : clic `3D` chargeait jusqu’à 5000 lignes avec gros JSON `payload` (processus…) → Livewire très lent
+- **Fix** : agrégation SQL par bucket (sans payload) + 1 snapshot latest pour partitions/processus
+- **Réseau** : 1 payload par bucket au lieu de toute la période
+- Résolutions : `3d`→15m, `7d`→30m (graphiques plus légers)
+
 ## v4.0.21 - 2026-07-17
 
 ### Test pipeline MAJ

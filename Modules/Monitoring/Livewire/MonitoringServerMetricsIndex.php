@@ -35,8 +35,9 @@ final class MonitoringServerMetricsIndex extends Component
 
     public function setPreset(string $preset): void
     {
-        $allowed = ['1h', '6h', '24h', '3d', '7d', '30d', '3M', '6M', '1Y'];
-        $this->timePreset = in_array(strtolower($preset), array_map('strtolower', $allowed), true) ? strtolower($preset) : '24h';
+        $allowed = ['1h', '6h', '24h', '3d', '7d', '30d', '3m', '6m', '1y'];
+        $normalized = strtolower($preset);
+        $this->timePreset = in_array($normalized, $allowed, true) ? $normalized : '24h';
     }
 
     public function setTab(string $tab): void
@@ -54,7 +55,7 @@ final class MonitoringServerMetricsIndex extends Component
             'dashboard' => $dashboard,
             'timePreset' => $this->timePreset,
             'activeTab' => $this->activeTab,
-            'presets' => ['1h', '6h', '24h', '3d', '7d', '30d', '3M', '6M', '1Y'],
+            'presets' => ['1h', '6h', '24h', '3d', '7d', '30d', '3m', '6m', '1y'],
             'timezoneFooter' => UserTimezone::label(),
             'chartPayload' => [
                 'series' => $dashboard['series'],
