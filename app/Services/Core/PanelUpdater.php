@@ -9,6 +9,7 @@ use App\Jobs\ApplyPanelUpdateJob;
 use App\Models\UpdateHistory;
 use App\Support\InstalledVersion;
 use App\Support\PanelUpdateIntegrity;
+use App\Support\VersionComparator;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -21,6 +22,7 @@ final class PanelUpdater
         private readonly UpdateManager $updateManager,
         private readonly InstalledVersion $installedVersion,
         private readonly PanelUpdateIntegrity $updateIntegrity,
+        private readonly VersionComparator $versionComparator,
     ) {}
 
     /**
@@ -68,7 +70,26 @@ final class PanelUpdater
         $this->ensureQueueWorkerRunning();
 
         $fromVersion = $this->installedVersion->current();
-        $toVersion = (string) ($check['latest'] ?? $fromVersion);
+        $toVersion = ltrim((string) ($check['latest'] ?? ''), 'v');
+
+        // Anti-downgrade : jamais checkout une version plus ancienne (release GitHub stale).
+        if ($toVersion === '' || ! $this->versionComparator->isNewer($toVersion, $fromVersion)) {
+            if (($check['commits_behind'] ?? 0) > 0) {
+                $gitTag = $this->installedVersion->latestGitTag();
+                if ($gitTag !== null && $this->versionComparator->isNewer($gitTag, $fromVersion)) {
+                    $toVersion = $gitTag;
+                } else {
+                    // Sync sur origin/main (dernier code), pas un vieux tag.
+                    $toVersion = 'main';
+                }
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Aucune mise à jour plus récente que v'.$fromVersion.'.',
+                    'history_id' => null,
+                ];
+            }
+        }
 
         $history = UpdateHistory::query()->create([
             'from_version' => $fromVersion,
@@ -189,7 +210,7 @@ final class PanelUpdater
                 ]);
 
                 Log::warning('Panel update failed', ['output' => $output]);
-                $this->finalizePanelHttp();
+                $this->finalizePanelHttp(heavy: true);
 
                 return;
             }
@@ -202,7 +223,8 @@ final class PanelUpdater
                 'completed_at' => now(),
             ]);
 
-            $this->finalizePanelHttp();
+            // Le script a déjà fait update-recover — finalize léger (caches + unlock).
+            $this->finalizePanelHttp(heavy: false);
             $this->restartQueueWorkerDeferred();
         } catch (Throwable $exception) {
             Log::error('Panel update exception', ['message' => $exception->getMessage()]);
@@ -215,7 +237,7 @@ final class PanelUpdater
                 'completed_at' => now(),
             ]);
 
-            $this->finalizePanelHttp();
+            $this->finalizePanelHttp(heavy: true);
         }
     }
 
@@ -330,25 +352,28 @@ final class PanelUpdater
     /**
      * Rétablit le panel HTTP après MAJ (évite 502 Bad Gateway / mode maintenance bloqué).
      * Public : aussi appelé depuis ApplyPanelUpdateJob::failed() (timeout / worker tué).
+     *
+     * @param  bool  $heavy  true = update-recover complet (npm/composer) ; false = caches + unlock seulement
      */
-    public function finalizePanelHttp(): void
+    public function finalizePanelHttp(bool $heavy = true): void
     {
         try {
             Artisan::call('up');
-            Artisan::call('obiora:post-deploy', ['--skip-migrate' => true]);
+            if ($heavy) {
+                Artisan::call('obiora:post-deploy', ['--skip-migrate' => true]);
+            }
             Artisan::call('optimize:clear');
         } catch (Throwable $exception) {
             Log::warning('Récupération artisan post-MAJ partielle', ['message' => $exception->getMessage()]);
         }
 
-        if (PHP_OS_FAMILY === 'Linux') {
+        if ($heavy && PHP_OS_FAMILY === 'Linux') {
             $script = base_path('install/lib/update-recover.sh');
 
             if (is_file($script)) {
                 try {
-                    // npm rebuild peut prendre jusqu'à 15 min — aligné sur update-panel.sh
                     $this->executor->run(
-                        'sudo -n /bin/bash '.escapeshellarg($script).' 2>&1',
+                        'sudo -n env OBIORA_RECOVER_LIGHT=0 /bin/bash '.escapeshellarg($script).' 2>&1',
                         ['timeout' => 1000],
                     );
                 } catch (Throwable $exception) {

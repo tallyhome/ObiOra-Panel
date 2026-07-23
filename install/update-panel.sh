@@ -50,13 +50,18 @@ on_update_error() {
 
 finalize_panel_http() {
     UPDATE_RECOVERING=1
+    local light="${1:-0}"
     if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/update-recover.sh" ]]; then
-        bash "${OBIORA_INSTALL_DIR}/install/lib/update-recover.sh" || true
+        if [[ "${light}" == "1" ]]; then
+            OBIORA_RECOVER_LIGHT=1 bash "${OBIORA_INSTALL_DIR}/install/lib/update-recover.sh" || true
+        else
+            bash "${OBIORA_INSTALL_DIR}/install/lib/update-recover.sh" || true
+        fi
     else
         sudo -u "${OBIORA_USER}" php artisan up >/dev/null 2>&1 || true
         clear_panel_caches
     fi
-    release_update_lock
+    # Ne pas libérer le lock ici : gardé jusqu'à UPDATE_COMPLETED (évite course watchdog).
 }
 
 # SIGTERM/timeout/kill : toujours tenter le recover (évite 500 login durable).
@@ -149,6 +154,26 @@ fi
 
 checkout_target_release() {
     local tag="$1"
+    local current
+
+    current="$(tr -d ' \n\r' < VERSION 2>/dev/null || true)"
+    current="${current#v}"
+
+    if [[ "${tag}" == "main" ]]; then
+        echo "OK: alignement forcé sur origin/main (cible main)"
+        git reset --hard origin/main
+        return
+    fi
+
+    # Anti-downgrade : jamais revenir à un tag plus ancien que VERSION actuelle.
+    if [[ -n "${tag}" && -n "${current}" && "${tag}" != "${current}" ]]; then
+        local lowest
+        lowest="$(printf '%s\n%s\n' "${tag}" "${current}" | sort -V | head -1)"
+        if [[ "${lowest}" == "${tag}" ]]; then
+            echo "WARN: refus downgrade v${current} -> v${tag} — utilisation du dernier tag"
+            tag=""
+        fi
+    fi
 
     if [[ -z "${tag}" ]]; then
         tag="$(git tag -l 'v*' --sort=-v:refname 2>/dev/null | head -1 || true)"
@@ -159,6 +184,17 @@ checkout_target_release() {
         echo "WARN: aucun tag semver — fallback origin/main"
         git reset --hard origin/main
         return
+    fi
+
+    # Re-check anti-downgrade après résolution du dernier tag
+    if [[ -n "${current}" && "${tag}" != "${current}" ]]; then
+        local lowest2
+        lowest2="$(printf '%s\n%s\n' "${tag}" "${current}" | sort -V | head -1)"
+        if [[ "${lowest2}" == "${tag}" ]]; then
+            echo "WARN: dernier tag v${tag} <= current v${current} — origin/main"
+            git reset --hard origin/main
+            return
+        fi
     fi
 
     local ref="v${tag}"
@@ -205,6 +241,11 @@ echo "[3/8] composer..."
 progress 42 "Installation des dépendances PHP (composer)…"
 sudo -u "${OBIORA_USER}" env PATH=/usr/local/bin:/usr/bin:/bin \
     composer install --no-dev --optimize-autoloader --no-interaction
+if [[ -f VERSION ]]; then
+    install -d -m 775 -o "${OBIORA_USER}" -g "${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}/storage/app"
+    cp VERSION "${OBIORA_INSTALL_DIR}/storage/app/.composer-install-version"
+    chown "${OBIORA_USER}:${OBIORA_GROUP}" "${OBIORA_INSTALL_DIR}/storage/app/.composer-install-version" 2>/dev/null || true
+fi
 
 echo "[3b/8] migrations base de données…"
 progress 46 "Application des migrations…"
@@ -358,15 +399,15 @@ if [[ -f "${OBIORA_INSTALL_DIR}/install/lib/systemd.sh" ]]; then
     ensure_mariadb_oom_protection || true
 fi
 
-finalize_panel_http
+# Recover léger en fin de succès (composer/npm déjà faits) — évite double timeout.
+finalize_panel_http 1
 
-# Smoke test : login doit répondre (évite de marquer completed avec panel 500).
+# Smoke test informatif (ne reset PAS les flags EXIT — sinon mark failed à tort).
 login_code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 http://127.0.0.1/login 2>/dev/null || echo '000')"
-if [[ ! "${login_code}" =~ ^(200|301|302)$ ]]; then
-    echo "WARN: login HTTP ${login_code} après MAJ — recover renforcé…" >&2
-    UPDATE_RECOVERING=0
-    UPDATE_COMPLETED=0
-    bash "${OBIORA_INSTALL_DIR}/install/lib/update-recover.sh" || true
+health_code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 8 http://127.0.0.1/panel-health 2>/dev/null || echo '000')"
+if [[ ! "${login_code}" =~ ^(200|301|302)$ ]] && [[ "${health_code}" != "200" ]]; then
+    echo "WARN: login HTTP ${login_code} / health ${health_code} — recover léger supplémentaire…" >&2
+    OBIORA_RECOVER_LIGHT=1 bash "${OBIORA_INSTALL_DIR}/install/lib/update-recover.sh" || true
     login_code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 http://127.0.0.1/login 2>/dev/null || echo '000')"
 fi
 
@@ -375,12 +416,12 @@ trap - ERR
 trap - EXIT
 release_update_lock
 
-if [[ "${login_code}" =~ ^(200|301|302)$ ]]; then
+if [[ "${login_code}" =~ ^(200|301|302)$ ]] || [[ "${health_code}" == "200" ]]; then
     progress 100 "Mise à jour terminée avec succès"
     mark_update_complete completed "Mise à jour terminée avec succès"
     echo "OK: panel mis a jour."
 else
-    progress 100 "MAJ terminée mais login HTTP ${login_code} — vérifiez update-recover"
-    mark_update_complete completed "MAJ terminée — login HTTP ${login_code} (vérifier recover)"
+    progress 100 "MAJ code OK — vérifier login HTTP ${login_code}"
+    mark_update_complete completed "MAJ terminée — login HTTP ${login_code} (code à jour)"
     echo "WARN: panel mis a jour mais login HTTP ${login_code}" >&2
 fi

@@ -42,14 +42,25 @@ final class UpdateManager
         $remote = Cache::remember($cacheKey, now()->addMinutes(10), fn () => $this->fetchLatestRelease());
 
         $latest = $remote['latest'];
+        $gitTag = $this->installedVersion->latestGitTag();
+
+        // Max semver entre release API et tags git locaux (évite latest stale v2.x).
+        if ($gitTag !== null && ($latest === null || $this->versionComparator->isNewer($gitTag, $latest))) {
+            $latest = $gitTag;
+            $remote['changelog_url'] ??= 'https://github.com/'.config('obiora.github.repository').'/releases/tag/v'.$gitTag;
+        }
+
+        $commitsBehind = $commitsBehind ?? 0;
         $availableByVersion = $latest !== null && $this->versionComparator->isNewer($latest, $current);
-        $availableByGit = ($commitsBehind ?? 0) > 0;
-        $available = $availableByVersion || $availableByGit;
+
+        // Commits behind sur main : OK seulement si la cible n'est pas un downgrade.
+        $availableByGit = $commitsBehind > 0
+            && ($latest === null || ! $this->versionComparator->isNewer($current, $latest));
 
         return [
             'current' => $current,
             'latest' => $latest,
-            'available' => $available,
+            'available' => $availableByVersion || $availableByGit,
             'changelog_url' => $remote['changelog_url'],
             'commits_behind' => $commitsBehind,
             'error' => $remote['error'],
@@ -253,7 +264,7 @@ final class UpdateManager
                     'X-GitHub-Api-Version' => '2022-11-28',
                 ])
                 ->get("{$baseUrl}/repos/{$repository}/tags", [
-                    'per_page' => 30,
+                    'per_page' => 100,
                 ]);
 
             if (! $response->successful()) {

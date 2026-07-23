@@ -47,9 +47,11 @@ final class ApplyPanelUpdateJob implements ShouldQueue
                 'completed_at' => now(),
             ]);
 
-        // Timeout / worker tué : le shell EXIT peut ne pas tourner — forcer update-recover.
+        // Timeout / worker tué : recover seulement si le lock MAJ est encore là.
         try {
-            app(PanelUpdater::class)->finalizePanelHttp();
+            if (is_file(storage_path('framework/obiora-update.lock'))) {
+                app(PanelUpdater::class)->finalizePanelHttp(heavy: true);
+            }
         } catch (Throwable $recoverException) {
             report($recoverException);
         }

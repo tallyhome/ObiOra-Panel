@@ -148,6 +148,12 @@ fi
 
 cd "${OBIORA_INSTALL_DIR}"
 
+# Ne pas interférer pendant une MAJ en cours.
+if [[ -f "${OBIORA_INSTALL_DIR}/storage/framework/obiora-update.lock" ]]; then
+    log "MAJ en cours (obiora-update.lock) — skip"
+    exit 0
+fi
+
 if panel_ok; then
     exit 0
 fi

@@ -70,12 +70,15 @@ final class PanelUpdateIntegrityTest extends TestCase
         $this->assertStringContainsString('vite build --outDir', $script);
         $this->assertStringContainsString('on_update_exit', $script);
         $this->assertStringContainsString('UPDATE_COMPLETED', $script);
-        // Ne plus supprimer public/build avant le succès du build.
+        $this->assertStringContainsString('refus downgrade', $script);
+        $this->assertStringContainsString('.composer-install-version', $script);
+        $this->assertStringContainsString('OBIORA_RECOVER_LIGHT=1', $script);
         $this->assertStringNotContainsString('prepare_frontend_build_dir', $script);
 
         $recover = file_get_contents(base_path('install/lib/update-recover.sh'));
         $this->assertNotFalse($recover);
         $this->assertStringContainsString('disable_broadcast_if_reverb_down', $recover);
+        $this->assertStringContainsString('OBIORA_RECOVER_LIGHT', $recover);
         $this->assertStringContainsString('vite build --outDir', $recover);
     }
 

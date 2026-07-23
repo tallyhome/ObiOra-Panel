@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.23 - 2026-07-23
+
+### MAJ panel fiable (anti-bug / anti-downgrade)
+
+- **Cause** : release GitHub « latest » restée à v2.1.38 alors que les tags sont en 4.0.x → risque de checkout downgrade ; double composer/recover → timeouts
+- **Détection** : max(semver) tags + releases ; refus de proposer une version plus ancienne
+- **Checkout** : anti-downgrade dans `update-panel.sh` ; cible `main` si sync git sans tag plus récent
+- **Recover** : mode `OBIORA_RECOVER_LIGHT=1` en fin de succès (plus de 2e npm/composer) ; stamp `.composer-install-version`
+- **Smoke** : n’invalide plus les flags EXIT ; watchdog ignore `obiora-update.lock`
+- **Job failed** : recover lourd seulement si le lock MAJ est encore présent
+
 ## v4.0.22 - 2026-07-23
 
 ### Perf métriques serveur (preset 3D / 7D)

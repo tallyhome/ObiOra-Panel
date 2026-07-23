@@ -185,6 +185,28 @@ if [[ -f "${OBIORA_INSTALL_DIR}/agent/scripts/mysql-ensure-admin-cnf.sh" ]]; the
 fi
 
 echo "[recover] Dépendances PHP et assets frontend…"
+if [[ "${OBIORA_RECOVER_LIGHT:-0}" == "1" ]]; then
+    echo "[recover] mode léger — skip composer/npm (déjà faits par update-panel)"
+    run_artisan up
+    run_artisan optimize:clear
+    run_artisan route:clear
+    run_artisan view:clear
+    run_artisan config:clear
+    fix_filesystem_permissions
+    if [[ "${EUID}" -eq 0 ]]; then
+        for svc in php-fpm php8.3-fpm php8.2-fpm php81-php-fpm; do
+            if systemctl is-active --quiet "${svc}" 2>/dev/null; then
+                systemctl reload "${svc}" 2>/dev/null && break
+            fi
+        done
+        systemctl reload nginx 2>/dev/null || true
+    fi
+    login_code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 8 http://127.0.0.1/login 2>/dev/null || echo '000')"
+    echo "[recover] login HTTP ${login_code} (light)"
+    echo "[recover] OK — panel HTTP rétabli (light)"
+    exit 0
+fi
+
 ensure_composer_autoload
 ensure_frontend_manifest || true
 disable_broadcast_if_reverb_down
