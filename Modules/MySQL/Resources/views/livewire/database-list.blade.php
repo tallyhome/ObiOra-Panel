@@ -4,8 +4,13 @@
             <h1 class="h3 mb-1">Bases de données</h1>
             <p class="text-muted mb-0">Serveur : <strong>{{ $serverName }}</strong></p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-wrap">
             <button wire:click="refresh" class="btn btn-outline-secondary btn-sm" wire:loading.attr="disabled">Actualiser</button>
+            <button type="button" wire:click="openPhpMyAdmin" class="btn btn-outline-primary btn-sm" wire:loading.attr="disabled"
+                title="{{ $phpMyAdmin['message'] ?? 'phpMyAdmin' }}">
+                <span wire:loading.remove wire:target="openPhpMyAdmin">phpMyAdmin</span>
+                <span wire:loading wire:target="openPhpMyAdmin">Ouverture…</span>
+            </button>
             <a href="{{ route('databases.create') }}" class="btn btn-primary btn-sm">Créer une base</a>
         </div>
     </div>

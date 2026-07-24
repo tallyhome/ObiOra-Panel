@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/).
 
+## v4.0.24 - 2026-07-24
+
+### Bases de données — phpMyAdmin + wizard cPanel
+
+- **phpMyAdmin** : package marketplace Docker `phpmyadmin:latest` (port 8099), scripts agent ensure/status, service panel
+- **UI** : boutons « phpMyAdmin » sur liste et détail (auto-install / démarrage si besoin)
+- **Création BDD** : assistant 3 étapes style cPanel (base → utilisateur/mot de passe → confirmation + privilèges)
+- Config : `OBIORA_PHPMYADMIN_PORT` / `OBIORA_PHPMYADMIN_URL`
+
 ## v4.0.23 - 2026-07-23
 
 ### MAJ panel fiable (anti-bug / anti-downgrade)

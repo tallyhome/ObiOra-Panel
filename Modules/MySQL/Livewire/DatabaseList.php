@@ -7,6 +7,7 @@ namespace Modules\MySQL\Livewire;
 use App\Models\ManagedDatabase;
 use App\Services\Core\ServerManager;
 use App\Services\Database\DatabaseManager;
+use App\Services\Database\PhpMyAdminService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
@@ -24,20 +25,41 @@ final class DatabaseList extends Component
 
     public string $serverName = '';
 
-    public function mount(DatabaseManager $databaseManager, ServerManager $serverManager): void
+    /** @var array{status: string, port: int, url: ?string, message: string}|null */
+    public ?array $phpMyAdmin = null;
+
+    public function mount(DatabaseManager $databaseManager, ServerManager $serverManager, PhpMyAdminService $phpMyAdmin): void
     {
         $this->loadDatabases($databaseManager, $serverManager);
+        $this->phpMyAdmin = $phpMyAdmin->status($serverManager->getCurrentServer());
     }
 
     #[On('server-changed')]
-    public function onServerChanged(DatabaseManager $databaseManager, ServerManager $serverManager): void
+    public function onServerChanged(DatabaseManager $databaseManager, ServerManager $serverManager, PhpMyAdminService $phpMyAdmin): void
     {
         $this->loadDatabases($databaseManager, $serverManager);
+        $this->phpMyAdmin = $phpMyAdmin->status($serverManager->getCurrentServer());
     }
 
-    public function refresh(DatabaseManager $databaseManager, ServerManager $serverManager): void
+    public function refresh(DatabaseManager $databaseManager, ServerManager $serverManager, PhpMyAdminService $phpMyAdmin): void
     {
         $this->loadDatabases($databaseManager, $serverManager);
+        $this->phpMyAdmin = $phpMyAdmin->status($serverManager->getCurrentServer());
+    }
+
+    public function openPhpMyAdmin(PhpMyAdminService $phpMyAdmin, ServerManager $serverManager): void
+    {
+        $result = $phpMyAdmin->ensure($serverManager->getCurrentServer());
+        $this->phpMyAdmin = $phpMyAdmin->status($serverManager->getCurrentServer());
+
+        if (! $result['success'] || $result['url'] === null) {
+            $this->dispatch('notify', type: 'danger', message: $result['message']);
+
+            return;
+        }
+
+        $this->dispatch('open-url', url: $result['url']);
+        $this->dispatch('notify', type: 'success', message: $result['message']);
     }
 
     public function delete(int $databaseId, DatabaseManager $databaseManager): void

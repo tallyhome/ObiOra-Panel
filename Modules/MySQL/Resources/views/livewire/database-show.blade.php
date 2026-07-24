@@ -1,8 +1,14 @@
 <div>
-    <div class="mb-4">
-        <a href="{{ route('databases.index') }}" class="text-decoration-none small">&larr; Retour</a>
-        <h1 class="h3 mt-2 mb-0 font-monospace">{{ $database->name }}</h1>
-        <p class="text-muted mb-0">Serveur : {{ $database->server->name }}</p>
+    <div class="mb-4 d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <div>
+            <a href="{{ route('databases.index') }}" class="text-decoration-none small">&larr; Retour</a>
+            <h1 class="h3 mt-2 mb-0 font-monospace">{{ $database->name }}</h1>
+            <p class="text-muted mb-0">Serveur : {{ $database->server->name }}</p>
+        </div>
+        <button type="button" wire:click="openPhpMyAdmin" class="btn btn-outline-primary btn-sm" wire:loading.attr="disabled">
+            <span wire:loading.remove wire:target="openPhpMyAdmin">Ouvrir phpMyAdmin</span>
+            <span wire:loading wire:target="openPhpMyAdmin">Ouverture…</span>
+        </button>
     </div>
 
     <div class="row g-3">

@@ -30,6 +30,12 @@ document.addEventListener('livewire:init', () => {
     Livewire.on('notify', ({ type, message }) => {
         obioraToast(type, message);
     });
+
+    Livewire.on('open-url', ({ url }) => {
+        if (typeof url === 'string' && url !== '') {
+            window.open(url, '_blank', 'noopener,noreferrer');
+        }
+    });
 });
 
 obioraRegisterMonitoringChartHooks();

@@ -1,0 +1,18 @@
+{
+    "slug": "phpmyadmin",
+    "name": "phpMyAdmin",
+    "description": "Interface web MySQL/MariaDB (dernière version officielle Docker).",
+    "version": "latest",
+    "category": "database",
+    "scripts": {
+        "install": "install.sh",
+        "uninstall": "uninstall.sh"
+    },
+    "runtime": {
+        "type": "docker",
+        "container": "obiora-phpmyadmin",
+        "port": 8099,
+        "url": "http://{host}:8099",
+        "usage": "Connectez-vous avec l'utilisateur et le mot de passe de votre base ObiOra."
+    }
+}

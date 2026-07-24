@@ -50,6 +50,10 @@ return [
         'default_collation' => 'utf8mb4_unicode_ci',
         'default_host' => 'localhost',
         'reserved_names' => ['mysql', 'information_schema', 'performance_schema', 'sys', 'obiora_panel'],
+        /** Port hôte Docker phpMyAdmin (image officielle :latest). */
+        'phpmyadmin_port' => (int) env('OBIORA_PHPMYADMIN_PORT', 8099),
+        /** URL externe forcée (sinon auto : http://{host}:{port}). */
+        'phpmyadmin_url' => env('OBIORA_PHPMYADMIN_URL'),
     ],
 
     'docker' => [

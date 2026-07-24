@@ -25,6 +25,16 @@ final class DatabaseTest extends TestCase
         $this->actingAs($user)->get('/databases')->assertOk();
     }
 
+    public function test_authenticated_user_can_access_databases_create(): void
+    {
+        $this->seed();
+
+        $user = User::factory()->create(['is_active' => true]);
+        $user->assignRole('super-admin');
+
+        $this->actingAs($user)->get('/databases/create')->assertOk();
+    }
+
     public function test_managed_database_belongs_to_server(): void
     {
         $this->seed();
