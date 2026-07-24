@@ -9,8 +9,42 @@
 </p>
 
 <p align="center">
-  <strong>Version actuelle : v2.1.23</strong>
+  <strong>Version actuelle : v4.0.24</strong>
 </p>
+
+## Aperçu
+
+SeedBox Panel + MultiServer, monitoring VPS & sites web, hébergement, bases de données, Docker, Doctor & Suite, Crash Analyzer et Security.
+
+<p align="center">
+  <img src="docs/assets/promo/promo-systeme-reseaux.png" alt="ObiOra — Seedbox Panel MultiServer & Infrastructure" width="900">
+</p>
+
+<p align="center">
+  <img src="docs/assets/promo/promo-systeme-dashboard.png" alt="ObiOra — Dashboard MultiServer" width="900">
+</p>
+
+<p align="center">
+  <img src="docs/assets/promo/promo-systeme-modules.png" alt="ObiOra — Modules du système" width="720">
+</p>
+
+<p align="center">
+  <img src="docs/assets/promo/promo-systeme-security.png" alt="ObiOra — Security & Ops" width="900">
+</p>
+
+<details>
+<summary>Marketplace (apps gratuites)</summary>
+<br>
+<p align="center">
+  <img src="docs/assets/promo/promo-qbittorrent.png" alt="qBittorrent" width="280">
+  <img src="docs/assets/promo/promo-plex.png" alt="Plex" width="280">
+  <img src="docs/assets/promo/promo-jellyfin.png" alt="Jellyfin" width="280">
+</p>
+<p align="center">
+  <img src="docs/assets/promo/promo-filebrowser.png" alt="FileBrowser" width="280">
+  <img src="docs/assets/promo/promo-nextcloud.png" alt="Nextcloud" width="280">
+</p>
+</details>
 
 ## Stack
 
